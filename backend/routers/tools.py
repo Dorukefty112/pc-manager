@@ -272,12 +272,17 @@ def tool_get_logs(params: dict) -> str:
 
 
 def tool_get_deprem(params: dict) -> str:
-    import httpx
+    from .deprem import fetch_kandilli, fetch_afad
     try:
-        resp = httpx.get("http://localhost:8081/api/deprem/son", timeout=10)
-        return json.dumps(resp.json()[:5], ensure_ascii=False)
-    except Exception:
-        return json.dumps({"error": "deprem verisi alinamadi"}, ensure_ascii=False)
+        depremler = fetch_kandilli()
+        if not depremler:
+            depremler = fetch_afad()
+        if not depremler:
+            return json.dumps({"error": "deprem verisi alinamadi (Kandilli ve AFAD kullanilamiyor)"}, ensure_ascii=False)
+        depremler.sort(key=lambda d: d.datetime, reverse=True)
+        return json.dumps([d.to_dict() for d in depremler[:5]], ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": f"deprem verisi alinamadi: {str(e)}"}, ensure_ascii=False)
 
 
 def tool_system_summary(params: dict) -> str:

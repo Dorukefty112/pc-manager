@@ -18,12 +18,14 @@ export default function DepremUyari() {
   const [secili, setSecili] = useState(null)
   const [bildirim, setBildirim] = useState(true)
   const [yukleniyor, setYukleniyor] = useState(true)
+  const [hata, setHata] = useState(null)
   const [filtre, setFiltre] = useState('tum')
   const oncekiAnahtarlar = useRef(new Set())
 
   const fetchData = async () => {
     try {
       const data = await api('/api/deprem/son')
+      if (!Array.isArray(data)) throw new Error('Geçersiz veri')
       const sirali = data.sort((a, b) => {
         const riskA = RISK_SIRALAMA[a.risk_seviyesi] || 5
         const riskB = RISK_SIRALAMA[b.risk_seviyesi] || 5
@@ -31,8 +33,12 @@ export default function DepremUyari() {
         return `${b.tarih} ${b.saat}`.localeCompare(`${a.tarih} ${a.saat}`)
       })
       setDepremler(sirali)
+      setHata(null)
       setYukleniyor(false)
-    } catch {}
+    } catch (e) {
+      setHata('Deprem verileri alinamadi. Veri kaynagi su an erisilemez durumda.')
+      setYukleniyor(false)
+    }
   }
 
   useEffect(() => {
@@ -77,6 +83,13 @@ export default function DepremUyari() {
           </button>
         </div>
       </div>
+
+      {hata && (
+        <div className="mb-4 p-4 bg-red-900/20 border border-red-700 rounded-xl text-red-300 text-sm text-center">
+          {hata}
+          <button onClick={fetchData} className="ml-3 underline hover:text-red-200">Tekrar dene</button>
+        </div>
+      )}
 
       {yukleniyor ? (
         <div className="text-center text-gray-500 mt-20">Deprem verileri yükleniyor...</div>

@@ -65,6 +65,7 @@ export default function DepremAlert() {
     const fetchUyari = async () => {
       try {
         const data = await api('/api/deprem/uyari')
+        if (!Array.isArray(data)) return
         for (const d of data) {
           const anahtar = `${d.tarih}_${d.saat}_${d.yer}`
           if (oncekiAnahtarlar.current.has(anahtar)) continue
@@ -84,7 +85,7 @@ export default function DepremAlert() {
     }
 
     fetchUyari()
-    const id = setInterval(fetchUyari, 15000)
+    const id = setInterval(fetchUyari, 30000)
     return () => clearInterval(id)
   }, [sesAktif])
 

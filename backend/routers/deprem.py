@@ -2,7 +2,7 @@ import re
 import time
 import json
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -13,7 +13,7 @@ router = APIRouter()
 ISTANBUL_LAT = 41.0082
 ISTANBUL_LON = 28.9784
 KANDILLI_URL = "http://www.koeri.boun.edu.tr/scripts/lst0.asp"
-AFAD_URL = "https://deprem.afad.gov.tr/apiv2/event/filter"
+AFAD_URL = "https://servisnet.afad.gov.tr/apigateway/deprem/apiv2/event/filter"
 
 MAG_WARNING = 3.0
 MAG_ALERT = 4.0
@@ -21,7 +21,7 @@ MAG_CRITICAL = 5.0
 
 
 class Deprem:
-    def __init__(self, tarih, saat, enlem, boylam, derinlik, md, ml, mw, yer, cozum=""):
+    def __init__(self, tarih, saat, enlem, boylam, derinlik, md, ml, mw, yer, cozum="", is_utc=False):
         self.tarih = tarih
         self.saat = saat
         self.enlem = enlem
@@ -32,9 +32,13 @@ class Deprem:
         self.yer = yer.strip()
         self.cozum = cozum.strip()
         try:
-            self.datetime = datetime.strptime(f"{tarih} {saat}", "%Y.%m.%d %H:%M:%S")
+            dt = datetime.strptime(f"{tarih} {saat}", "%Y.%m.%d %H:%M:%S")
+            if is_utc:
+                self.datetime = dt.replace(tzinfo=timezone.utc)
+            else:
+                self.datetime = dt.replace(tzinfo=timezone(timedelta(hours=3)))
         except ValueError:
-            self.datetime = datetime.now()
+            self.datetime = datetime.now(timezone.utc)
 
     def to_dict(self):
         uzaklik = haversine(self.enlem, self.boylam, ISTANBUL_LAT, ISTANBUL_LON)
@@ -160,14 +164,17 @@ def fetch_afad(dakika=120):
             derinlik = float(item.get("depth", 0))
             mag = float(item.get("magnitude", -1))
             yer = item.get("location", "").strip()
-            depremler.append(Deprem(tarih, saat, enlem, boylam, derinlik, -1.0, mag, -1.0, yer, "AFAD"))
+            depremler.append(Deprem(tarih, saat, enlem, boylam, derinlik, -1.0, mag, -1.0, yer, "AFAD", is_utc=True))
         except (ValueError, KeyError, TypeError):
             continue
     return depremler
 
 
 def _son_dk(deprem, dakika=3):
-    return (datetime.now() - deprem.datetime) < timedelta(minutes=dakika)
+    now = datetime.now(timezone.utc)
+    if deprem.datetime.tzinfo is None:
+        deprem.datetime = deprem.datetime.replace(tzinfo=timezone.utc)
+    return (now - deprem.datetime) < timedelta(minutes=dakika)
 
 
 @router.get("/deprem/son")
