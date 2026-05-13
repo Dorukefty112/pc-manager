@@ -109,7 +109,7 @@ export default function Setup() {
                 </div>
               </div>
               <input value={form.admin_name} onChange={e => update('admin_name', e.target.value)}
-                placeholder="Örn: Doruk"
+                placeholder="Örn: Ahmet"
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-700" />
               <p className="text-xs text-gray-600">Boş bırakabilirsiniz.</p>
               <button onClick={() => setStep(1)}

@@ -23,13 +23,30 @@
 - **OSINT**: 11 araç ile email/kullanıcı adı/domain/telefon sorgulama (unified scanner)
 - **Pentest**: 20+ güvenlik aracı (Nmap, SQLMap, Hydra, John, Gobuster, vb.)
 - **Kimlik Doğrulama**: JWT tabanlı giriş sistemi
+- **Kurulum Sihirbazı**: İlk açılışta site adı, yönetici adı ve şifre belirleme ekranı
+- **Özelleştirilebilir Şifre**: `PCMANAGER_PASSWORD` ortam değişkeni ile kurulum öncesi şifre belirleme
+- **Tailscale Desteği**: install.sh otomatik Tailscale IP tespiti ve servise ekleme
+- **API**: `GET /api/setup` ve `POST /api/setup` ile kurulum yönetimi
+- **Sürüm**: `GET /api/version` endpoint'i, VERSION dosyası
+
+### Düzeltmeler
+
+- AFAD API URL'si güncellendi (eski domain 302 redirect veriyordu)
+- Deprem tool'u HTTP self-reference yerine direkt fonksiyon çağrısı yapıyor
+- Zaman dilimi (timezone) sorunu giderildi (Kandilli UTC+3, AFAD UTC)
+- Ollama system prompt'a deprem tool'u eklendi
+- Frontend hataları sessizce yutmak yerine gösteriyor
+- Kişisel kullanıcı adı (`doruk`) koddan kaldırıldı, yerine generic `kullanici` kullanıldı
+- README'ye hata uyarısı banner'ı eklendi
+- Deprem uyarı yoklama aralığı 15sn → 30sn düşürüldü
 
 ### Teknik
 
 - Backend: Python 3 + FastAPI + Uvicorn
 - Frontend: React 19 + Vite + Tailwind CSS
-- Auth: JWT (python-jose)
+- Auth: JWT (python-jose), SHA-256 password hash
 - Deployment: systemd servisi, curl ile tek komut kurulum
+- Auth: Şifre `config.json`, ortam değişkeni veya varsayılan olarak okunur
 
 ---
 
