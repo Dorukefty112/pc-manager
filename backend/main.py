@@ -5,6 +5,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+
+VERSION = (Path(__file__).parent.parent / "VERSION").read_text().strip()
 from routers import (
     system, files, power, terminal, processes,
     network, system_info, disks, updates, logs,
@@ -14,7 +16,7 @@ from routers import (
 )
 from dependencies import require_auth
 
-app = FastAPI(title="PC Manager")
+app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi ve OSINT platformu")
 
 static_dir = Path(__file__).parent.parent / "frontend" / "dist"
 if not static_dir.exists():
@@ -59,6 +61,10 @@ async def debug_middleware(request: Request, call_next):
 
 
 app.include_router(auth_router.router, prefix="/api")
+
+@app.get("/api/version")
+def get_version():
+    return {"version": VERSION, "name": "PC Manager"}
 
 app.include_router(system.router, prefix="/api")
 app.include_router(files.router, prefix="/api", dependencies=[Depends(require_auth)])
