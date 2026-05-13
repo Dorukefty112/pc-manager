@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+psutil
+aiofiles
+websockets
+python-jose[cryptography]
+passlib[bcrypt]
+pytest
+httpx
