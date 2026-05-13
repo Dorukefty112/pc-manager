@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter(tags=["cron"])
 
-CRON_USER = os.getenv("USER", "doruk")
+CRON_USER = os.getenv("USER", "kullanici")
 
 def _run_crontab(args, input_data=None):
     try:

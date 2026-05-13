@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 from pathlib import Path
 from fastapi import APIRouter
 
@@ -7,6 +8,11 @@ router = APIRouter(tags=["settings"])
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 
 DEFAULT_CONFIG = {
+    "setup": {
+        "completed": False,
+        "site_name": "PC Manager",
+        "admin_name": "",
+    },
     "general": {
         "language": "tr",
     },
@@ -60,3 +66,36 @@ def update_settings(body: dict):
             current[key] = value
     _save_config(current)
     return {"success": True, "settings": current}
+
+
+@router.get("/setup")
+def get_setup_status():
+    cfg = _load_config()
+    return {
+        "completed": cfg.get("setup", {}).get("completed", False),
+        "site_name": cfg.get("setup", {}).get("site_name", "PC Manager"),
+        "admin_name": cfg.get("setup", {}).get("admin_name", ""),
+    }
+
+
+@router.post("/setup")
+def complete_setup(body: dict):
+    site_name = (body.get("site_name") or "PC Manager").strip()
+    admin_name = (body.get("admin_name") or "").strip()
+    password = body.get("password", "")
+
+    if not password:
+        password = "pcmanager"
+
+    cfg = _load_config()
+    cfg["setup"] = {
+        "completed": True,
+        "site_name": site_name,
+        "admin_name": admin_name,
+    }
+    cfg["_password_hash"] = hashlib.sha256(password.encode()).hexdigest()
+    _save_config(cfg)
+
+    os.environ["PCMANAGER_PASSWORD_HASH"] = cfg["_password_hash"]
+
+    return {"success": True, "site_name": site_name, "admin_name": admin_name}

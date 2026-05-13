@@ -1,9 +1,12 @@
 # PC Manager
 
-**Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu/yönetim işlemlerinizi yönetin.
+**Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Arch%20Linux-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+
+> ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir. Hata bildirimleri için [GitHub Issues](https://github.com/Dorukefty112/pc-manager/issues) kullanılabilir.
 
 ## Özellikler
 
@@ -24,10 +27,8 @@
 | 💬 **Sohbet** | Ollama ile yerel AI sohbet asistanı |
 | 🔍 **OSINT** | Email, kullanıcı adı, domain, telefon sorgulama araçları (11+ araç) |
 | 🛡️ **Pentest** | Nmap, SQLMap, Hydra, John, Gobuster ve 20+ güvenlik aracı |
-
-## 📸 Ekran Görüntüleri
-
-> *(Eklenecek)*
+| 🌍 **Deprem İzleme** | Kandilli + AFAD verisi ile canlı deprem takibi, sesli uyarı |
+| ⚙️ **Kurulum Sihirbazı** | İlk açılışta site adı, yönetici adı ve şifre belirleme |
 
 ## Hızlı Başlangıç
 
@@ -36,6 +37,10 @@
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/Dorukefty112/pc-manager/master/install.sh)
 ```
+
+Kurulum tamamlandıktan sonra `http://localhost:8081` adresine gidin. İlk açılışta kurulum sihirbazı sizi karşılayacaktır.
+
+Tailscale kullanıyorsanız, script otomatik olarak Tailscale IP'nizi tespit eder ve servise ekler.
 
 ### Manuel Kurulum
 
@@ -57,10 +62,6 @@ sudo npm run build --prefix /opt/pc-manager/frontend
 # Servis olarak başlat
 sudo bash /opt/pc-manager/install.sh
 ```
-
-Kurulum tamamlandıktan sonra `http://localhost:8081` adresinden erişebilirsiniz.
-
-> **Varsayılan şifre:** `pcmanager`
 
 ## Kullanım
 
@@ -100,6 +101,7 @@ Backend çalışırken: [http://localhost:8081/docs](http://localhost:8081/docs)
 - Tüm hassas işlemler auth gerektirir
 - Şifre hash ile saklanır (SHA-256)
 - OSINT araçları rate-limit korumalı
+- Şifre ortam değişkeni ile özelleştirilebilir (`PCMANAGER_PASSWORD`)
 
 ## Lisans
 

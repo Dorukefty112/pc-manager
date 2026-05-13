@@ -94,9 +94,18 @@ info "Frontend build alınıyor..."
 npm run build --prefix "$INSTALL_DIR/frontend" --silent
 log "Frontend build tamamlandı"
 
+# Tailscale IP tespiti (varsa)
+TAILSCALE_IP=""
+if command -v tailscale &>/dev/null; then
+    TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || true)
+    if [[ -n "$TAILSCALE_IP" ]]; then
+        info "Tailscale tespit edildi: $TAILSCALE_IP"
+    fi
+fi
+
 # systemd servisi
 info "systemd servisi oluşturuluyor..."
-cat > /etc/systemd/system/$SERVICE_NAME.service << 'SERVICEEOF'
+cat > /etc/systemd/system/$SERVICE_NAME.service << SERVICEEOF
 [Unit]
 Description=PC Manager Backend
 After=network.target
@@ -106,6 +115,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/pc-manager/backend
 Environment="PATH=/opt/pc-manager/venv/bin:/usr/local/bin:/usr/bin:/bin"
+$(if [[ -n "$TAILSCALE_IP" ]]; then echo "Environment=\"TAILSCALE_IP=$TAILSCALE_IP\""; fi)
 ExecStart=/opt/pc-manager/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8081 --log-level info
 Restart=always
 RestartSec=3
@@ -123,9 +133,13 @@ echo ""
 log "Kurulum tamamlandı!"
 echo ""
 info "Web arayüzü:  http://localhost:8081"
+if [[ -n "$TAILSCALE_IP" ]]; then
+    info "Tailscale:     http://${TAILSCALE_IP}:8081"
+fi
 info "API dökümanı: http://localhost:8081/docs"
 echo ""
 info "Varsayılan şifre: pcmanager"
+info "Kurulumdan sonra ilk açılışta yönetici şifresi belirleyebilirsiniz."
 echo ""
 info "Servis yönetimi:"
 info "  sudo systemctl status $SERVICE_NAME"

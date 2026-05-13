@@ -22,10 +22,23 @@ import DepremUyari from './pages/DepremUyari'
 import DepremAlert from './components/DepremAlert'
 import OllamaChat from './pages/OllamaChat'
 import Login from './pages/Login'
+import Setup from './pages/Setup'
 import { isAuthenticated } from './api'
+import { useState, useEffect } from 'react'
+import { api } from './api'
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />
+  return children
+}
+
+function SetupGuard({ children }) {
+  const [status, setStatus] = useState('loading')
+  useEffect(() => {
+    api('/api/setup').then(d => setStatus(d.completed ? 'done' : 'setup')).catch(() => setStatus('done'))
+  }, [])
+  if (status === 'loading') return <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4"><div className="text-gray-500">Yükleniyor...</div></div>
+  if (status === 'setup') return <Setup />
   return children
 }
 
@@ -34,10 +47,12 @@ export default function App() {
     <>
       <DepremAlert />
       <Routes>
+        <Route path="/setup" element={<Setup />} />
         <Route path="/login" element={isAuthenticated() ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/*" element={
-          <ProtectedRoute>
-            <Layout>
+          <SetupGuard>
+            <ProtectedRoute>
+              <Layout>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/terminal" element={<Terminal />} />
@@ -63,6 +78,7 @@ export default function App() {
               <DebugOverlay />
             </Layout>
           </ProtectedRoute>
+          </SetupGuard>
         } />
       </Routes>
     </>

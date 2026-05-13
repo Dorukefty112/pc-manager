@@ -27,4 +27,4 @@ def suspend():
 
 @router.post("/power/logout")
 def logout():
-    return run_cmd(["loginctl", "terminate-user", os.getenv("USER", "doruk")])
+    return run_cmd(["loginctl", "terminate-user", os.getenv("USER", "kullanici")])
