@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2] — 2026-05-14
+
+- **Duzenlenen Acil Durum Banner**: PC modunda sidebar padding sorunu cozuldu.
+- **Ollama Agent kararlilik**: Tool hatalari icin ikinci try/except kalkani, internet yokken kirilma yerine hata mesaji gosterir.
+- **web_search/web_fetch zaman asimi**: Timeout 15sn → 8sn dusuruldu.
+- **Sistem Prompt guncellendi**: Tool hatalarinda kullaniciyi bilgilendirme talimati eklendi.
+
 ## [1.0.1] — 2026-05-14
 
 - **Telegram Bildirimleri**: KRITIK/YUKSEK depremlerde telefona aninda uyari. Ayarlar → Telegram'dan bot token ve chat ID girilir.
