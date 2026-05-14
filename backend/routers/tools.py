@@ -305,6 +305,25 @@ def tool_web_search(params: dict) -> str:
         return json.dumps({"error": f"web aramasi basarisiz: {str(e)}"}, ensure_ascii=False)
 
 
+def tool_web_fetch(params: dict) -> str:
+    url = params.get("url", "")
+    if not url:
+        return json.dumps({"error": "URL gerekli"}, ensure_ascii=False)
+    try:
+        import httpx
+        resp = httpx.get(url, timeout=15, follow_redirects=True)
+        content_type = resp.headers.get("content-type", "").lower()
+        text = resp.text[:10000]
+        return json.dumps({
+            "url": url,
+            "content_type": content_type,
+            "content": text,
+            "truncated": len(resp.text) > 10000,
+        }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": f"sayfa yuklenemedi: {str(e)}"}, ensure_ascii=False)
+
+
 def tool_system_summary(params: dict) -> str:
     cpu = json.loads(tool_get_cpu({}))
     mem = json.loads(tool_get_memory({}))
@@ -556,6 +575,23 @@ TOOLS: dict[str, dict] = {
                         "query": {"type": "string", "description": "aranacak sorgu (Turkce veya Ingilizce)"},
                     },
                     "required": ["query"],
+                },
+            },
+        },
+    },
+    "web_fetch": {
+        "fn": tool_web_fetch,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "web_fetch",
+                "description": "Belirtilen URL'deki sayfa icerigini getir. web_search ile bulunan linklerin detaylarini okumak icin kullan.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string", "description": "getirilecek sayfa URL'si"},
+                    },
+                    "required": ["url"],
                 },
             },
         },

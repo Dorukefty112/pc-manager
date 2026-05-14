@@ -16,7 +16,8 @@ SYSTEM_PROMPT = (
     "Turkce cevap ver. Kisaca ve ozetle, kullanicinin anlayacagi sekilde cevapla. "
     "Tool sonuclarini kullaniciya yorumlayarak aktar, ham JSON gosterme. "
     "Kullanici deprem sordugunda veya son depremleri ogrenmek istediginde get_deprem tool'unu kullan. "
-    "Kullanici web'de arama yapmak, guncel bilgi almak, haber ogrenmek istediginde web_search tool'unu kullan."
+    "Kullanici web'de arama yapmak, guncel bilgi almak, haber ogrenmek istediginde web_search tool'unu kullan. "
+    "Bir sayfanin detayli icerigini okumak icin web_fetch tool'unu kullan."
 )
 
 
