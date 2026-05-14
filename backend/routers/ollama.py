@@ -1,10 +1,11 @@
 import json
 import asyncio
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 import httpx
 
 from .tools import TOOL_SPECS, execute_tool
+from dependencies import require_auth
 
 router = APIRouter(tags=["ollama"])
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -45,7 +46,7 @@ EMERGENCY_PROMPT = (
 
 
 @router.get("/ollama/models")
-async def list_models():
+async def list_models(_auth: dict = Depends(require_auth)):
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get("http://localhost:11434/api/tags", timeout=5)
@@ -60,7 +61,7 @@ async def list_models():
 
 
 @router.post("/ollama/unload")
-async def unload_model(body: dict = {}):
+async def unload_model(body: dict = {}, _auth: dict = Depends(require_auth)):
     model = body.get("model", "gemma4:e4b")
     try:
         async with httpx.AsyncClient() as client:
@@ -84,7 +85,7 @@ async def set_emergency(body: dict):
     return {"emergency": EMERGENCY_MODE}
 
 @router.post("/ollama/chat/stream")
-async def chat_stream(body: dict):
+async def chat_stream(body: dict, _auth: dict = Depends(require_auth)):
     model = body.get("model", "gemma4:e4b")
     messages = body.get("messages", [])
     max_tool_rounds = min(body.get("max_tool_rounds", 5), 10)

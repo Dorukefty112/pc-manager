@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { api } from '../api'
+import { api, isAuthenticated } from '../api'
 import { Bug, X, ChevronUp, Terminal } from 'lucide-react'
 
 const MAX_CALLS = 20
@@ -12,7 +12,9 @@ export default function DebugOverlay() {
   const wsRef = useRef(null)
 
   useEffect(() => {
-    api('/api/settings').then(setConfig).catch(() => {})
+    if (isAuthenticated()) {
+      api('/api/settings').then(setConfig).catch(() => {})
+    }
   }, [])
 
   useEffect(() => {

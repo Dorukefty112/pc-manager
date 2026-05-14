@@ -6,7 +6,7 @@
 ![Platform](https://img.shields.io/badge/platform-Arch%20Linux-blue)
 ![Version](https://img.shields.io/badge/version-1.0.4-blue)
 
-> ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için yapılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!**
+> ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için yapılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 
 ## Özellikler
 

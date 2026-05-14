@@ -3,8 +3,8 @@ import json
 import hashlib
 import copy
 from pathlib import Path
-from fastapi import APIRouter, Depends
-from auth import _hash_bcrypt
+from fastapi import APIRouter, Depends, HTTPException, Header
+from auth import _hash_bcrypt, verify_token
 from dependencies import require_auth
 
 router = APIRouter(tags=["settings"])
@@ -59,7 +59,7 @@ def _save_config(cfg: dict):
 
 
 @router.get("/settings")
-def get_settings():
+def get_settings(_auth: dict = Depends(require_auth)):
     cfg = _load_config()
     for key, default_val in DEFAULT_CONFIG.items():
         if key not in cfg:
@@ -72,7 +72,7 @@ def get_settings():
 
 
 @router.put("/settings")
-def update_settings(body: dict):
+def update_settings(body: dict, _auth: dict = Depends(require_auth)):
     current = _load_config()
     for key, value in body.items():
         if isinstance(value, dict):
@@ -99,7 +99,16 @@ def get_setup_status():
 
 
 @router.post("/setup")
-def complete_setup(body: dict):
+def complete_setup(body: dict, authorization: str = Header(None)):
+    cfg = _load_config()
+    already_done = cfg.get("setup", {}).get("completed", False)
+    if already_done:
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Yetkilendirme gerekli")
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not token:
+            raise HTTPException(status_code=401, detail="Geçersiz yetkilendirme formatı")
+        verify_token(token)
     site_name = (body.get("site_name") or "PC Manager").strip()
     admin_name = (body.get("admin_name") or "").strip()
     password = body.get("password", "")

@@ -24,8 +24,10 @@ export async function api(path, opts = {}) {
   }
   const res = await fetch(`${API}${path}`, { ...opts, headers })
   if (res.status === 401) {
-    setToken(null)
-    window.location.href = '/login'
+    if (window.location.pathname !== '/login') {
+      setToken(null)
+      window.location.href = '/login'
+    }
     throw new Error('Oturum süresi doldu')
   }
   if (!res.ok) throw new Error(await res.text())

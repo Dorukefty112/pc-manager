@@ -167,19 +167,30 @@ export default function SettingsPage() {
               otomatik olarak aktiflesir. Bu modda asistan sadece kritik bilgi verir: ilk yardim, enkaz,
               su/yiyecek yonetimi, guvenli toplanma alanlari, iletisim.
             </p>
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                <p className="text-sm font-medium text-gray-200">Acil Durum Aktif</p>
-                <p className="text-xs text-gray-500">Su an {emergency ? 'AKTIF' : 'devre disi'}</p>
+            <div className="flex flex-col items-center gap-3 pt-2">
+              <div className={`flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl border-2 transition-all ${
+                emergency
+                  ? 'bg-red-900/20 border-red-600 shadow-lg shadow-red-600/20'
+                  : 'bg-gray-800/50 border-gray-700'
+              }`}>
+                <Shield size={24} className={emergency ? 'text-red-400' : 'text-gray-500'} />
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${emergency ? 'text-red-300' : 'text-gray-300'}`}>
+                    {emergency ? 'Acil Durum Modu AKTIF' : 'Acil Durum Modu'}
+                  </p>
+                  <p className={`text-xs ${emergency ? 'text-red-400/70' : 'text-gray-500'}`}>
+                    {emergency ? 'Asistan hayatta kalma modunda' : 'Su an devre disi'}
+                  </p>
+                </div>
+                <button onClick={toggleEmergency}
+                  className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+                    emergency
+                      ? 'bg-red-700 hover:bg-red-600 text-white'
+                      : 'bg-cyan-700 hover:bg-cyan-600 text-white'
+                  }`}>
+                  {emergency ? 'Devre Disi Birak' : 'Aktiflestir'}
+                </button>
               </div>
-              <button onClick={toggleEmergency}
-                className={`relative w-14 h-7 rounded-full transition-colors ${
-                  emergency ? 'bg-red-600' : 'bg-gray-700'
-                }`}>
-                <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
-                  emergency ? 'translate-x-7' : 'translate-x-0.5'
-                }`} />
-              </button>
             </div>
             <div className="pt-2 border-t border-gray-800">
               <p className="text-xs text-gray-400 leading-relaxed">
