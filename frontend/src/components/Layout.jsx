@@ -70,10 +70,10 @@ export default function Layout({ children }) {
         </div>
       )}
       {emergency && <div className="fixed inset-0 z-40 pointer-events-none bg-red-900/5" />}
-      {open && <div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setOpen(false)} />}
+      {open && <div className="fixed inset-0 bg-black/60 z-[1000] lg:hidden" onClick={() => setOpen(false)} />}
 
       <nav className={`
-        fixed lg:relative z-30 h-full w-64 bg-gray-900 border-r border-gray-800 flex flex-col overflow-y-auto shrink-0
+        fixed lg:relative z-[1001] h-full w-64 bg-gray-900 border-r border-gray-800 flex flex-col overflow-y-auto shrink-0
         transition-transform duration-200
         ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
