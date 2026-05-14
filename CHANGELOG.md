@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.4] — 2026-05-15
+
+- **Auth guclendirme**: SHA-256 → bcrypt sifre hashing. Eski hash'ler login'de otomatik bcrypt'e yukseltilir.
+- **Auth aciklari kapatildi**: settings, telegram, system, terminal, pentest, ollama, debug, search_engine, debug_agent endpoint'lerine auth eklendi. Sadece /api/version, /api/auth/login, /api/deprem, /api/setup public kaldi.
+- **Genel auth**: 10 endpoint art�k token gerektiriyor.
+
 ## [1.0.3] — 2026-05-14
 
 - **Kritik bug duzeltmeleri**: chat.py _clean_output UnboundLocalError, shutdown/reboot calismama, deprem DIKKAT seviyesi hep true donme, ollama off-by-one loop, settings shallow copy corruption, cron substring matching

@@ -3,7 +3,9 @@ import json
 import hashlib
 import copy
 from pathlib import Path
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from auth import _hash_bcrypt
+from dependencies import require_auth
 
 router = APIRouter(tags=["settings"])
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
@@ -111,7 +113,7 @@ def complete_setup(body: dict):
         "site_name": site_name,
         "admin_name": admin_name,
     }
-    cfg["_password_hash"] = hashlib.sha256(password.encode()).hexdigest()
+    cfg["_password_hash"] = _hash_bcrypt(password)
     _save_config(cfg)
 
     os.environ["PCMANAGER_PASSWORD_HASH"] = cfg["_password_hash"]
