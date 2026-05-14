@@ -187,3 +187,17 @@ def suggest(q: str = Query("", description="Tamamlama sorgusu")):
         return {"suggestions": suggestions[:8]}
     except:
         return {"suggestions": []}
+
+
+@router.get("/proxy")
+def proxy(url: str = Query("", description="Getirilecek URL")):
+    if not url.strip():
+        return {"error": "URL gerekli"}
+    try:
+        resp = httpx.get(url, timeout=15, follow_redirects=True)
+        content_type = resp.headers.get("content-type", "").lower()
+        if "text/html" in content_type or "text/plain" in content_type:
+            return {"content": resp.text, "url": url, "content_type": content_type}
+        return {"error": "Desteklenmeyen icerik turu", "content_type": content_type}
+    except Exception as e:
+        return {"error": f"Sayfa yuklenemedi: {str(e)}"}

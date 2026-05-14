@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
-import { Search, Globe, FolderOpen, Server, ExternalLink, Clock, ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react'
+import { Search, Globe, FolderOpen, Server, ExternalLink, ChevronLeft, ChevronRight, Loader2, Sparkles, ArrowLeft, ExternalLink as ExternalIcon } from 'lucide-react'
 
 const TABS = [
   { id: 'web', label: 'Web', icon: Globe },
@@ -18,6 +18,10 @@ export default function SearchEngine() {
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [viewing, setViewing] = useState(null)
+  const [viewContent, setViewContent] = useState(null)
+  const [viewLoading, setViewLoading] = useState(false)
+  const [viewError, setViewError] = useState('')
   const inputRef = useRef(null)
   const suggestRef = useRef(null)
   const debounceRef = useRef(null)
@@ -83,6 +87,58 @@ export default function SearchEngine() {
       setShowSuggestions(false)
       doSearch(query, 1)
     }
+  }
+
+  const openPage = async (url) => {
+    setViewing(url)
+    setViewContent(null)
+    setViewError('')
+    setViewLoading(true)
+    try {
+      const data = await api(`/api/proxy?url=${encodeURIComponent(url)}`)
+      if (data.error) { setViewError(data.error) }
+      else { setViewContent(data.content) }
+    } catch {
+      setViewError('Sayfa yuklenemedi')
+    }
+    setViewLoading(false)
+  }
+
+  if (viewing) {
+    return (
+      <div>
+        <div className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur-sm pb-4 pt-4">
+          <div className="flex items-center gap-3 max-w-5xl">
+            <button onClick={() => { setViewing(null); setViewContent(null); setViewError('') }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-300 hover:border-gray-600 transition-colors">
+              <ArrowLeft size={16} /> Sonuclar
+            </button>
+            <a href={viewing} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-gray-500 hover:text-cyan-400 truncate flex items-center gap-1">
+              {viewing} <ExternalIcon size={12} />
+            </a>
+          </div>
+        </div>
+        {viewLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 size={24} className="text-cyan-400 animate-spin" />
+            <span className="ml-3 text-gray-500 text-sm">Sayfa yukleniyor...</span>
+          </div>
+        ) : viewError ? (
+          <div className="max-w-3xl mx-auto mt-8 p-6 bg-red-900/10 border border-red-900/30 rounded-xl text-center">
+            <p className="text-red-400 text-sm">{viewError}</p>
+            <a href={viewing} target="_blank" rel="noopener noreferrer"
+              className="mt-3 inline-block text-xs text-cyan-500 hover:underline">
+              Tarayicida ac
+            </a>
+          </div>
+        ) : (
+          <div className="max-w-5xl mx-auto bg-white rounded-xl overflow-hidden">
+            <iframe srcDoc={viewContent} className="w-full h-[calc(100vh-180px)]" sandbox="allow-same-origin" title="sayfa" />
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (!searched) {
@@ -179,14 +235,13 @@ export default function SearchEngine() {
 
           {tab === 'web' && results.results?.map((r, i) => (
             <div key={i} className="mb-5">
-              <a href={r.url} target="_blank" rel="noopener noreferrer"
-                className="group block">
+              <div onClick={() => openPage(r.url)} className="group block cursor-pointer">
                 <p className="text-xs text-gray-600 truncate mb-0.5">{r.url}</p>
                 <h3 className="text-base font-medium text-cyan-400 group-hover:underline mb-0.5">
                   {r.title || 'Basliksiz'}
                 </h3>
                 <p className="text-sm text-gray-400 line-clamp-2">{r.snippet || ''}</p>
-              </a>
+              </div>
             </div>
           ))}
 
