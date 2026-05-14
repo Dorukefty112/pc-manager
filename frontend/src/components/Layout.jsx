@@ -74,7 +74,7 @@ export default function Layout({ children }) {
 
       <nav className={`
         fixed lg:relative z-[1001] h-full w-64 bg-gray-900 border-r border-gray-800 flex flex-col overflow-y-auto shrink-0
-        transition-transform duration-200
+        transition-transform duration-200 ${emergency ? 'pt-10' : ''}
         ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex items-center justify-between px-4 py-5 shrink-0">

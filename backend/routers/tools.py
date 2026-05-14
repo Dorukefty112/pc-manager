@@ -311,7 +311,7 @@ def tool_web_fetch(params: dict) -> str:
         return json.dumps({"error": "URL gerekli"}, ensure_ascii=False)
     try:
         import httpx
-        resp = httpx.get(url, timeout=15, follow_redirects=True)
+        resp = httpx.get(url, timeout=8, follow_redirects=True)
         content_type = resp.headers.get("content-type", "").lower()
         text = resp.text[:10000]
         return json.dumps({

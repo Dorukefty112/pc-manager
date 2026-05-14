@@ -20,7 +20,8 @@ SYSTEM_PROMPT = (
     "Tool sonuclarini kullaniciya yorumlayarak aktar, ham JSON gosterme. "
     "Kullanici deprem sordugunda veya son depremleri ogrenmek istediginde get_deprem tool'unu kullan. "
     "Kullanici web'de arama yapmak, guncel bilgi almak, haber ogrenmek istediginde web_search tool'unu kullan. "
-    "Bir sayfanin detayli icerigini okumak icin web_fetch tool'unu kullan."
+    "Bir sayfanin detayli icerigini okumak icin web_fetch tool'unu kullan. "
+    "Tool hata verirse kullaniciya kisa ve anlasilir sekilde acikla, panik yapma."
 )
 
 EMERGENCY_PROMPT = (
@@ -37,8 +38,9 @@ EMERGENCY_PROMPT = (
     "6. Iletisim ve yardim cagirma yontemleri"
     "7. Su ve yiyecek yonetimi"
     "8. Enkaz altinda isi koruma"
-    "Soğukkanli ol, net ve kisa talimatlar ver. Kullanicinin panik yapmasini engelle."
-    "Tool sonuclarini kullaniciya yorumlayarak aktar, ham JSON gosterme."
+    "Soğukkanli ol, net ve kisa talimatlar ver. Kullanicinin panik yapmasini engelle. "
+    "Tool sonuclarini kullaniciya yorumlayarak aktar, ham JSON gosterme. "
+    "Tool hata verirse kullaniciyi bilgilendir ve alternatif cozum oner."
 )
 
 
@@ -171,7 +173,10 @@ async def chat_stream(body: dict):
                         current_messages.append(assistant_msg)
 
                         for tc in tool_calls:
-                            result = execute_tool(tc["name"], tc["arguments"])
+                            try:
+                                result = execute_tool(tc["name"], tc["arguments"])
+                            except Exception as tool_err:
+                                result = json.dumps({"error": f"Tool hatasi: {str(tool_err)[:200]}"}, ensure_ascii=False)
                             current_messages.append({
                                 "role": "tool",
                                 "name": tc["name"],

@@ -11,7 +11,7 @@ router = APIRouter(tags=["search"])
 def _search_web(query: str, page: int = 1) -> dict:
     try:
         from ddgs import DDGS
-        ddgs = DDGS()
+        ddgs = DDGS(timeout=8)
         raw = list(ddgs.text(query, max_results=20))
         results = []
         for r in raw:
