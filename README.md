@@ -3,10 +3,21 @@
 **Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Platform](https://img.shields.io/badge/platform-Arch%20Linux-blue)
 ![Version](https://img.shields.io/badge/version-1.0.4-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için yapılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
+
+## Sistem Gereksinimleri
+
+| Bileşen | Gereksinim |
+|---------|------------|
+| **İşletim Sistemi** | Linux (tüm dağıtımlar) |
+| **CPU** | 2+ çekirdek |
+| **RAM** | En az 1GB (Ollama ile 4GB+ önerilir) |
+| **Depolama** | 500MB boş alan (Ollama modelleri için +5GB) |
+| **Python** | 3.11+ |
+| **Node.js** | 18+ |
+| **Ollama** (opsiyonel) | AI asistan için gerekli |
 
 ## Özellikler
 
