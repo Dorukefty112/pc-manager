@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { MapPin, Clock, AlertTriangle, Activity, Crosshair, Bell, BellOff, RefreshCw } from 'lucide-react'
 
 const RISK_RENK = {
@@ -11,7 +13,50 @@ const RISK_RENK = {
   BILINMIYOR: 'text-gray-500 bg-gray-800/50 border-gray-700',
 }
 
+const RISK_RENK_HARITA = {
+  KRITIK: '#ef4444',
+  YUKSEK: '#f97316',
+  ORTA: '#eab308',
+  DIKKAT: '#06b6d4',
+  BILGI: '#6b7280',
+  BILINMIYOR: '#6b7280',
+}
+
 const RISK_SIRALAMA = { KRITIK: 0, YUKSEK: 1, ORTA: 2, DIKKAT: 3, BILGI: 4, BILINMIYOR: 5 }
+
+function DepremMarker({ d, secili, setSecili }) {
+  const renk = RISK_RENK_HARITA[d.risk_seviyesi] || '#6b7280'
+  const yaricap = Math.max(4, Math.min(20, (d.magnitude || 1) * 4))
+  const opacity = d.risk_seviyesi === 'KRITIK' ? 1 : 0.7
+
+  return (
+    <CircleMarker
+      center={[d.enlem, d.boylam]}
+      radius={yaricap}
+      pathOptions={{
+        color: renk,
+        fillColor: renk,
+        fillOpacity: secili === d ? 0.8 : 0.3,
+        weight: secili === d ? 3 : 1.5,
+        opacity,
+      }}
+      eventHandlers={{ click: () => setSecili(d) }}>
+      <Popup>
+        <div className="text-xs leading-relaxed" style={{ minWidth: 180 }}>
+          <div className="font-bold text-sm mb-1" style={{ color: renk }}>
+            M{d.magnitude > 0 ? d.magnitude.toFixed(1) : '-.-'} — {d.risk_seviyesi}
+          </div>
+          <div className="text-gray-700 mb-1">{d.yer}</div>
+          <div className="text-gray-500">{d.tarih} {d.saat}</div>
+          <div className="text-gray-500">{d.derinlik} km derinlik</div>
+          {d.istanbula_uzaklik !== undefined && (
+            <div className="text-gray-500">{d.istanbula_uzaklik} km Istanbul</div>
+          )}
+        </div>
+      </Popup>
+    </CircleMarker>
+  )
+}
 
 export default function DepremUyari() {
   const [depremler, setDepremler] = useState([])
@@ -94,96 +139,110 @@ export default function DepremUyari() {
       {yukleniyor ? (
         <div className="text-center text-gray-500 mt-20">Deprem verileri yükleniyor...</div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-2 space-y-2">
-            {filtreli.length === 0 && (
-              <div className="text-center text-gray-500 py-20">Bu filtrede deprem bulunamadı.</div>
-            )}
-            {filtreli.slice(0, 50).map((d, i) => {
-              const renk = RISK_RENK[d.risk_seviyesi] || RISK_RENK.BILGI
-              return (
-                <div key={`${d.tarih}${d.saat}${i}`}
-                  onClick={() => setSecili(secili === d ? null : d)}
-                  className={`bg-gray-900 rounded-xl border cursor-pointer transition-all duration-150
-                    ${secili === d ? 'border-cyan-700 ring-1 ring-cyan-700/50' : 'border-gray-800 hover:border-gray-700'}
-                    ${d.risk_seviyesi === 'KRITIK' ? 'animate-pulse' : ''}`}>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-sm font-bold ${renk}`}>
-                          <Activity size={14} />
-                          M{d.magnitude > 0 ? d.magnitude.toFixed(1) : '-.-'}
-                        </div>
-                        <span className="text-sm text-gray-300 truncate">{d.yer}</span>
-                      </div>
-                      <RenkBadge risk={d.risk_seviyesi} />
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
-                      <span className="flex items-center gap-1"><Clock size={12} />{d.tarih.slice(5)} {d.saat}</span>
-                      <span className="flex items-center gap-1"><Crosshair size={12} />{d.istanbula_uzaklik} km</span>
-                      <span>{d.derinlik} km derinlik</span>
-                    </div>
-                    {secili === d && (
-                      <div className="mt-3 pt-3 border-t border-gray-800 grid grid-cols-2 gap-2 text-xs text-gray-400">
-                        <span>Enlem: {d.enlem}</span>
-                        <span>Boylam: {d.boylam}</span>
-                        <span>Derinlik: {d.derinlik} km</span>
-                        <span>İstanbul'a: {d.istanbula_uzaklik} km</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+        <div className="space-y-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden" style={{ height: 450 }}>
+            <MapContainer center={[39.0, 35.0]} zoom={6} scrollWheelZoom={true}
+              className="h-full w-full" style={{ background: '#111827' }}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {filtreli.map((d, i) => (
+                <DepremMarker key={`m${i}`} d={d} secili={secili} setSecili={setSecili} />
+              ))}
+            </MapContainer>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-              <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-                <MapPin size={16} className="text-cyan-400" />
-                İstanbul Analizi
-              </h3>
-              <div className="space-y-3">
-                {['KRITIK', 'YUKSEK', 'ORTA'].map(seviye => {
-                  const sayi = depremler.filter(d => d.risk_seviyesi === seviye && d.istanbula_uzaklik < 200).length
-                  if (sayi === 0 && seviye !== 'KRITIK') return null
-                  return (
-                    <div key={seviye} className="flex items-center justify-between">
-                      <RenkBadge risk={seviye} />
-                      <span className="text-sm font-bold">{sayi} deprem</span>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="xl:col-span-2 space-y-2">
+              {filtreli.length === 0 && (
+                <div className="text-center text-gray-500 py-20">Bu filtrede deprem bulunamadı.</div>
+              )}
+              {filtreli.slice(0, 50).map((d, i) => {
+                const renk = RISK_RENK[d.risk_seviyesi] || RISK_RENK.BILGI
+                return (
+                  <div key={`${d.tarih}${d.saat}${i}`}
+                    onClick={() => setSecili(secili === d ? null : d)}
+                    className={`bg-gray-900 rounded-xl border cursor-pointer transition-all duration-150
+                      ${secili === d ? 'border-cyan-700 ring-1 ring-cyan-700/50' : 'border-gray-800 hover:border-gray-700'}
+                      ${d.risk_seviyesi === 'KRITIK' ? 'animate-pulse' : ''}`}>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-sm font-bold ${renk}`}>
+                            <Activity size={14} />
+                            M{d.magnitude > 0 ? d.magnitude.toFixed(1) : '-.-'}
+                          </div>
+                          <span className="text-sm text-gray-300 truncate">{d.yer}</span>
+                        </div>
+                        <RenkBadge risk={d.risk_seviyesi} />
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                        <span className="flex items-center gap-1"><Clock size={12} />{d.tarih.slice(5)} {d.saat}</span>
+                        <span className="flex items-center gap-1"><Crosshair size={12} />{d.istanbula_uzaklik} km</span>
+                        <span>{d.derinlik} km derinlik</span>
+                      </div>
+                      {secili === d && (
+                        <div className="mt-3 pt-3 border-t border-gray-800 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                          <span>Enlem: {d.enlem}</span>
+                          <span>Boylam: {d.boylam}</span>
+                          <span>Derinlik: {d.derinlik} km</span>
+                          <span>İstanbul'a: {d.istanbula_uzaklik} km</span>
+                        </div>
+                      )}
                     </div>
-                  )
-                })}
-                {depremler.filter(d => d.risk_seviyesi === 'KRITIK').length === 0 && (
-                  <div className="text-center text-gray-500 text-sm py-4">Şu an kritik risk yok</div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-              <h3 className="text-sm font-medium text-gray-300 mb-3">Risk Seviyeleri</h3>
-              <div className="space-y-2 text-xs">
-                {[
-                  { seviye: 'KRITIK', aciklama: 'M≥5, 200km içi', renk: 'bg-red-500' },
-                  { seviye: 'YUKSEK', aciklama: 'M≥4, 150km içi', renk: 'bg-orange-500' },
-                  { seviye: 'ORTA', aciklama: 'M≥3, 100km içi', renk: 'bg-yellow-500' },
-                  { seviye: 'DIKKAT', aciklama: 'M≥3, Marmara', renk: 'bg-cyan-500' },
-                  { seviye: 'BILGI', aciklama: 'Düşük risk', renk: 'bg-gray-500' },
-                ].map(l => (
-                  <div key={l.seviye} className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${l.renk}`} />
-                    <span className="font-medium text-gray-300">{l.seviye}</span>
-                    <span className="text-gray-500">{l.aciklama}</span>
                   </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
 
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-              <div className="text-xs text-gray-500">
-                <p>Veri kaynağı: Boğaziçi Üniversitesi Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü</p>
-                <p className="mt-2">Yedek: AFAD Deprem Veri Merkezi</p>
-                <p className="mt-1">Her 30 saniyede bir güncellenir.</p>
+            <div className="space-y-4">
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                  <MapPin size={16} className="text-cyan-400" />
+                  İstanbul Analizi
+                </h3>
+                <div className="space-y-3">
+                  {['KRITIK', 'YUKSEK', 'ORTA'].map(seviye => {
+                    const sayi = depremler.filter(d => d.risk_seviyesi === seviye && d.istanbula_uzaklik < 200).length
+                    if (sayi === 0 && seviye !== 'KRITIK') return null
+                    return (
+                      <div key={seviye} className="flex items-center justify-between">
+                        <RenkBadge risk={seviye} />
+                        <span className="text-sm font-bold">{sayi} deprem</span>
+                      </div>
+                    )
+                  })}
+                  {depremler.filter(d => d.risk_seviyesi === 'KRITIK').length === 0 && (
+                    <div className="text-center text-gray-500 text-sm py-4">Şu an kritik risk yok</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                <h3 className="text-sm font-medium text-gray-300 mb-3">Risk Seviyeleri</h3>
+                <div className="space-y-2 text-xs">
+                  {[
+                    { seviye: 'KRITIK', aciklama: 'M≥5, 200km içi', renk: 'bg-red-500' },
+                    { seviye: 'YUKSEK', aciklama: 'M≥4, 150km içi', renk: 'bg-orange-500' },
+                    { seviye: 'ORTA', aciklama: 'M≥3, 100km içi', renk: 'bg-yellow-500' },
+                    { seviye: 'DIKKAT', aciklama: 'M≥3, Marmara', renk: 'bg-cyan-500' },
+                    { seviye: 'BILGI', aciklama: 'Düşük risk', renk: 'bg-gray-500' },
+                  ].map(l => (
+                    <div key={l.seviye} className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${l.renk}`} />
+                      <span className="font-medium text-gray-300">{l.seviye}</span>
+                      <span className="text-gray-500">{l.aciklama}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                <div className="text-xs text-gray-500">
+                  <p>Veri kaynağı: Boğaziçi Üniversitesi Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü</p>
+                  <p className="mt-2">Yedek: AFAD Deprem Veri Merkezi</p>
+                  <p className="mt-1">Her 30 saniyede bir güncellenir.</p>
+                </div>
               </div>
             </div>
           </div>
