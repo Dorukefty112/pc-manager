@@ -57,18 +57,19 @@ export default function Layout({ children }) {
   return (
     <div className="flex h-screen">
       {emergency && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-700 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold animate-pulse">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-700/90 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold animate-pulse backdrop-blur">
           <div className="flex items-center gap-2">
             <AlertTriangle size={18} className="animate-bounce" />
             <span>ACİL DURUM MODU AKTİF — Asistan hayatta kalma moduna geçti</span>
           </div>
           <button onClick={toggleEmergency}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-900/50 hover:bg-red-800 text-white text-xs transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-900/50 hover:bg-red-800 text-white text-xs transition-colors whitespace-nowrap">
             <ShieldOff size={14} />
             Devre Dışı Bırak
           </button>
         </div>
       )}
+      {emergency && <div className="fixed inset-0 z-40 pointer-events-none bg-red-900/5" />}
       {open && <div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setOpen(false)} />}
 
       <nav className={`
@@ -115,7 +116,7 @@ export default function Layout({ children }) {
       </nav>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center gap-3 lg:hidden">
+        <header className={`sticky z-10 bg-gray-950/90 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center gap-3 lg:hidden ${emergency ? 'top-10' : 'top-0'}`}>
           <button onClick={() => setOpen(true)} className="p-1 text-gray-400 hover:text-white"><Menu size={22} /></button>
           <h1 className="text-base font-bold text-cyan-400">PC Manager</h1>
         </header>
