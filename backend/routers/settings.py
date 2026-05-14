@@ -28,6 +28,10 @@ DEFAULT_CONFIG = {
         "model": "gemma4:e4b",
         "max_tool_rounds": 5,
     },
+    "telegram": {
+        "bot_token": "",
+        "chat_id": "",
+    },
     "debug": {
         "enabled": False,
         "log_api_calls": True,
@@ -53,15 +57,28 @@ def _save_config(cfg: dict):
 
 @router.get("/settings")
 def get_settings():
-    return _load_config()
+    cfg = _load_config()
+    for key, default_val in DEFAULT_CONFIG.items():
+        if key not in cfg:
+            cfg[key] = default_val
+        elif isinstance(default_val, dict):
+            for sub_key, sub_val in default_val.items():
+                if sub_key not in cfg[key]:
+                    cfg[key][sub_key] = sub_val
+    return cfg
 
 
 @router.put("/settings")
 def update_settings(body: dict):
     current = _load_config()
     for key, value in body.items():
-        if key in current and isinstance(value, dict):
-            current[key].update(value)
+        if isinstance(value, dict):
+            if key not in current:
+                current[key] = {}
+            if isinstance(current[key], dict):
+                current[key].update(value)
+            else:
+                current[key] = value
         else:
             current[key] = value
     _save_config(current)

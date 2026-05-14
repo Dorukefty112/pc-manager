@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield } from 'lucide-react'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send } from 'lucide-react'
 
 const TABS = [
   { id: 'general', label: 'Genel', icon: Settings },
   { id: 'notifications', label: 'Bildirimler', icon: Bell },
   { id: 'ollama', label: 'Ollama', icon: Cpu },
   { id: 'emergency', label: 'Acil Durum', icon: AlertTriangle },
+  { id: 'telegram', label: 'Telegram', icon: Send },
   { id: 'debug', label: 'Debug', icon: Bug },
 ]
 
@@ -185,6 +186,54 @@ export default function SettingsPage() {
                 <strong className="text-gray-300">Otomatik aktivasyon:</strong> KRITIK risk seviyesindeki bir deprem
                 (&ge;5.0, 200km icin) algilandiginda Acil Durum Modu otomatik olarak devreye girer.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'telegram' && (
+        <div className="space-y-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
+            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
+              <Send size={14} className="text-cyan-400" />
+              Telegram Bildirimleri
+            </h3>
+            <p className="text-xs text-gray-500">
+              KRITIK ve YUKSEK seviye depremlerde telefona aninda bildirim gelmesi icin
+              Telegram bot bilgilerini gir. Bot'u <code className="text-cyan-300">@BotFather</code>'dan olustur,
+              mesaj at, sonra <code className="text-cyan-300">/getUpdates</code> ile Chat ID'ni bul.
+            </p>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Bot Token</label>
+              <input type="password" placeholder="123456:ABC-DEF1234..."
+                value={config.telegram?.bot_token || ''}
+                onChange={e => update('telegram', 'bot_token', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Chat ID</label>
+              <input type="text" placeholder="123456789"
+                value={config.telegram?.chat_id || ''}
+                onChange={e => update('telegram', 'chat_id', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={save}
+                className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg text-sm transition-colors">
+                {saving ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
+                Kaydet
+              </button>
+              <button onClick={async () => {
+                await save()
+                try {
+                  const r = await api('/api/telegram/test', {method: 'POST'})
+                  alert(r.message)
+                } catch(e) { alert('Hata: ' + e.message) }
+              }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
+                <Send size={14} />
+                Test Mesaji Gonder
+              </button>
             </div>
           </div>
         </div>
