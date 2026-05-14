@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.1] — 2026-05-14
+
+- **Telegram Bildirimleri**: KRITIK/YUKSEK depremlerde telefona aninda uyari. Ayarlar → Telegram'dan bot token ve chat ID girilir.
+- **Deprem Haritasi**: Leaflet ile interaktif harita, buyukluk/risk bazli markerlar, popup detay.
+- **Acil Durum Modu**: Depremde asistan hayatta kalma moduna gecer, kirmizi overlay + banner.
+- **web_fetch tool**: Agent'in sayfa icerigini okumasi icin yeni tool.
+- **Duzenlenen Mobil Sidebar**: Leaflet harita uzerinde menu acilinca overlay dogru calisiyor.
+- **Settings API**: Eksik config anahtarlari otomatik tamamlaniyor.
+
 ## [1.0.0] — 2026-05-14
 
 İlk sürüm. PC Manager — Sistem yönetimi ve OSINT platformu.

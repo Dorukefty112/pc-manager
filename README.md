@@ -4,7 +4,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Arch%20Linux-blue)
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.1-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir. Hata bildirimleri için [GitHub Issues](https://github.com/Dorukefty112/pc-manager/issues) kullanılabilir.
 
@@ -95,6 +95,17 @@ sudo systemctl enable pc-manager    # Otomatik başlatma
 ## API Dokümantasyonu
 
 Backend çalışırken: [http://localhost:8081/docs](http://localhost:8081/docs) (Swagger UI)
+
+## Telegram Bildirimleri (Deprem Uyarisi)
+
+KRITIK ve YUKSEK seviye depremlerde telefonunuza aninda bildirim almak icin:
+
+1. Telegram'da [@BotFather](https://t.me/BotFather)'a gidin, `/newbot` yazip bir bot olusturun
+2. Size verilen **token**'i kopyalayin (ornek: `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`)
+3. Yeni botunuza herhangi bir mesaj atin
+4. `https://api.telegram.org/bot<TOKEN>/getUpdates` adresine gidin, `"chat":{"id":123456789}` kismindaki **chat ID**'yi bulun
+5. PC Manager'da **Ayarlar → Telegram** sekmesine token ve chat ID'yi girip kaydedin
+6. "Test Mesaji Gonder" butonuyla dogrulayin
 
 ## Güvenlik
 
