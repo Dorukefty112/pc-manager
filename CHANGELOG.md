@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3] — 2026-05-14
+
+- **Kritik bug duzeltmeleri**: chat.py _clean_output UnboundLocalError, shutdown/reboot calismama, deprem DIKKAT seviyesi hep true donme, ollama off-by-one loop, settings shallow copy corruption, cron substring matching
+- **Async performans**: execute_tool artik event loop'u bloklamiyor (run_in_executor)
+- **Frontend**: Debug link full page reload yerine SPA nav, map marker key fix, parseInt NaN fix, DepremAlert interval leak fix, bold markdown her yerde calisiyor
+- **Zaman asimlari**: web_search 8sn, web_fetch 8sn
+
 ## [1.0.2] — 2026-05-14
 
 - **Duzenlenen Acil Durum Banner**: PC modunda sidebar padding sorunu cozuldu.

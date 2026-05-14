@@ -99,7 +99,7 @@ def remove_cron_job(command: str):
     if result.returncode != 0:
         raise HTTPException(400, "crontab boş")
     lines = result.stdout.strip().split("\n")
-    filtered = [l for l in lines if command not in l]
+    filtered = [l for l in lines if command.strip() not in l.split("#")[0].strip()]
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("\n".join(filtered) + "\n")
         tmp = f.name

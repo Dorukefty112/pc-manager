@@ -146,8 +146,8 @@ export default function DepremUyari() {
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {filtreli.map((d, i) => (
-                <DepremMarker key={`m${i}`} d={d} secili={secili} setSecili={setSecili} />
+              {filtreli.map(d => (
+                <DepremMarker key={`${d.tarih}_${d.saat}_${d.enlem}_${d.boylam}`} d={d} secili={secili} setSecili={setSecili} />
               ))}
             </MapContainer>
           </div>

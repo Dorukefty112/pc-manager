@@ -42,7 +42,7 @@ class Deprem:
 
     def to_dict(self):
         uzaklik = haversine(self.enlem, self.boylam, ISTANBUL_LAT, ISTANBUL_LON)
-        seviye = risk_seviyesi(self.magnitude, uzaklik)
+        seviye = risk_seviyesi(self.magnitude, uzaklik, self.enlem, self.boylam)
         return {
             "tarih": self.tarih,
             "saat": self.saat,
@@ -64,7 +64,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-def risk_seviyesi(mag, uzaklik):
+def risk_seviyesi(mag, uzaklik, enlem=None, boylam=None):
     if mag < 0:
         return "BILINMIYOR"
     if mag >= MAG_CRITICAL and uzaklik < 200:
@@ -73,7 +73,7 @@ def risk_seviyesi(mag, uzaklik):
         return "YUKSEK"
     elif mag >= MAG_WARNING and uzaklik < 100:
         return "ORTA"
-    elif mag >= MAG_WARNING and 26.5 <= ISTANBUL_LON <= 30.5 and 40.5 <= ISTANBUL_LAT <= 41.5:
+    elif mag >= MAG_WARNING and enlem and boylam and 26.5 <= boylam <= 30.5 and 40.5 <= enlem <= 41.5:
         return "DIKKAT"
     return "BILGI"
 
@@ -210,7 +210,7 @@ def _telegram_alert(depremler):
     for d in depremler:
         if not _son_dk(d, 3):
             continue
-        risk = risk_seviyesi(d.magnitude, haversine(d.enlem, d.boylam, ISTANBUL_LAT, ISTANBUL_LON))
+            risk = risk_seviyesi(d.magnitude, haversine(d.enlem, d.boylam, ISTANBUL_LAT, ISTANBUL_LON), d.enlem, d.boylam)
         if risk in ("KRITIK", "YUKSEK"):
             from .telegram import send_telegram_sync
             emoji = "\U0001f6a8" if risk == "KRITIK" else "\u26a0\ufe0f"

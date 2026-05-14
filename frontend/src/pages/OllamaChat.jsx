@@ -95,6 +95,8 @@ export default function OllamaChat() {
     }).catch(() => setOllamaError('Ollama servisine ulasilamadi'))
   }, [])
 
+  useEffect(() => () => abortRef.current?.abort(), [])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingContent, toolCalls])
@@ -276,7 +278,7 @@ export default function OllamaChat() {
             ? <code key={j} className="bg-gray-800 text-cyan-300 px-1 rounded text-xs">{p.slice(1, -1)}</code>
             : p
         )}</p>)
-      } else if (line.startsWith('**') && line.includes('**')) {
+      } else if (line.includes('**')) {
         const boldParts = line.split(/(\*\*[^*]+\*\*)/g)
         elements.push(<p key={i} className="text-gray-300">{boldParts.map((p, j) =>
           p.startsWith('**') && p.endsWith('**')

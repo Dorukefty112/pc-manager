@@ -149,7 +149,7 @@ export default function SettingsPage() {
             <label className="block text-sm text-gray-400 mb-1">Maksimum Tool Turu</label>
             <input type="number" min={1} max={10}
               value={config.ollama?.max_tool_rounds ?? 5}
-              onChange={e => update('ollama', 'max_tool_rounds', parseInt(e.target.value))}
+              onChange={e => update('ollama', 'max_tool_rounds', parseInt(e.target.value) || 1)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>

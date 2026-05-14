@@ -82,7 +82,7 @@ class ChatSession:
         text = re.sub(r'\x07', '', text)
         text = re.sub(r'\r\n', '\n', text)
         text = re.sub(r'\r', '\n', text)
-        lines = [l for l in text.split('\n') if l.strip() and not l.strip().startswith(cmd) for cmd in ['echo', 'printf']]
+        lines = [l for l in text.split('\n') if l.strip() and not any(l.strip().startswith(c) for c in ['echo', 'printf'])]
         return '\n'.join(lines).strip()
 
     def run_direct(self, cmd):
@@ -188,14 +188,14 @@ def _handle_intent(session, intent, msg):
         return "**Sıcaklıklar:**\n" + "\n".join(temps)
 
     elif intent == 'shutdown':
-        return "⚠️ Bilgisayar kapatılıyor... (3 saniye içinde)"
         import threading
         threading.Timer(3, lambda: subprocess.run(["poweroff"])).start()
+        return "⚠️ Bilgisayar kapatılıyor... (3 saniye içinde)"
 
     elif intent == 'reboot':
-        return "⚠️ Bilgisayar yeniden başlatılıyor... (3 saniye içinde)"
         import threading
         threading.Timer(3, lambda: subprocess.run(["reboot"])).start()
+        return "⚠️ Bilgisayar yeniden başlatılıyor... (3 saniye içinde)"
 
     elif intent == 'process':
         procs = []

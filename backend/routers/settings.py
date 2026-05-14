@@ -1,6 +1,7 @@
 import os
 import json
 import hashlib
+import copy
 from pathlib import Path
 from fastapi import APIRouter
 
@@ -46,7 +47,7 @@ def _load_config() -> dict:
                 return json.load(f)
         except (json.JSONDecodeError, OSError):
             pass
-    return DEFAULT_CONFIG.copy()
+    return copy.deepcopy(DEFAULT_CONFIG)
 
 
 def _save_config(cfg: dict):

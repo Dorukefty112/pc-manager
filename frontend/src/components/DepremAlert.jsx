@@ -120,12 +120,14 @@ export default function DepremAlert() {
   }, [sesAktif])
 
   useEffect(() => {
-    if (bildirimler.length === 0) return
     const id = setInterval(() => {
-      setBildirimler(prev => prev.filter(b => Date.now() - b.gosterim < 8000))
+      setBildirimler(prev => {
+        const filtered = prev.filter(b => Date.now() - b.gosterim < 8000)
+        return filtered.length === prev.length ? prev : filtered
+      })
     }, 1000)
     return () => clearInterval(id)
-  }, [bildirimler.length])
+  }, [])
 
   const RiskBadge = ({ risk }) => (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full

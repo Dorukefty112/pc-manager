@@ -102,11 +102,13 @@ export default function Layout({ children }) {
               <Settings size={16} />
               <span>Ayarlar</span>
             </NavLink>
-            <a href="/debug"
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-gray-800 hover:text-gray-300 font-medium transition-colors">
+            <NavLink to="/debug"
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-cyan-600/15 text-cyan-300' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'} font-medium`
+              }>
               <Bug size={16} />
               <span>Debug</span>
-            </a>
+            </NavLink>
           </div>
           <div className="border-t border-gray-800 px-2 py-3">
             <button onClick={() => { setToken(null); window.location.href = '/login' }}

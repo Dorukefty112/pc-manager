@@ -100,7 +100,7 @@ async def chat_stream(body: dict):
         tool_round = 0
         current_messages = full_messages[:]
 
-        while tool_round <= max_tool_rounds:
+        while tool_round < max_tool_rounds:
             async with httpx.AsyncClient() as client:
                 payload = {
                     "model": model,
@@ -174,7 +174,7 @@ async def chat_stream(body: dict):
 
                         for tc in tool_calls:
                             try:
-                                result = execute_tool(tc["name"], tc["arguments"])
+                                result = await asyncio.get_event_loop().run_in_executor(None, execute_tool, tc["name"], tc["arguments"])
                             except Exception as tool_err:
                                 result = json.dumps({"error": f"Tool hatasi: {str(tool_err)[:200]}"}, ensure_ascii=False)
                             current_messages.append({
