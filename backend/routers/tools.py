@@ -285,6 +285,26 @@ def tool_get_deprem(params: dict) -> str:
         return json.dumps({"error": f"deprem verisi alinamadi: {str(e)}"}, ensure_ascii=False)
 
 
+def tool_web_search(params: dict) -> str:
+    query = params.get("query", "")
+    if not query:
+        return json.dumps({"error": "arama sorgusu gerekli"}, ensure_ascii=False)
+    from .search_engine import _search_web
+    try:
+        result = _search_web(query)
+        if result.get("error"):
+            return json.dumps({"error": result["error"]}, ensure_ascii=False)
+        if not result.get("results"):
+            return json.dumps({"message": "Sonuc bulunamadi", "query": query}, ensure_ascii=False)
+        return json.dumps({
+            "query": query,
+            "total": result["total"],
+            "results": result["results"][:5],
+        }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": f"web aramasi basarisiz: {str(e)}"}, ensure_ascii=False)
+
+
 def tool_system_summary(params: dict) -> str:
     cpu = json.loads(tool_get_cpu({}))
     mem = json.loads(tool_get_memory({}))
@@ -520,6 +540,23 @@ TOOLS: dict[str, dict] = {
                 "name": "get_deprem",
                 "description": "Son deprem verilerini getir (Kandilli Rasathanesi)",
                 "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "web_search": {
+        "fn": tool_web_search,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "Web'de arama yap (DuckDuckGo). Guncel bilgi, haber, dokuman, kod ornegi vb. icin kullan.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "aranacak sorgu (Turkce veya Ingilizce)"},
+                    },
+                    "required": ["query"],
+                },
             },
         },
     },

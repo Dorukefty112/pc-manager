@@ -15,7 +15,8 @@ SYSTEM_PROMPT = (
     "Tools'larin yetmiyorsa exec_command ile shell komutu calistirabilirsin. "
     "Turkce cevap ver. Kisaca ve ozetle, kullanicinin anlayacagi sekilde cevapla. "
     "Tool sonuclarini kullaniciya yorumlayarak aktar, ham JSON gosterme. "
-    "Kullanici deprem sordugunda veya son depremleri ogrenmek istediginde get_deprem tool'unu kullan."
+    "Kullanici deprem sordugunda veya son depremleri ogrenmek istediginde get_deprem tool'unu kullan. "
+    "Kullanici web'de arama yapmak, guncel bilgi almak, haber ogrenmek istediginde web_search tool'unu kullan."
 )
 
 
