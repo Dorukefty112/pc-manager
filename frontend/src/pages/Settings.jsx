@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader } from 'lucide-react'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield } from 'lucide-react'
 
 const TABS = [
   { id: 'general', label: 'Genel', icon: Settings },
   { id: 'notifications', label: 'Bildirimler', icon: Bell },
   { id: 'ollama', label: 'Ollama', icon: Cpu },
+  { id: 'emergency', label: 'Acil Durum', icon: AlertTriangle },
   { id: 'debug', label: 'Debug', icon: Bug },
 ]
 
@@ -15,11 +16,24 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [activeTab, setActiveTab] = useState('general')
   const [models, setModels] = useState([])
+  const [emergency, setEmergency] = useState(false)
 
   useEffect(() => {
     api('/api/settings').then(setConfig).catch(() => {})
     api('/api/ollama/models').then(d => setModels(Array.isArray(d) ? d : [])).catch(() => {})
+    api('/api/ollama/emergency').then(d => setEmergency(d.emergency)).catch(() => {})
   }, [])
+
+  const toggleEmergency = async () => {
+    try {
+      const d = await api('/api/ollama/emergency', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({emergency: !emergency}),
+      })
+      setEmergency(d.emergency)
+    } catch {}
+  }
 
   const update = (section, key, value) => {
     setConfig(prev => ({
@@ -136,6 +150,42 @@ export default function SettingsPage() {
               value={config.ollama?.max_tool_rounds ?? 5}
               onChange={e => update('ollama', 'max_tool_rounds', parseInt(e.target.value))}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'emergency' && (
+        <div className="space-y-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
+            <div className="flex items-center gap-2 text-red-400 mb-2">
+              <AlertTriangle size={18} />
+              <h3 className="text-sm font-medium uppercase tracking-wider">Acil Durum Modu</h3>
+            </div>
+            <p className="text-xs text-gray-500">
+              Buyuk bir deprem aninda asistan hayatta kalma moduna gecer. KRITIK seviye deprem algilandiginda
+              otomatik olarak aktiflesir. Bu modda asistan sadece kritik bilgi verir: ilk yardim, enkaz,
+              su/yiyecek yonetimi, guvenli toplanma alanlari, iletisim.
+            </p>
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <p className="text-sm font-medium text-gray-200">Acil Durum Aktif</p>
+                <p className="text-xs text-gray-500">Su an {emergency ? 'AKTIF' : 'devre disi'}</p>
+              </div>
+              <button onClick={toggleEmergency}
+                className={`relative w-14 h-7 rounded-full transition-colors ${
+                  emergency ? 'bg-red-600' : 'bg-gray-700'
+                }`}>
+                <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
+                  emergency ? 'translate-x-7' : 'translate-x-0.5'
+                }`} />
+              </button>
+            </div>
+            <div className="pt-2 border-t border-gray-800">
+              <p className="text-xs text-gray-400 leading-relaxed">
+                <strong className="text-gray-300">Otomatik aktivasyon:</strong> KRITIK risk seviyesindeki bir deprem
+                (&ge;5.0, 200km icin) algilandiginda Acil Durum Modu otomatik olarak devreye girer.
+              </p>
+            </div>
           </div>
         </div>
       )}
