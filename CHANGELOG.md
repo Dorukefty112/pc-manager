@@ -6,6 +6,7 @@
 
 ### Eklenenler
 
+- **Pc_Search_Engine**: Web (DuckDuckGo), yerel dosya ve sistem arama — tamamen özgün arama motoru
 - **Sistem Yönetimi**: CPU, RAM, disk, uptime takibi
 - **Dosya Yönetimi**: Web üzerinden dosya gezintisi, yükleme, indirme
 - **Güç Yönetimi**: Shutdown, reboot, sleep

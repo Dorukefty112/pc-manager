@@ -28,6 +28,7 @@
 | 🔍 **OSINT** | Email, kullanıcı adı, domain, telefon sorgulama araçları (11+ araç) |
 | 🛡️ **Pentest** | Nmap, SQLMap, Hydra, John, Gobuster ve 20+ güvenlik aracı |
 | 🌍 **Deprem İzleme** | Kandilli + AFAD verisi ile canlı deprem takibi, sesli uyarı |
+| 🔎 **Pc_Search_Engine** | Web (DuckDuckGo), yerel dosya ve sistem arama motoru |
 | ⚙️ **Kurulum Sihirbazı** | İlk açılışta site adı, yönetici adı ve şifre belirleme |
 
 ## Hızlı Başlangıç

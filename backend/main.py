@@ -12,7 +12,7 @@ from routers import (
     network, system_info, disks, updates, logs,
     services, chat, pentest, auth as auth_router,
     docker, cron, deprem, ollama,
-    settings, debug, debug_agent,
+    settings, debug, debug_agent, search_engine,
 )
 from dependencies import require_auth
 
@@ -86,6 +86,7 @@ app.include_router(ollama.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(debug.router, prefix="/api")
 app.include_router(debug_agent.router, prefix="/api")
+app.include_router(search_engine.router, prefix="/api")
 
 @app.get("/")
 def serve_index():

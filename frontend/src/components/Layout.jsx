@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Settings, Bug } from 'lucide-react'
+import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Settings, Bug, Search } from 'lucide-react'
 import { setToken } from '../api'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: Monitor },
+  { to: '/search', label: 'Arama', icon: Search, highlight: true },
   { to: '/chat', label: 'Asistan', icon: MessageSquare },
   { to: '/terminal', label: 'Terminal', icon: Terminal },
   { to: '/pentest', label: 'Pen-Test', icon: Shield, highlight: true },

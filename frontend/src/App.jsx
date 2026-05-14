@@ -21,6 +21,7 @@ import Debug from './pages/Debug'
 import DepremUyari from './pages/DepremUyari'
 import DepremAlert from './components/DepremAlert'
 import OllamaChat from './pages/OllamaChat'
+import SearchEngine from './pages/SearchEngine'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import { isAuthenticated } from './api'
@@ -72,6 +73,7 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="/deprem" element={<DepremUyari />} />
+                <Route path="/search" element={<SearchEngine />} />
                 <Route path="/ai" element={<OllamaChat />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
