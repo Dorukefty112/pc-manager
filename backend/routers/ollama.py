@@ -9,6 +9,9 @@ from .tools import TOOL_SPECS, execute_tool
 router = APIRouter(tags=["ollama"])
 OLLAMA_URL = "http://localhost:11434/api/chat"
 OLLAMA_GENERATE_URL = "http://localhost:11434/api/generate"
+
+EMERGENCY_MODE = False
+
 SYSTEM_PROMPT = (
     "Sen PC Manager asistanisin. Kullanicinin Linux sistemini yonetmesine yardimci oluyorsun. "
     "Kullanici dogal dilde komut verecek, sen de uygun tool'lari cagirarak cevap vereceksin. "
@@ -18,6 +21,24 @@ SYSTEM_PROMPT = (
     "Kullanici deprem sordugunda veya son depremleri ogrenmek istediginde get_deprem tool'unu kullan. "
     "Kullanici web'de arama yapmak, guncel bilgi almak, haber ogrenmek istediginde web_search tool'unu kullan. "
     "Bir sayfanin detayli icerigini okumak icin web_fetch tool'unu kullan."
+)
+
+EMERGENCY_PROMPT = (
+    "ACIL DURUM MODU AKTIF! Sen bir acil durum kurtarma asistanisin. Buyuk bir deprem oldugunu varsay."
+    "Kesinlikle Turkce cevap ver. Amacin sadece kullanicinin hayatta kalmasina yardim etmek."
+    "Asla gereksiz konusma, sadece kritik bilgi ver. "
+    "Tools'lari aktif kullan: web_search ile guncel haberleri, web_fetch ile detaylari, get_deprem ile deprem verilerini getir. "
+    "Su konularda yardim et:"
+    "1. Guvenli toplanma alanlari ve yapilmasi gerekenler"
+    "2. Ilk yardim (kanama, kirik, sok)"
+    "3. Acil durum cantasinda bulunmasi gerekenler"
+    "4. Artci depremlerde yapilmasi gerekenler"
+    "5. Enkaz altinda kalma durumunda hayatta kalma"
+    "6. Iletisim ve yardim cagirma yontemleri"
+    "7. Su ve yiyecek yonetimi"
+    "8. Enkaz altinda isi koruma"
+    "Soğukkanli ol, net ve kisa talimatlar ver. Kullanicinin panik yapmasini engelle."
+    "Tool sonuclarini kullaniciya yorumlayarak aktar, ham JSON gosterme."
 )
 
 
@@ -50,6 +71,16 @@ async def unload_model(body: dict = {}):
         return {"success": False, "error": str(e)}
 
 
+@router.get("/ollama/emergency")
+async def get_emergency():
+    return {"emergency": EMERGENCY_MODE, "prompt": EMERGENCY_PROMPT}
+
+@router.post("/ollama/emergency")
+async def set_emergency(body: dict):
+    global EMERGENCY_MODE
+    EMERGENCY_MODE = body.get("emergency", False)
+    return {"emergency": EMERGENCY_MODE}
+
 @router.post("/ollama/chat/stream")
 async def chat_stream(body: dict):
     model = body.get("model", "gemma4:e4b")
@@ -60,7 +91,8 @@ async def chat_stream(body: dict):
     if not messages or messages[-1].get("role") != "user":
         raise HTTPException(400, "Son mesaj kullaniciya ait olmali")
 
-    full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
+    prompt = EMERGENCY_PROMPT if EMERGENCY_MODE else SYSTEM_PROMPT
+    full_messages = [{"role": "system", "content": prompt}] + messages
 
     async def agent_loop():
         tool_round = 0

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Settings, Bug, Search } from 'lucide-react'
-import { setToken } from '../api'
+import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Settings, Bug, Search, AlertTriangle, ShieldOff } from 'lucide-react'
+import { setToken, api } from '../api'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: Monitor },
@@ -26,12 +26,49 @@ const links = [
 
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false)
+  const [emergency, setEmergency] = useState(false)
   const location = useLocation()
 
   useEffect(() => { setOpen(false) }, [location.pathname])
 
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const data = await api('/api/ollama/emergency')
+        setEmergency(data.emergency)
+      } catch {}
+    }
+    check()
+    const id = setInterval(check, 10000)
+    return () => clearInterval(id)
+  }, [])
+
+  const toggleEmergency = async () => {
+    try {
+      const data = await api('/api/ollama/emergency', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({emergency: !emergency}),
+      })
+      setEmergency(data.emergency)
+    } catch {}
+  }
+
   return (
     <div className="flex h-screen">
+      {emergency && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-700 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold animate-pulse">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="animate-bounce" />
+            <span>ACİL DURUM MODU AKTİF — Asistan hayatta kalma moduna geçti</span>
+          </div>
+          <button onClick={toggleEmergency}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-900/50 hover:bg-red-800 text-white text-xs transition-colors">
+            <ShieldOff size={14} />
+            Devre Dışı Bırak
+          </button>
+        </div>
+      )}
       {open && <div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setOpen(false)} />}
 
       <nav className={`
@@ -82,7 +119,7 @@ export default function Layout({ children }) {
           <button onClick={() => setOpen(true)} className="p-1 text-gray-400 hover:text-white"><Menu size={22} /></button>
           <h1 className="text-base font-bold text-cyan-400">PC Manager</h1>
         </header>
-        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{children}</main>
+        <main className={`flex-1 overflow-auto p-3 sm:p-4 lg:p-6 ${emergency ? 'pt-14' : ''}`}>{children}</main>
       </div>
     </div>
   )

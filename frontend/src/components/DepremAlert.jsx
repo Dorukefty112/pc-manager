@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
-import { X, AlertTriangle, MapPin, Activity, Clock, Crosshair, Volume2, VolumeX } from 'lucide-react'
+import { X, AlertTriangle, MapPin, Activity, Clock, Crosshair, Volume2, VolumeX, Shield, ShieldOff } from 'lucide-react'
 
 const SES_URL = '/deprem_alert.mp3'
 
@@ -9,9 +9,11 @@ export default function DepremAlert() {
   const [tamEkran, setTamEkran] = useState(null)
   const [sesAktif, setSesAktif] = useState(true)
   const [bildirimler, setBildirimler] = useState([])
+  const [emergency, setEmergency] = useState(false)
   const oncekiAnahtarlar = useRef(new Set())
   const sesRef = useRef(null)
   const audioCtx = useRef(null)
+  const emergencyActivated = useRef(false)
 
   useEffect(() => {
     try {
@@ -62,6 +64,31 @@ export default function DepremAlert() {
   }
 
   useEffect(() => {
+    const checkEmergency = async () => {
+      try {
+        const data = await api('/api/ollama/emergency')
+        setEmergency(data.emergency)
+        if (!data.emergency) emergencyActivated.current = false
+      } catch {}
+    }
+    checkEmergency()
+    const emId = setInterval(checkEmergency, 10000)
+    return () => clearInterval(emId)
+  }, [])
+
+  const activateEmergency = async () => {
+    try {
+      await api('/api/ollama/emergency', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({emergency: true}),
+      })
+      setEmergency(true)
+      emergencyActivated.current = true
+    } catch {}
+  }
+
+  useEffect(() => {
     const fetchUyari = async () => {
       try {
         const data = await api('/api/deprem/uyari')
@@ -75,6 +102,9 @@ export default function DepremAlert() {
             setTamEkran(d)
             kritikSesi()
             setUyarilar(prev => [d, ...prev].slice(0, 20))
+            if (d.risk_seviyesi === 'KRITIK' && !emergencyActivated.current) {
+              activateEmergency()
+            }
           } else if (d.risk_seviyesi === 'DIKKAT' || (d.magnitude >= 3.0 && d.istanbula_uzaklik < 300)) {
             const bild = { ...d, id: anahtar, gosterim: Date.now() }
             setBildirimler(prev => [bild, ...prev].slice(0, 5))
@@ -132,7 +162,7 @@ export default function DepremAlert() {
               <span className="flex items-center gap-1"><Clock size={12} />{tamEkran.tarih.slice(5)} {tamEkran.saat}</span>
               <span className="flex items-center gap-1"><MapPin size={12} />{tamEkran.enlem}, {tamEkran.boylam}</span>
             </div>
-            <div className="flex gap-3 justify-center">
+            <div className="flex gap-3 justify-center flex-wrap">
               <button onClick={() => setTamEkran(null)}
                 className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm font-medium transition-colors">
                 Tamam
@@ -141,6 +171,13 @@ export default function DepremAlert() {
                 className={`px-4 py-2.5 rounded-lg text-sm transition-colors ${sesAktif ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-gray-800 text-gray-500 hover:bg-gray-700'}`}>
                 {sesAktif ? <Volume2 size={18} /> : <VolumeX size={18} />}
               </button>
+              {!emergency && tamEkran?.risk_seviyesi === 'KRITIK' && (
+                <button onClick={activateEmergency}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-sm font-bold transition-colors animate-pulse">
+                  <Shield size={16} />
+                  Acil Durum Modu
+                </button>
+              )}
             </div>
           </div>
         </div>
