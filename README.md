@@ -6,7 +6,7 @@
 ![Platform](https://img.shields.io/badge/platform-Arch%20Linux-blue)
 ![Version](https://img.shields.io/badge/version-1.0.1-blue)
 
-> ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir. Hata bildirimleri için [GitHub Issues](https://github.com/Dorukefty112/pc-manager/issues) kullanılabilir.
+> ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için yapılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!**
 
 ## Özellikler
 
