@@ -26,6 +26,25 @@ DEFAULT_CONFIG = {
         "earthquake_magnitude": 4.0,
         "earthquake_distance": 100,
         "sound_enabled": True,
+        "channels": {
+            "telegram": True,
+            "email": False,
+            "webhook": False,
+        },
+    },
+    "email": {
+        "enabled": False,
+        "smtp_server": "",
+        "smtp_port": 587,
+        "use_tls": True,
+        "smtp_user": "",
+        "smtp_password": "",
+        "from_addr": "",
+        "to_addr": "",
+    },
+    "webhook": {
+        "enabled": False,
+        "url": "",
     },
     "ollama": {
         "model": "gemma4:e4b",
