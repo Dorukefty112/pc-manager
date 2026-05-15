@@ -13,6 +13,12 @@
 - **Login Refresh Döngüsü Düzeltildi**: 3 farklı 401 kaynağı temizlendi, api.js 401 handler'ı login sayfasında refresh yapmaz.
 - **WebSocket Auth Blokajı Düzeltildi**: Router-level auth WebSocket'leri blokluyordu, HTTP endpoint'lere tek tek auth eklendi.
 
+## [1.0.4] — 2026-05-15
+
+- **Auth güçlendirme**: SHA-256 → bcrypt şifre hashing. Eski hash'ler login'de otomatik bcrypt'e yükseltilir.
+- **Auth açıkları kapatıldı**: settings, telegram, system, terminal, pentest, ollama, debug, search_engine, debug_agent endpoint'lerine auth eklendi.
+- **Genel auth**: 10 endpoint artık token gerektiriyor.
+
 ## [1.0.3] — 2026-05-14
 
 - **Kritik bug duzeltmeleri**: chat.py _clean_output UnboundLocalError, shutdown/reboot calismama, deprem DIKKAT seviyesi hep true donme, ollama off-by-one loop, settings shallow copy corruption, cron substring matching
