@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 venv/
 config.json
+alert_history.json
 .env
 *.log
 reports/
