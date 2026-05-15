@@ -1,10 +1,17 @@
 # Changelog
 
-## [1.0.4] — 2026-05-15
+## [1.0.5] — 2026-05-15
 
-- **Auth guclendirme**: SHA-256 → bcrypt sifre hashing. Eski hash'ler login'de otomatik bcrypt'e yukseltilir.
-- **Auth aciklari kapatildi**: settings, telegram, system, terminal, pentest, ollama, debug, search_engine, debug_agent endpoint'lerine auth eklendi. Sadece /api/version, /api/auth/login, /api/deprem, /api/setup public kaldi.
-- **Genel auth**: 10 endpoint art�k token gerektiriyor.
+- **Bildirim Motoru**: CPU/RAM/Disk eşik değerleri arka planda her 30sn kontrol edilir, aşılınca Telegram/E-posta/Webhook ile bildirim gönderilir.
+- **E-posta Bildirimi**: SMTP desteği (TLS, Gmail/Outlook uyumlu). Ayarlar > E-posta.
+- **Webhook Bildirimi**: Discord/Slack/Teams için generic HTTP POST. Ayarlar > Webhook.
+- **Telegram Bildirimi**: Bildirim kanalı olarak kullanılabilir (varsayılan: açık). Ayarlar > Bildirimler.
+- **Alarm Geçmişi**: Tüm bildirimler kaydedilir, Settings > Bildirimler > Alarm Geçmişi'nden görüntülenir ve temizlenir.
+- **Deprem Telegram**: Artık tüm depremler (M2+, 300km içi) batch halinde gönderilir, duplicate korumalı.
+- **WebSocket Reconnection**: Dashboard/Terminal/PenTest WS bağlantıları kopunca otomatik yeniden bağlanır.
+- **JWT Secret Kalıcılığı**: Secret `.jwt_secret` dosyasına yazılır, restart'ta token'lar geçersiz olmaz.
+- **Login Refresh Döngüsü Düzeltildi**: 3 farklı 401 kaynağı temizlendi, api.js 401 handler'ı login sayfasında refresh yapmaz.
+- **WebSocket Auth Blokajı Düzeltildi**: Router-level auth WebSocket'leri blokluyordu, HTTP endpoint'lere tek tek auth eklendi.
 
 ## [1.0.3] — 2026-05-14
 
