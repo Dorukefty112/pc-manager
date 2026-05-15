@@ -72,7 +72,7 @@ export default function SettingsPage() {
         <h2 className="text-xl font-semibold">Ayarlar</h2>
       </div>
 
-      <div className="flex gap-1 mb-4 border-b border-gray-800 pb-2 overflow-x-auto">
+      <div className="flex gap-1 mb-2 border-b border-gray-800 pb-2 overflow-x-auto">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm transition-colors whitespace-nowrap ${
@@ -84,9 +84,10 @@ export default function SettingsPage() {
             {tab.label}
           </button>
         ))}
-        <div className="flex-1" />
+      </div>
+      <div className="flex justify-end mb-4">
         <button onClick={save} disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 rounded-lg text-sm transition-colors">
+          className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 rounded-lg text-sm transition-colors min-w-[120px] justify-center">
           {saving ? <Loader size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
           {saved ? 'Kaydedildi' : 'Kaydet'}
         </button>
