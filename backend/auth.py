@@ -8,11 +8,28 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status
 import bcrypt
 
-SECRET_KEY = os.environ.get("PCMANAGER_SECRET", secrets.token_hex(32))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
+JWT_SECRET_PATH = Path(__file__).parent / ".jwt_secret"
+
+
+def _get_secret_key() -> str:
+    env_key = os.environ.get("PCMANAGER_SECRET")
+    if env_key:
+        return env_key
+    if JWT_SECRET_PATH.exists():
+        return JWT_SECRET_PATH.read_text().strip()
+    key = secrets.token_hex(32)
+    try:
+        JWT_SECRET_PATH.write_text(key)
+    except Exception:
+        pass
+    return key
+
+
+SECRET_KEY = _get_secret_key()
 
 
 def _hash_bcrypt(password: str) -> str:

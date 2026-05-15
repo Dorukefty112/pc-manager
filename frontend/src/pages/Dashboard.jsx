@@ -1,30 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
-import { Cpu, MemoryStick, Activity, RefreshCw, Wifi } from 'lucide-react'
+import { useWebSocket } from '../useWebSocket'
+import { Cpu, MemoryStick, Activity, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [history, setHistory] = useState({ cpu: [], memory: [] })
   const [wsData, setWsData] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [wsConnected, setWsConnected] = useState(false)
   const canvasRef = useRef(null)
-  const wsRef = useRef(null)
 
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host
-    const token = localStorage.getItem('pcmanager_token') || ''
-    const ws = new WebSocket(`${protocol}//${host}/api/system/ws?token=${encodeURIComponent(token)}`)
-    ws.onmessage = (event) => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.host
+  const token = localStorage.getItem('pcmanager_token') || ''
+  const wsUrl = `${protocol}//${host}/api/system/ws?token=${encodeURIComponent(token)}`
+  useWebSocket(wsUrl, {
+    onMessage: (e) => {
       try {
-        const data = JSON.parse(event.data)
+        const data = JSON.parse(e.data)
         setWsData(data)
       } catch {}
-    }
-    ws.onclose = () => {}
-    wsRef.current = ws
-    return () => ws.close()
-  }, [])
+    },
+    onOpen: () => setWsConnected(true),
+    onClose: () => setWsConnected(false),
+  })
 
   const fetchAll = useCallback(async () => {
     try {
@@ -129,9 +129,14 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-semibold">Sistem Durumu</h2>
-          {wsRef.current?.readyState === WebSocket.OPEN && (
+          {wsConnected && (
             <span className="flex items-center gap-1 text-[10px] text-green-500 bg-green-900/20 px-1.5 py-0.5 rounded-full">
               <Wifi size={10} /> Canlı
+            </span>
+          )}
+          {!wsConnected && (
+            <span className="flex items-center gap-1 text-[10px] text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded-full">
+              <WifiOff size={10} /> Bağlanıyor...
             </span>
           )}
         </div>

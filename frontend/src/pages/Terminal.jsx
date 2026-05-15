@@ -1,29 +1,79 @@
-import { useEffect, useRef, useState } from 'react'
-import { Terminal as TerminalIcon, Maximize, Minimize } from 'lucide-react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { Terminal as TerminalIcon, Maximize, Minimize, Wifi, WifiOff } from 'lucide-react'
+
+function getToken() {
+  return localStorage.getItem('pcmanager_token')
+}
+
+function createWs(url, handlers) {
+  const ws = new WebSocket(url)
+  ws.onopen = handlers.onOpen
+  ws.onmessage = handlers.onMessage
+  ws.onerror = handlers.onError
+  ws.onclose = handlers.onClose
+  return ws
+}
 
 export default function Terminal() {
   const termRef = useRef(null)
   const wsRef = useRef(null)
   const xtermRef = useRef(null)
   const fitRef = useRef(null)
+  const mountedRef = useRef(true)
+  const retryRef = useRef(null)
   const [connected, setConnected] = useState(false)
 
-  function getToken() {
-    return localStorage.getItem('pcmanager_token')
-  }
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const token = getToken()
+  const wsUrl = `${protocol}//${location.host}/api/terminal?token=${encodeURIComponent(token || '')}`
+
+  const connect = useCallback(() => {
+    if (!mountedRef.current) return
+    if (wsRef.current) { try { wsRef.current.close() } catch {} }
+    const term = xtermRef.current
+    if (!term) return
+
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      if (!mountedRef.current) return
+      setConnected(true)
+      const fit = fitRef.current
+      if (fit) {
+        const dims = fit.proposeDimensions()
+        if (dims) ws.send(`__RESIZE__:${dims.rows}:${dims.cols}`)
+      }
+    }
+
+    ws.onclose = () => {
+      wsRef.current = null
+      if (!mountedRef.current) return
+      setConnected(false)
+      if (term) term.writeln('\x1b[33mBaglanti koptu, yeniden baglaniliyor...\x1b[0m')
+      retryRef.current = setTimeout(connect, 3000)
+    }
+
+    ws.onerror = () => {
+      if (!mountedRef.current) return
+      setConnected(false)
+    }
+
+    ws.onmessage = (e) => {
+      if (term) term.write(e.data)
+    }
+  }, [wsUrl])
 
   useEffect(() => {
-    let mounted = true
+    mountedRef.current = true
+    let term, fit, resizeObserver
+
     const init = async () => {
       const { Terminal } = await import('@xterm/xterm')
       const { FitAddon } = await import('@xterm/addon-fit')
 
-      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const token = getToken()
-      const wsUrl = `${protocol}//${location.host}/api/terminal?token=${encodeURIComponent(token || '')}`
-
       const fontSize = window.innerWidth < 640 ? 12 : 14
-      const term = new Terminal({
+      term = new Terminal({
         cursorBlink: true,
         cursorStyle: 'block',
         fontSize,
@@ -31,7 +81,7 @@ export default function Terminal() {
         theme: { background: '#0d1117', foreground: '#c9d1d9', cursor: '#58a6ff', selectionBackground: '#264f78' },
       })
 
-      const fit = new FitAddon()
+      fit = new FitAddon()
       term.loadAddon(fit)
       xtermRef.current = term
       fitRef.current = fit
@@ -39,38 +89,22 @@ export default function Terminal() {
       term.open(termRef.current)
       fit.fit()
 
-      const ws = new WebSocket(wsUrl)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        if (!mounted) return
-        setConnected(true)
-        const dims = fit.proposeDimensions()
-        if (dims) {
-          ws.send(`__RESIZE__:${dims.rows}:${dims.cols}`)
-        }
-      }
-
-      ws.onclose = () => { if (mounted) setConnected(false) }
-      ws.onerror = () => {
-        if (!mounted) return
-        setConnected(false)
-        term.writeln('\x1b[31mWebSocket bağlantı hatası!\x1b[0m')
-      }
-
-      ws.onmessage = e => term.write(e.data)
+      connect()
 
       term.onData(data => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(data)
+        const ws = wsRef.current
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(data)
       })
 
       term.onResize(({ cols, rows }) => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(`__RESIZE__:${rows}:${cols}`)
+        const ws = wsRef.current
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(`__RESIZE__:${rows}:${cols}`)
       })
 
-      const resizeObserver = new ResizeObserver(() => {
+      resizeObserver = new ResizeObserver(() => {
         fit.fit()
-        if (ws.readyState === WebSocket.OPEN) {
+        const ws = wsRef.current
+        if (ws && ws.readyState === WebSocket.OPEN) {
           const dims = fit.proposeDimensions()
           if (dims) ws.send(`__RESIZE__:${dims.rows}:${dims.cols}`)
         }
@@ -81,11 +115,13 @@ export default function Terminal() {
     init()
 
     return () => {
-      mounted = false
-      if (wsRef.current) wsRef.current.close()
-      if (xtermRef.current) xtermRef.current.dispose()
+      mountedRef.current = false
+      if (retryRef.current) clearTimeout(retryRef.current)
+      if (wsRef.current) { try { wsRef.current.close() } catch {} }
+      if (term) term.dispose()
+      if (resizeObserver) resizeObserver.disconnect()
     }
-  }, [])
+  }, [connect])
 
   return (
     <div className="h-full flex flex-col">

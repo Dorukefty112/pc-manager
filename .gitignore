@@ -10,5 +10,6 @@ reports/
 dist/
 .vite/
 *.egg-info/
+.jwt_secret
 .DS_Store
 Thumbs.db

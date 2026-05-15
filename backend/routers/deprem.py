@@ -208,23 +208,22 @@ def _telegram_alert(depremler):
     if now - _son_telegram < 60:
         return
     for d in depremler:
-        if not _son_dk(d, 3):
-            continue
+        if _son_dk(d, 3):
             risk = risk_seviyesi(d.magnitude, haversine(d.enlem, d.boylam, ISTANBUL_LAT, ISTANBUL_LON), d.enlem, d.boylam)
-        if risk in ("KRITIK", "YUKSEK"):
-            from .telegram import send_telegram_sync
-            emoji = "\U0001f6a8" if risk == "KRITIK" else "\u26a0\ufe0f"
-            msg = (
-                f"{emoji} <b>Deprem {risk}</b>\n"
-                f"Magnitude: M{d.magnitude:.1f}\n"
-                f"Yer: {d.yer}\n"
-                f"Derinlik: {d.derinlik} km\n"
-                f"Tarih: {d.tarih} {d.saat}"
-            )
-            ok = send_telegram_sync(msg)
-            if ok:
-                _son_telegram = now
-            break
+            if risk in ("KRITIK", "YUKSEK"):
+                from .telegram import send_telegram_sync
+                emoji = "\U0001f6a8" if risk == "KRITIK" else "\u26a0\ufe0f"
+                msg = (
+                    f"{emoji} <b>Deprem {risk}</b>\n"
+                    f"Magnitude: M{d.magnitude:.1f}\n"
+                    f"Yer: {d.yer}\n"
+                    f"Derinlik: {d.derinlik} km\n"
+                    f"Tarih: {d.tarih} {d.saat}"
+                )
+                ok = send_telegram_sync(msg)
+                if ok:
+                    _son_telegram = now
+                break
 
 
 @router.get("/deprem/stream")
