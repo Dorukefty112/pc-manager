@@ -199,31 +199,55 @@ def deprem_uyarilari():
     return uyarilar
 
 
-_son_telegram = 0.0
+_gonderilen = set()
+_MIN_MAG = 2.0
+_MAX_DIST = 300
+
+
+def _deprem_anahtar(d):
+    return f"{d.tarih}_{d.saat}_{d.yer}_{d.magnitude:.1f}"
 
 
 def _telegram_alert(depremler):
-    global _son_telegram
-    now = time.time()
-    if now - _son_telegram < 60:
-        return
+    global _gonderilen
+    from .telegram import send_telegram_sync
+
+    yeni = []
     for d in depremler:
-        if _son_dk(d, 3):
-            risk = risk_seviyesi(d.magnitude, haversine(d.enlem, d.boylam, ISTANBUL_LAT, ISTANBUL_LON), d.enlem, d.boylam)
-            if risk in ("KRITIK", "YUKSEK"):
-                from .telegram import send_telegram_sync
-                emoji = "\U0001f6a8" if risk == "KRITIK" else "\u26a0\ufe0f"
-                msg = (
-                    f"{emoji} <b>Deprem {risk}</b>\n"
-                    f"Magnitude: M{d.magnitude:.1f}\n"
-                    f"Yer: {d.yer}\n"
-                    f"Derinlik: {d.derinlik} km\n"
-                    f"Tarih: {d.tarih} {d.saat}"
-                )
-                ok = send_telegram_sync(msg)
-                if ok:
-                    _son_telegram = now
-                break
+        if not _son_dk(d, 3):
+            continue
+        uzaklik = haversine(d.enlem, d.boylam, ISTANBUL_LAT, ISTANBUL_LON)
+        if d.magnitude < _MIN_MAG or uzaklik > _MAX_DIST:
+            continue
+        anahtar = _deprem_anahtar(d)
+        if anahtar in _gonderilen:
+            continue
+        _gonderilen.add(anahtar)
+        risk = risk_seviyesi(d.magnitude, uzaklik, d.enlem, d.boylam)
+        yeni.append((d, risk, uzaklik))
+
+    if not yeni:
+        return
+
+    if len(_gonderilen) > 1000:
+        _gonderilen = set(list(_gonderilen)[-500:])
+
+    grup_baslik = "\U0001f514 <b>Son Depremler</b>"
+    gruplar = []
+    for d, risk, uzaklik in yeni:
+        emoji_map = {"KRITIK": "\U0001f6a8", "YUKSEK": "\u26a0\ufe0f", "ORTA": "\U0001f7e1", "DIKKAT": "\U0001f535"}
+        emoji = emoji_map.get(risk, "\u26aa")
+        gruplar.append(
+            f"{emoji} <b>M{d.magnitude:.1f}</b> | {risk}"
+            f"\n\U0001f4cd {d.yer}"
+            f"\n\U0001f4cf \u0130stanbul\u2019a {uzaklik:.1f} km, Derinlik {d.derinlik} km"
+            f"\n\U0001f550 {d.tarih} {d.saat}"
+        )
+
+    for i in range(0, len(gruplar), 5):
+        msg = grup_baslik + "\n\n" + "\n\n".join(gruplar[i:i+5])
+        if not send_telegram_sync(msg):
+            break
 
 
 @router.get("/deprem/stream")
@@ -243,6 +267,7 @@ async def deprem_stream():
                         uyarilar.append(d.to_dict())
                 data = json.dumps({"depremler": [d.to_dict() for d in depremler[:10]], "uyarilar": uyarilar}, ensure_ascii=False)
                 yield f"data: {data}\n\n"
+                _telegram_alert(depremler)
             except Exception:
                 yield f"data: {json.dumps({'error': 'fetch failed'})}\n\n"
             await asyncio.sleep(15)
