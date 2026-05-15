@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import Toggle from '../components/Toggle'
 import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, History, Trash2 } from 'lucide-react'
 
 const TABS = [
@@ -146,17 +147,11 @@ export default function SettingsPage() {
               ].map(ch => (
                 <div key={ch.key} className="flex items-center justify-between">
                   <span className="text-sm text-gray-300">{ch.label}</span>
-                  <button onClick={() => update('notifications', 'channels', {
-                    ...(config.notifications?.channels || {}),
-                    [ch.key]: !(config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'),
-                  })}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${
-                      (config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram') ? 'bg-cyan-600' : 'bg-gray-700'
-                    }`}>
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                      (config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram') ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
-                  </button>
+              <Toggle checked={config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'}
+                onChange={() => update('notifications', 'channels', {
+                  ...(config.notifications?.channels || {}),
+                  [ch.key]: !(config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'),
+                })} />
                 </div>
               ))}
             </div>
@@ -279,10 +274,8 @@ export default function SettingsPage() {
             </p>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-300">Aktif</span>
-              <button onClick={() => update('email', 'enabled', !config.email?.enabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${config.email?.enabled ? 'bg-cyan-600' : 'bg-gray-700'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.email?.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-              </button>
+              <Toggle checked={config.email?.enabled}
+                onChange={() => update('email', 'enabled', !config.email?.enabled)} />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">SMTP Sunucu</label>
@@ -348,10 +341,8 @@ export default function SettingsPage() {
             </p>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-300">Aktif</span>
-              <button onClick={() => update('webhook', 'enabled', !config.webhook?.enabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${config.webhook?.enabled ? 'bg-cyan-600' : 'bg-gray-700'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.webhook?.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-              </button>
+              <Toggle checked={config.webhook?.enabled}
+                onChange={() => update('webhook', 'enabled', !config.webhook?.enabled)} />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Webhook URL</label>
@@ -421,14 +412,8 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-300">Debug Modu</p>
                 <p className="text-xs text-gray-500">Acil kodu ayiklama araclari ve debug agent</p>
               </div>
-              <button onClick={() => update('debug', 'enabled', !config.debug?.enabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  config.debug?.enabled ? 'bg-cyan-600' : 'bg-gray-700'
-                }`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                  config.debug?.enabled ? 'translate-x-6' : 'translate-x-0.5'
-                }`} />
-              </button>
+              <Toggle checked={config.debug?.enabled}
+                onChange={() => update('debug', 'enabled', !config.debug?.enabled)} />
             </div>
             {config.debug?.enabled && (
               <>
