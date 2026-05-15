@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, History, Trash2 } from 'lucide-react'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send } from 'lucide-react'
 
 const TABS = [
   { id: 'general', label: 'Genel', icon: Settings },
   { id: 'notifications', label: 'Bildirimler', icon: Bell },
   { id: 'ollama', label: 'Ollama', icon: Cpu },
   { id: 'emergency', label: 'Acil Durum', icon: AlertTriangle },
-  { id: 'email', label: 'E-posta', icon: Mail },
-  { id: 'webhook', label: 'Webhook', icon: Webhook },
   { id: 'telegram', label: 'Telegram', icon: Send },
   { id: 'debug', label: 'Debug', icon: Bug },
 ]
@@ -20,13 +18,11 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general')
   const [models, setModels] = useState([])
   const [emergency, setEmergency] = useState(false)
-  const [alerts, setAlerts] = useState([])
 
   useEffect(() => {
     api('/api/settings').then(setConfig).catch(() => {})
     api('/api/ollama/models').then(d => setModels(Array.isArray(d) ? d : [])).catch(() => {})
     api('/api/ollama/emergency').then(d => setEmergency(d.emergency)).catch(() => {})
-    api('/api/notifications/history').then(setAlerts).catch(() => {})
   }, [])
 
   const toggleEmergency = async () => {
@@ -134,66 +130,6 @@ export default function SettingsPage() {
               className="accent-cyan-500" />
             <label htmlFor="sound_enabled" className="text-sm text-gray-400">Sesli Bildirim</label>
           </div>
-
-          <div className="pt-3 border-t border-gray-800">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Bildirim Kanallari</h4>
-            <div className="space-y-2">
-              {[
-                { key: 'telegram', label: 'Telegram' },
-                { key: 'email', label: 'E-posta' },
-                { key: 'webhook', label: 'Webhook' },
-              ].map(ch => (
-                <div key={ch.key} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">{ch.label}</span>
-                  <button onClick={() => update('notifications', 'channels', {
-                    ...(config.notifications?.channels || {}),
-                    [ch.key]: !(config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'),
-                  })}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${
-                      (config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram') ? 'bg-cyan-600' : 'bg-gray-700'
-                    }`}>
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                      (config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram') ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-gray-800">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
-              <span>Alarm Gecmisi</span>
-              {alerts.length > 0 && (
-                <button onClick={async () => {
-                  await api('/api/notifications/history', { method: 'DELETE' })
-                  setAlerts([])
-                }} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
-                  <Trash2 size={12} /> Temizle
-                </button>
-              )}
-            </h4>
-            {alerts.length === 0 && (
-              <p className="text-xs text-gray-600">Henuz alarm yok. Esik degerleri asildiginda burada gorunecek.</p>
-            )}
-            <div className="space-y-1.5 max-h-60 overflow-y-auto">
-              {alerts.slice(0, 50).map((a, i) => (
-                <div key={i} className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-3 py-2 text-xs">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${
-                    a.type === 'CPU' ? 'bg-cyan-400' :
-                    a.type === 'RAM' ? 'bg-violet-400' : 'bg-emerald-400'
-                  }`} />
-                  <span className="text-gray-300 font-medium shrink-0">{a.type}</span>
-                  <span className="text-gray-400">{a.value}</span>
-                  <span className="text-gray-600 ml-auto">{a.time?.slice(11, 19)}</span>
-                  <span className="text-gray-600 text-[10px]">{a.sent_to?.join(', ')}</span>
-                </div>
-              ))}
-            </div>
-            {alerts.length > 50 && (
-              <p className="text-xs text-gray-600 mt-1">+{alerts.length - 50} daha eski kayit</p>
-            )}
-          </div>
         </div>
       )}
 
@@ -261,103 +197,6 @@ export default function SettingsPage() {
                 <strong className="text-gray-300">Otomatik aktivasyon:</strong> KRITIK risk seviyesindeki bir deprem
                 (&ge;5.0, 200km icin) algilandiginda Acil Durum Modu otomatik olarak devreye girer.
               </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'email' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Mail size={14} className="text-cyan-400" />
-              E-posta (SMTP)
-            </h3>
-            <p className="text-xs text-gray-500">
-              CPU/RAM/Disk esik degerleri asildiginda e-posta ile bildirim gonder.
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">Aktif</span>
-              <button onClick={() => update('email', 'enabled', !config.email?.enabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${config.email?.enabled ? 'bg-cyan-600' : 'bg-gray-700'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.email?.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">SMTP Sunucu</label>
-              <input type="text" placeholder="smtp.gmail.com"
-                value={config.email?.smtp_server || ''}
-                onChange={e => update('email', 'smtp_server', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Port</label>
-              <input type="number" placeholder="587"
-                value={config.email?.smtp_port ?? 587}
-                onChange={e => update('email', 'smtp_port', parseInt(e.target.value) || 587)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="use_tls" checked={config.email?.use_tls ?? true}
-                onChange={e => update('email', 'use_tls', e.target.checked)}
-                className="accent-cyan-500" />
-              <label htmlFor="use_tls" className="text-sm text-gray-400">TLS Kullan</label>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Kullanici Adi</label>
-              <input type="text" placeholder="ornek@gmail.com"
-                value={config.email?.smtp_user || ''}
-                onChange={e => update('email', 'smtp_user', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Sifre</label>
-              <input type="password" placeholder="App sifresi"
-                value={config.email?.smtp_password || ''}
-                onChange={e => update('email', 'smtp_password', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Gonderen Adres</label>
-              <input type="email" placeholder="ornek@gmail.com"
-                value={config.email?.from_addr || ''}
-                onChange={e => update('email', 'from_addr', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Alici Adres</label>
-              <input type="email" placeholder="ornek@gmail.com"
-                value={config.email?.to_addr || ''}
-                onChange={e => update('email', 'to_addr', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'webhook' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Webhook size={14} className="text-cyan-400" />
-              Webhook
-            </h3>
-            <p className="text-xs text-gray-500">
-              Discord, Slack, Teams gibi servislere bildirim gonder. Webhook URL'sini ilgili servisten al.
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">Aktif</span>
-              <button onClick={() => update('webhook', 'enabled', !config.webhook?.enabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${config.webhook?.enabled ? 'bg-cyan-600' : 'bg-gray-700'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${config.webhook?.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Webhook URL</label>
-              <input type="url" placeholder="https://discord.com/api/webhooks/..."
-                value={config.webhook?.url || ''}
-                onChange={e => update('webhook', 'url', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
             </div>
           </div>
         </div>

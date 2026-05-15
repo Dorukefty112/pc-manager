@@ -13,13 +13,10 @@ from routers import (
     services, chat, pentest, auth as auth_router,
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
-    notifications,
 )
 from dependencies import require_auth
 
 app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi ve OSINT platformu")
-
-notifications.start_checker()
 
 static_dir = Path(__file__).parent.parent / "frontend" / "dist"
 if not static_dir.exists():
@@ -91,7 +88,6 @@ app.include_router(debug.router, prefix="/api", dependencies=[Depends(require_au
 app.include_router(debug_agent.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(search_engine.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(telegram.router, prefix="/api", dependencies=[Depends(require_auth)])
-app.include_router(notifications.router, prefix="/api", dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def serve_index():
