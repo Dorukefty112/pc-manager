@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.6] — 2026-05-16
+
+- **AFAD fallback düzeltmesi**: AFAD API'nin hem `{ "data": [...] }` hem de direkt `[...]` cevap formatları desteklenir.
+- **Deprem regression testleri**: AFAD liste formatı ve Kandilli boşken AFAD fallback davranışı test kapsamına alındı.
+
 ## [1.0.5] — 2026-05-15
 
 - **Bildirim Motoru**: CPU/RAM/Disk eşik değerleri arka planda her 30sn kontrol edilir, aşılınca Telegram/E-posta/Webhook ile bildirim gönderilir.

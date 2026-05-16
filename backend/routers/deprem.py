@@ -153,8 +153,19 @@ def fetch_afad(dakika=120):
         data = resp.json()
     except Exception:
         return []
+
+    if isinstance(data, dict):
+        items = data.get("data", [])
+    elif isinstance(data, list):
+        items = data
+    else:
+        items = []
+
+    if not isinstance(items, list):
+        return []
+
     depremler = []
-    for item in data.get("data", []):
+    for item in items:
         try:
             ts = item.get("eventDate", "")[:19].replace("T", " ")
             tarih = ts[:10].replace("-", ".")

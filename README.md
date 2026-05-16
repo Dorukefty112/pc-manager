@@ -3,7 +3,7 @@
 **Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.0.5-blue)
+![Version](https://img.shields.io/badge/version-1.0.6-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için genel kullanıma açılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 
