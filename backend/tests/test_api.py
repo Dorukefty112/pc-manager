@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from fastapi.testclient import TestClient
 from main import app
 
@@ -136,3 +137,32 @@ def test_power_not_authorized():
     assert res.status_code == 401
     res = client.post("/api/power/reboot")
     assert res.status_code == 401
+
+
+def test_ollama_emergency_requires_auth():
+    """Emergency mode toggling should not be public."""
+    res = client.get("/api/ollama/emergency")
+    assert res.status_code == 401
+    res = client.post("/api/ollama/emergency", json={"emergency": True})
+    assert res.status_code == 401
+
+
+def test_runtime_dependencies_declared():
+    """Fresh installs should include dependencies required at import/runtime."""
+    req_path = Path(__file__).resolve().parents[1] / "requirements.txt"
+    requirements = req_path.read_text().splitlines()
+    normalized = {
+        line.strip().split("#", 1)[0].strip().lower()
+        for line in requirements
+        if line.strip() and not line.strip().startswith("#")
+    }
+    assert "python-multipart" in normalized
+    assert "bcrypt" in normalized
+
+
+def test_readme_version_badge_matches_version_file():
+    """README badge should not drift behind the shipped VERSION file."""
+    repo_root = Path(__file__).resolve().parents[2]
+    version = (repo_root / "VERSION").read_text().strip()
+    readme = (repo_root / "README.md").read_text()
+    assert f"version-{version}-blue" in readme
