@@ -75,11 +75,11 @@ async def unload_model(body: dict = {}, _auth: dict = Depends(require_auth)):
 
 
 @router.get("/ollama/emergency")
-async def get_emergency():
+async def get_emergency(_auth: dict = Depends(require_auth)):
     return {"emergency": EMERGENCY_MODE, "prompt": EMERGENCY_PROMPT}
 
 @router.post("/ollama/emergency")
-async def set_emergency(body: dict):
+async def set_emergency(body: dict, _auth: dict = Depends(require_auth)):
     global EMERGENCY_MODE
     EMERGENCY_MODE = body.get("emergency", False)
     return {"emergency": EMERGENCY_MODE}
