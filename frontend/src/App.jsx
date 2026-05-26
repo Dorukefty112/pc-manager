@@ -23,6 +23,9 @@ import DepremUyari from './pages/DepremUyari'
 import DepremAlert from './components/DepremAlert'
 import OllamaChat from './pages/OllamaChat'
 import SearchEngine from './pages/SearchEngine'
+import Speedtest from './pages/Speedtest'
+import Firewall from './pages/Firewall'
+import Temperature from './pages/Temperature'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import { isAuthenticated } from './api'
@@ -56,7 +59,7 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/" element={<Temperature />} />
                 <Route path="/terminal" element={<Terminal />} />
                 <Route path="/files/*" element={<Files />} />
                 <Route path="/power" element={<Power />} />
@@ -76,6 +79,9 @@ export default function App() {
                 <Route path="/deprem" element={<DepremUyari />} />
                 <Route path="/windows" element={<Windows />} />
                 <Route path="/search" element={<SearchEngine />} />
+                <Route path="/speedtest" element={<Speedtest />} />
+                <Route path="/firewall" element={<Firewall />} />
+                <Route path="/temperature" element={<Temperature />} />
                 <Route path="/ai" element={<OllamaChat />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>

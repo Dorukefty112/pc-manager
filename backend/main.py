@@ -13,7 +13,7 @@ from routers import (
     services, chat, pentest, auth as auth_router,
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
-    notifications, windows,
+    notifications, windows, speedtest, firewall, temperature,
 )
 from dependencies import require_auth
 from routers.search_engine import _rewrite_html, _fetch_page
@@ -128,6 +128,9 @@ def proxy_page(url: str = Query("", description="Açılacak URL")):
 app.include_router(telegram.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(notifications.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(windows.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(speedtest.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(firewall.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(temperature.router, prefix="/api", dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def serve_index():

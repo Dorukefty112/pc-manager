@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Search, AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug } from 'lucide-react'
+import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Search, AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug, Gauge } from 'lucide-react'
 import { setToken, api } from '../api'
 import { useTheme } from '../context/ThemeContext'
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: Monitor },
+  { to: '/', label: 'Sistem Durumu', icon: Monitor },
   { to: '/search', label: 'Arama', icon: Search, highlight: true },
   { to: '/chat', label: 'Asistan', icon: MessageSquare },
   { to: '/terminal', label: 'Terminal', icon: Terminal },
@@ -23,6 +23,8 @@ const links = [
   { to: '/deprem', label: 'Deprem', icon: Activity, highlight: true },
   { to: '/power', label: 'Guc', icon: Power },
   { to: '/pentest', label: 'Pen-Test', icon: Shield, highlight: true },
+  { to: '/speedtest', label: 'Hiz Testi', icon: Gauge },
+  { to: '/firewall', label: 'Guvenlik Duvar', icon: ShieldOff },
   { to: '/windows', label: 'Windows', icon: Monitor, highlight: false },
 ]
 
