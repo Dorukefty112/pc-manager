@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
-import { Folder, File, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X } from 'lucide-react'
+import { Folder, File, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X, HardDrive, Home } from 'lucide-react'
 
 export default function Files() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -104,6 +104,18 @@ export default function Files() {
             <Plus size={14} /> <span className="hidden sm:inline">Dizin</span>
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        <button onClick={() => navigate('/')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
+          <HardDrive size={14} /> Kök
+        </button>
+        <button onClick={() => navigate('/mnt/c')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
+          <HardDrive size={14} /> Windows (C:)
+        </button>
+        <button onClick={() => navigate('/mnt')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
+          <HardDrive size={14} /> /mnt
+        </button>
       </div>
 
       <div className="bg-gray-900 rounded-xl border border-gray-800">

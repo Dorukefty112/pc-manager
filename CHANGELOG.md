@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.7] — 2026-05-26
+
+- **Windows/WSL Entegrasyonu**: Servisler, processler, diskler, ağ, sistem bilgisi, event log ve komut çalıştırma. Settings'ten aç/kapa.
+- **PWA Desteği**: manifest.json, service worker (cache-first), SVG ikonlar (192/512). Mobilde "Ana Ekrana Ekle" çalışır.
+- **Tema Sistemi**: Dark/light mode, ThemeContext ile localStorage'da kalıcı, tüm sayfalarda CSS variables.
+- **UI Tamamen Yenilendi**: Glassmorphism kartlar, gradient vurgular, fade-in/scale animasyonlar, modern scrollbar, özel input/button stilleri.
+- **Arama Motoru Yeniden Yazıldı**: Zengin sonuç kartları (favicon, domain, snippet), DuckDuckGo favicon CDN, pagination, autocomplete.
+- **İç Sayfa Tarayıcı (Proxy)**: `/api/proxy/page` endpoint'i — auth gerektirmez, `<base>` tag rewrite ile same-origin iframe, XML/JSON/JS dahil tüm içerik türleri desteklenir.
+- **Reader Mode**: Backend BeautifulSoup ile metin çıkarma, frontend'de sade okuma görünümü.
+- **Statik Dosya Düzeltmesi**: main.py catch-all route'da dosya varlık kontrolü — 404 yerine SPA fallback.
+- **Güvenlik**: `/api/proxy/page` artık public (iframe auth header göndermediği için).
+
 ## [1.0.6] — 2026-05-16
 
 - **AFAD fallback düzeltmesi**: AFAD API'nin hem `{ "data": [...] }` hem de direkt `[...]` cevap formatları desteklenir.

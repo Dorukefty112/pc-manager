@@ -13,9 +13,14 @@ from routers import (
     services, chat, pentest, auth as auth_router,
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
-    notifications,
+    notifications, windows,
 )
 from dependencies import require_auth
+from routers.search_engine import _rewrite_html, _fetch_page
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi import Query
+from urllib.parse import urlparse
+import httpx
 
 app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi ve OSINT platformu")
 
@@ -90,8 +95,39 @@ app.include_router(settings.router, prefix="/api")
 app.include_router(debug.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(debug_agent.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(search_engine.router, prefix="/api", dependencies=[Depends(require_auth)])
+
+
+@app.get("/api/proxy/page")
+def proxy_page(url: str = Query("", description="Açılacak URL")):
+    if not url.strip():
+        raise HTTPException(400, "URL gerekli")
+    try:
+        resp = _fetch_page(url)
+        content_type = resp.headers.get("content-type", "").lower()
+        if "text/html" in content_type or "application/xhtml" in content_type:
+            modified = _rewrite_html(resp.text, str(url))
+            return HTMLResponse(modified)
+        if any(x in content_type for x in ("xml", "json", "text/", "application/javascript")):
+            body = resp.content[:1024 * 100]
+            return Response(
+                content=body,
+                media_type=content_type.split(";")[0].strip() or "text/plain; charset=utf-8",
+                headers={k: v for k, v in resp.headers.items() if k.lower() in ("content-type", "content-encoding")},
+            )
+        body = resp.content[:1024 * 50]
+        return PlainTextResponse(
+            body.decode("utf-8", errors="replace") if isinstance(body, bytes) else body,
+            media_type="text/plain; charset=utf-8",
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(504, "Sayfa zaman aşımı")
+    except Exception as e:
+        raise HTTPException(502, f"Proxy hatası: {str(e)[:150]}")
+
+
 app.include_router(telegram.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(notifications.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(windows.router, prefix="/api", dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def serve_index():
@@ -102,6 +138,9 @@ def serve_index():
 
 @app.get("/{full_path:path}")
 def serve_frontend(full_path: str):
+    file_path = static_dir / full_path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(str(file_path))
     index = static_dir / "index.html"
     if index.exists():
         return FileResponse(str(index))

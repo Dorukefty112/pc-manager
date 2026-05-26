@@ -58,6 +58,15 @@ DEFAULT_CONFIG = {
         "enabled": False,
         "log_api_calls": True,
     },
+    "windows": {
+        "enabled": False,
+        "services": True,
+        "processes": True,
+        "disk_info": True,
+        "network": True,
+        "event_log": False,
+        "command_palette": False,
+    },
 }
 
 

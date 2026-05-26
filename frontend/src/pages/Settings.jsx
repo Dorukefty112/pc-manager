@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import Toggle from '../components/Toggle'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, History, Trash2 } from 'lucide-react'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, History, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink } from 'lucide-react'
 
 const TABS = [
   { id: 'general', label: 'Genel', icon: Settings },
@@ -12,6 +12,7 @@ const TABS = [
   { id: 'webhook', label: 'Webhook', icon: Webhook },
   { id: 'telegram', label: 'Telegram', icon: Send },
   { id: 'debug', label: 'Debug', icon: Bug },
+  { id: 'windows', label: 'Windows', icon: Monitor },
 ]
 
 export default function SettingsPage() {
@@ -428,6 +429,62 @@ export default function SettingsPage() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-cyan-300 transition-colors">
                     <Bug size={14} />
                     Debug Paneline Git
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'windows' && (
+        <div className="space-y-4">
+          <div className="card p-4 space-y-4">
+            <h3 className="text-sm font-medium uppercase tracking-wider flex items-center gap-2" style={{color: 'var(--text-secondary)'}}>
+              <Monitor size={14} style={{color: 'var(--accent)'}} />
+              Windows Entegrasyonu
+            </h3>
+            <p className="text-xs" style={{color: 'var(--text-muted)'}}>
+              WSL üzerinden Windows sistem yönetimi. Etkinleştirildiğinde Windows servislerini,
+              processlerini, disklerini, ağ bilgilerini ve event log'larını PC Manager üzerinden
+              yönetebilirsin.
+            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium" style={{color: 'var(--text)'}}>Windows Entegrasyonu</p>
+                <p className="text-xs" style={{color: 'var(--text-muted)'}}>Ana etkinleştirme</p>
+              </div>
+              <Toggle checked={config.windows?.enabled || false}
+                onChange={() => update('windows', 'enabled', !config.windows?.enabled)} />
+            </div>
+            {config.windows?.enabled && (
+              <>
+                <div className="border-t pt-4 space-y-3" style={{borderColor: 'var(--border)'}}>
+                  <p className="text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-muted)'}}>Alt Özellikler</p>
+                  {[
+                    { key: 'services', label: 'Servis Yönetimi', icon: Server },
+                    { key: 'processes', label: 'Process Listesi', icon: Monitor },
+                    { key: 'disk_info', label: 'Disk Bilgisi', icon: HardDrive },
+                    { key: 'network', label: 'Ağ Bilgisi', icon: Wifi },
+                    { key: 'event_log', label: 'Event Log', icon: ScrollText },
+                    { key: 'command_palette', label: 'Komut Çalıştırma', icon: Terminal },
+                  ].map(f => (
+                    <div key={f.key} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <f.icon size={14} style={{color: 'var(--text-muted)'}} />
+                        <span className="text-sm" style={{color: 'var(--text-secondary)'}}>{f.label}</span>
+                      </div>
+                      <Toggle checked={config.windows?.[f.key] || false}
+                        onChange={() => update('windows', f.key, !config.windows?.[f.key])} />
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-2">
+                  <a href="/windows"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+                    style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
+                    <ExternalLink size={14} />
+                    Windows Yönetim Paneline Git
                   </a>
                 </div>
               </>

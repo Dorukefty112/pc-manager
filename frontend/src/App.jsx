@@ -16,6 +16,7 @@ import Services from './pages/Services'
 import PenTest from './pages/PenTest'
 import Docker from './pages/Docker'
 import Cron from './pages/Cron'
+import Windows from './pages/Windows'
 import Settings from './pages/Settings'
 import Debug from './pages/Debug'
 import DepremUyari from './pages/DepremUyari'
@@ -73,6 +74,7 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="/deprem" element={<DepremUyari />} />
+                <Route path="/windows" element={<Windows />} />
                 <Route path="/search" element={<SearchEngine />} />
                 <Route path="/ai" element={<OllamaChat />} />
                 <Route path="*" element={<Navigate to="/" />} />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, setToken } from '../api'
-import { Shield, Eye, EyeOff, Server } from 'lucide-react'
+import { Shield, Eye, EyeOff, Server, Lock } from 'lucide-react'
 
 export default function Login() {
   const [password, setPassword] = useState('')
@@ -34,42 +34,60 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div style={{background: 'var(--bg-primary)'}} className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-sm animate-scale-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-900/50 mb-4">
-            <Server size={32} className="text-cyan-400" />
+          <div style={{
+            background: 'var(--accent-glow)',
+            borderColor: 'var(--accent)',
+          }} className="inline-flex items-center justify-center w-16 h-16 rounded-2xl border mb-4">
+            <Server size={32} style={{color: 'var(--accent)'}} />
           </div>
-          <h1 className="text-2xl font-bold text-white">{siteName}</h1>
-          <p className="text-gray-500 text-sm mt-1">Sistem yönetim arayüzü</p>
+          <h1 style={{color: 'var(--text)'}} className="text-2xl font-bold">{siteName}</h1>
+          <p style={{color: 'var(--text-muted)'}} className="text-sm mt-1">Sistem yönetim arayüzü</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl border border-gray-800 p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="card p-6 space-y-4">
           <div>
-            <label className="text-sm text-gray-400 block mb-1.5">Şifre</label>
+            <label style={{color: 'var(--text-secondary)'}} className="text-sm block mb-1.5">Şifre</label>
             <div className="relative">
+              <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{color: 'var(--text-muted)'}} />
               <input
                 type={show ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Yönetici şifresi"
                 autoFocus
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-700 pr-10"
+                className="w-full pl-9 pr-10 py-3 text-sm rounded-xl"
+                style={{
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                }}
               />
-              <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+              <button type="button" onClick={() => setShow(!show)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 btn-ghost p-0">
                 {show ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-900/20 border border-red-900/50 rounded-lg px-4 py-2.5 text-sm text-red-400">
+            <div style={{
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              color: '#ef4444',
+            }} className="rounded-lg px-4 py-2.5 text-sm">
               {error}
             </div>
           )}
 
           <button type="submit" disabled={loading || !password}
-            className="w-full bg-cyan-700 hover:bg-cyan-600 disabled:opacity-40 text-white rounded-xl px-4 py-3 text-sm font-medium transition-colors">
+            style={{
+              background: 'var(--accent)',
+              opacity: loading || !password ? 0.5 : 1,
+            }}
+            className="w-full text-white font-medium rounded-xl px-4 py-3 text-sm transition-opacity">
             {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>

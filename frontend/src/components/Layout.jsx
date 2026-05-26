@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Settings, Bug, Search, AlertTriangle, ShieldOff } from 'lucide-react'
+import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Search, AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug } from 'lucide-react'
 import { setToken, api } from '../api'
+import { useTheme } from '../context/ThemeContext'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: Monitor },
   { to: '/search', label: 'Arama', icon: Search, highlight: true },
   { to: '/chat', label: 'Asistan', icon: MessageSquare },
   { to: '/terminal', label: 'Terminal', icon: Terminal },
-  { to: '/pentest', label: 'Pen-Test', icon: Shield, highlight: true },
   { to: '/files', label: 'Dosyalar', icon: Folder },
   { to: '/processes', label: 'Processler', icon: Cpu },
   { to: '/services', label: 'Servisler', icon: Server },
@@ -22,12 +22,15 @@ const links = [
   { to: '/ai', label: 'AI Asistan', icon: Brain, highlight: true },
   { to: '/deprem', label: 'Deprem', icon: Activity, highlight: true },
   { to: '/power', label: 'Guc', icon: Power },
+  { to: '/pentest', label: 'Pen-Test', icon: Shield, highlight: true },
+  { to: '/windows', label: 'Windows', icon: Monitor, highlight: false },
 ]
 
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false)
   const [emergency, setEmergency] = useState(false)
   const location = useLocation()
+  const { theme, toggle } = useTheme()
 
   useEffect(() => { setOpen(false) }, [location.pathname])
 
@@ -55,7 +58,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen" style={{background: 'var(--bg-primary)'}}>
       {emergency && (
         <div className="shrink-0 relative z-50 bg-red-700/90 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold animate-pulse backdrop-blur">
           <div className="flex items-center gap-2">
@@ -69,62 +72,85 @@ export default function Layout({ children }) {
           </button>
         </div>
       )}
-      {emergency && <div className="fixed inset-0 z-40 pointer-events-none bg-red-900/5" />}
 
       <div className="flex flex-1 min-h-0">
         {open && <div className="fixed inset-0 bg-black/60 z-[1000] lg:hidden" onClick={() => setOpen(false)} />}
 
-        <nav className={`
-          fixed lg:relative z-[1001] h-full w-64 bg-gray-900 border-r border-gray-800 flex flex-col overflow-y-auto shrink-0
-          transition-transform duration-200
-          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}>
+        <nav style={{background: 'var(--bg-secondary)', borderColor: 'var(--border)'}}
+          className={`fixed lg:relative z-[1001] h-full w-64 border-r flex flex-col overflow-y-auto shrink-0 transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
           <div className="flex items-center justify-between px-4 py-5 shrink-0">
-            <h1 className="text-lg font-bold text-cyan-400">PC Manager</h1>
-            <button onClick={() => setOpen(false)} className="lg:hidden p-1 text-gray-400 hover:text-white"><X size={20} /></button>
+            <h1 className="text-lg font-bold" style={{color: 'var(--accent)'}}>PC Manager</h1>
+            <button onClick={() => setOpen(false)} className="lg:hidden p-1" style={{color: 'var(--text-muted)'}}><X size={20} /></button>
           </div>
+
           <div className="flex-1 px-2 pb-4 space-y-0.5">
             {links.map(l => (
               <NavLink key={l.to} to={l.to} end={l.to === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? (l.highlight ? 'bg-red-600/20 text-red-300' : 'bg-cyan-600/15 text-cyan-300') : l.highlight ? 'text-red-400/70 hover:bg-red-900/20 hover:text-red-300' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'} font-medium`
-                }>
+                  `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? l.highlight ? 'bg-red-600/20 text-red-300' : 'text-cyan-300'
+                      : l.highlight ? 'text-red-400/70 hover:bg-red-900/20 hover:text-red-300' : 'hover:bg-gray-800'
+                  }`
+                }
+                style={({ isActive }) => ({
+                  color: isActive && !l.highlight ? 'var(--accent)' : undefined,
+                  background: isActive && !l.highlight ? 'var(--accent-glow)' : undefined,
+                })}>
                 <l.icon size={16} className="shrink-0" />
                 <span className="truncate">{l.label}</span>
               </NavLink>
             ))}
           </div>
-          <div className="border-t border-gray-800 px-2 py-1.5 space-y-0.5">
+
+          <div className="border-t px-2 py-1.5 space-y-0.5" style={{borderColor: 'var(--border)'}}>
             <NavLink to="/settings"
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-cyan-600/15 text-cyan-300' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'} font-medium`
-              }>
+                `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'text-cyan-300' : 'hover:bg-gray-800'}`
+              }
+              style={({ isActive }) => ({
+                color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                background: isActive ? 'var(--accent-glow)' : undefined,
+              })}>
               <Settings size={16} />
               <span>Ayarlar</span>
             </NavLink>
             <NavLink to="/debug"
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-cyan-600/15 text-cyan-300' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'} font-medium`
-              }>
+                `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'text-cyan-300' : 'hover:bg-gray-800'}`
+              }
+              style={({ isActive }) => ({
+                color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                background: isActive ? 'var(--accent-glow)' : undefined,
+              })}>
               <Bug size={16} />
               <span>Debug</span>
             </NavLink>
           </div>
-          <div className="border-t border-gray-800 px-2 py-3">
+
+          <div className="border-t px-2 py-3 flex items-center gap-1" style={{borderColor: 'var(--border)'}}>
+            <button onClick={toggle}
+              className="btn-ghost flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm flex-1 justify-center">
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span style={{color: 'var(--text-muted)'}}>{theme === 'dark' ? 'Aydınlık' : 'Karanlık'}</span>
+            </button>
             <button onClick={() => { setToken(null); window.location.href = '/login' }}
-              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:text-red-400 hover:bg-red-900/10 transition-colors">
+              className="btn-ghost flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm"
+              style={{color: 'var(--text-muted)'}}>
               <LogOut size={16} />
-              <span>Cikis Yap</span>
             </button>
           </div>
         </nav>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center gap-3 lg:hidden">
-            <button onClick={() => setOpen(true)} className="p-1 text-gray-400 hover:text-white"><Menu size={22} /></button>
-            <h1 className="text-base font-bold text-cyan-400">PC Manager</h1>
+          <header style={{background: 'color-mix(in srgb, var(--bg-primary) 85%, transparent)', borderColor: 'var(--border)'}}
+            className="sticky top-0 z-10 backdrop-blur border-b px-4 py-3 flex items-center gap-3 lg:hidden">
+            <button onClick={() => setOpen(true)} className="p-1" style={{color: 'var(--text-muted)'}}><Menu size={22} /></button>
+            <h1 className="text-base font-bold" style={{color: 'var(--accent)'}}>PC Manager</h1>
           </header>
-          <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{children}</main>
+          <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
+            {children}
+          </main>
         </div>
       </div>
     </div>

@@ -1,0 +1,13 @@
+{
+  "name": "PC Manager",
+  "short_name": "PC Manager",
+  "description": "Sistem yönetimi ve OSINT platformu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#06b6d4",
+  "icons": [
+    { "src": "/icons/icon-192.svg", "type": "image/svg+xml", "sizes": "192x192" },
+    { "src": "/icons/icon-512.svg", "type": "image/svg+xml", "sizes": "512x512" }
+  ]
+}

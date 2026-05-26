@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
 import { useWebSocket } from '../useWebSocket'
-import { Cpu, MemoryStick, Activity, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { Cpu, MemoryStick, Activity, RefreshCw, Wifi, WifiOff, Gauge, Timer } from 'lucide-react'
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
@@ -109,105 +109,122 @@ export default function Dashboard() {
   const uptime = stats?.uptime ? Math.floor((Date.now() / 1000 - stats.uptime) / 60) : 0
   const uptimeStr = uptime > 1440 ? `${Math.floor(uptime / 1440)}g ${Math.floor((uptime % 1440) / 60)}s` : `${Math.floor(uptime / 60)}s ${uptime % 60}d`
 
-  if (!stats) return <div className="text-center text-gray-500 mt-20">Yükleniyor...</div>
+  if (!stats) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center gap-3" style={{color: 'var(--text-muted)'}}>
+        <Activity size={32} className="animate-pulse" style={{color: 'var(--accent)'}} />
+        <span className="text-sm">Yükleniyor...</span>
+      </div>
+    </div>
+  )
 
   const cards = [
-    { icon: Cpu, label: 'CPU', value: `${mergedStats.cpu.percent}%`, detail: `${stats.cpu.count} çekirdek`, color: 'from-cyan-500/20 to-cyan-600/5', border: 'border-cyan-900/50' },
-    { icon: MemoryStick, label: 'RAM', value: `${mergedStats.memory.percent}%`, detail: `${(stats.memory.used / 1e9).toFixed(1)}/${(stats.memory.total / 1e9).toFixed(1)} GB`, color: 'from-violet-500/20 to-violet-600/5', border: 'border-violet-900/50' },
-    { icon: Activity, label: 'Disk', value: `${stats.disk.percent.toFixed(1)}%`, detail: `${(stats.disk.used / 1e9).toFixed(1)}/${(stats.disk.total / 1e9).toFixed(1)} GB`, color: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-900/50' },
-    { icon: RefreshCw, label: 'Açık Kalma', value: uptimeStr, detail: stats.hostname, color: 'from-orange-500/20 to-orange-600/5', border: 'border-orange-900/50' },
+    { icon: Cpu, label: 'CPU', value: `${mergedStats.cpu.percent}%`, detail: `${stats.cpu.count} çekirdek`, color: '--accent' },
+    { icon: MemoryStick, label: 'RAM', value: `${mergedStats.memory.percent}%`, detail: `${(stats.memory.used / 1e9).toFixed(1)}/${(stats.memory.total / 1e9).toFixed(1)} GB`, color: '#a78bfa' },
+    { icon: Gauge, label: 'Disk', value: `${stats.disk.percent.toFixed(1)}%`, detail: `${(stats.disk.used / 1e9).toFixed(1)}/${(stats.disk.total / 1e9).toFixed(1)} GB`, color: '#34d399' },
+    { icon: Timer, label: 'Açık Kalma', value: uptimeStr, detail: stats.hostname, color: '#fb923c' },
   ]
 
   const Bar = ({ pct, color }) => (
-    <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mt-2">
-      <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+    <div className="w-full h-2 rounded-full overflow-hidden" style={{background: 'var(--border)'}}>
+      <div className="h-full rounded-full transition-all duration-700" style={{width: `${Math.min(pct, 100)}%`, background: color}} />
     </div>
   )
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-semibold">Sistem Durumu</h2>
-          {wsConnected && (
-            <span className="flex items-center gap-1 text-[10px] text-green-500 bg-green-900/20 px-1.5 py-0.5 rounded-full">
-              <Wifi size={10} /> Canlı
-            </span>
-          )}
-          {!wsConnected && (
-            <span className="flex items-center gap-1 text-[10px] text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded-full">
-              <WifiOff size={10} /> Bağlanıyor...
-            </span>
-          )}
+    <div className="animate-fade-in space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 style={{color: 'var(--text)'}} className="text-xl font-semibold tracking-tight">Sistem Durumu</h2>
+          <span className={`flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full ${wsConnected ? 'text-green-500' : ''}`}
+            style={{
+              background: wsConnected ? 'rgba(34,197,94,0.1)' : 'var(--bg-surface)',
+              color: wsConnected ? '#22c55e' : 'var(--text-muted)',
+              border: wsConnected ? '1px solid rgba(34,197,94,0.2)' : '1px solid var(--border)',
+            }}>
+            <span className={`glow-dot ${wsConnected ? 'green' : ''}`} style={!wsConnected ? {background: 'var(--text-muted)'} : {}} />
+            {wsConnected ? 'Canlı' : 'Bağlanıyor...'}
+          </span>
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-          <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} className="accent-cyan-500" />
+        <label className="flex items-center gap-2 text-xs cursor-pointer select-none" style={{color: 'var(--text-secondary)'}}>
+          <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)}
+            className="w-3.5 h-3.5 rounded" style={{accentColor: 'var(--accent)'}} />
           Otomatik yenile
         </label>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {cards.map(c => (
-          <div key={c.label} className={`bg-gradient-to-br ${c.color} ${c.border} rounded-xl border p-5`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((c, i) => (
+          <div key={c.label} className="card p-5 animate-scale-in"
+            style={{animationDelay: `${i * 70}ms`, animationFillMode: 'both'}}>
             <div className="flex items-center gap-3 mb-2">
-              <c.icon size={20} className="text-cyan-400" />
-              <span className="text-sm text-gray-400">{c.label}</span>
+              <c.icon size={18} style={{color: c.color}} />
+              <span className="text-xs font-medium" style={{color: 'var(--text-secondary)'}}>{c.label}</span>
             </div>
-            <div className="text-3xl font-bold text-white mb-1">{c.value}</div>
-            <div className="text-xs text-gray-500">{c.detail}</div>
+            <div className="stat-value mb-1">{c.value}</div>
+            <div className="text-xs" style={{color: 'var(--text-muted)'}}>{c.detail}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-300">CPU - RAM Geçmişi (60s)</span>
-            <span className="flex gap-4 text-xs">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-400" /> CPU</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-400" /> RAM</span>
+            <span className="text-sm font-medium" style={{color: 'var(--text-secondary)'}}>CPU - RAM Geçmişi (60s)</span>
+            <span className="flex gap-4 text-xs" style={{color: 'var(--text-muted)'}}>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{background: '#22d3ee'}} /> CPU</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{background: '#a78bfa'}} /> RAM</span>
             </span>
           </div>
           <canvas ref={canvasRef} className="w-full h-20" />
         </div>
 
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-          <div className="text-sm font-medium text-gray-300 mb-4">Canlı Kullanım</div>
+        <div className="card p-5">
+          <div className="text-sm font-medium mb-4" style={{color: 'var(--text-secondary)'}}>Canlı Kullanım</div>
           <div className="space-y-4">
             <div>
-              <div className="flex justify-between text-sm"><span className="text-cyan-400">CPU</span><span>{mergedStats.cpu.percent}%</span></div>
-              <Bar pct={mergedStats.cpu.percent} color="bg-cyan-500" />
+              <div className="flex justify-between text-sm mb-1">
+                <span style={{color: 'var(--accent)'}}>CPU</span>
+                <span style={{color: 'var(--text)'}}>{mergedStats.cpu.percent}%</span>
+              </div>
+              <Bar pct={mergedStats.cpu.percent} color="var(--accent)" />
             </div>
             <div>
-              <div className="flex justify-between text-sm"><span className="text-violet-400">RAM</span><span>{mergedStats.memory.percent}%</span></div>
-              <Bar pct={mergedStats.memory.percent} color="bg-violet-500" />
+              <div className="flex justify-between text-sm mb-1">
+                <span style={{color: '#a78bfa'}}>RAM</span>
+                <span style={{color: 'var(--text)'}}>{mergedStats.memory.percent}%</span>
+              </div>
+              <Bar pct={mergedStats.memory.percent} color="#a78bfa" />
             </div>
             <div>
-              <div className="flex justify-between text-sm"><span className="text-emerald-400">Disk</span><span>{stats.disk.percent.toFixed(1)}%</span></div>
-              <Bar pct={stats.disk.percent} color="bg-emerald-500" />
+              <div className="flex justify-between text-sm mb-1">
+                <span style={{color: '#34d399'}}>Disk</span>
+                <span style={{color: 'var(--text)'}}>{stats.disk.percent.toFixed(1)}%</span>
+              </div>
+              <Bar pct={stats.disk.percent} color="#34d399" />
             </div>
           </div>
         </div>
       </div>
 
       {stats.temp?.length > 0 && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mb-6">
-          <h3 className="font-medium mb-4">Sıcaklıklar</h3>
+        <div className="card p-5 animate-fade-in">
+          <h3 className="text-sm font-medium mb-4" style={{color: 'var(--text-secondary)'}}>Sıcaklıklar</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {stats.temp.map((t, i) => (
-              <div key={i} className="bg-gray-800 rounded-lg px-3 py-2">
-                <div className="text-xs text-gray-400">{t.label}</div>
-                <div className="text-lg font-semibold">{t.current}°C</div>
+              <div key={i} className="rounded-lg px-3 py-2" style={{background: 'var(--bg-surface)'}}>
+                <div className="text-xs" style={{color: 'var(--text-muted)'}}>{t.label}</div>
+                <div className="text-lg font-semibold" style={{color: 'var(--text)'}}>{t.current}°C</div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+      <div className="card p-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-400">{stats.os}</span>
-          <span className="text-xs text-gray-600">Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}</span>
+          <span className="text-xs" style={{color: 'var(--text-muted)'}}>{stats.os}</span>
+          <span className="text-xs" style={{color: 'var(--text-muted)'}}>Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}</span>
         </div>
       </div>
     </div>

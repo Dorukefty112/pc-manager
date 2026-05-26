@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
-import { Search, Globe, FolderOpen, Server, ExternalLink, ChevronLeft, ChevronRight, Loader2, Sparkles, ArrowLeft, ExternalLink as ExternalIcon } from 'lucide-react'
+import { Search, Globe, FolderOpen, Server, ExternalLink, ChevronLeft, ChevronRight, Loader2, Sparkles, ArrowLeft, BookOpenText, Globe as GlobeIcon, X, RefreshCw, House } from 'lucide-react'
 
 const TABS = [
   { id: 'web', label: 'Web', icon: Globe },
@@ -18,10 +18,11 @@ export default function SearchEngine() {
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [viewing, setViewing] = useState(null)
-  const [viewContent, setViewContent] = useState(null)
-  const [viewLoading, setViewLoading] = useState(false)
-  const [viewError, setViewError] = useState('')
+  const [reader, setReader] = useState(null)
+  const [readerLoading, setReaderLoading] = useState(false)
+  const [readerError, setReaderError] = useState('')
+  const [browserUrl, setBrowserUrl] = useState(null)
+  const iframeRef = useRef(null)
   const inputRef = useRef(null)
   const suggestRef = useRef(null)
   const debounceRef = useRef(null)
@@ -53,6 +54,7 @@ export default function SearchEngine() {
     setLoading(true)
     setError('')
     setShowSuggestions(false)
+    setReader(null)
     setPage(p)
     try {
       const data = await api(`/api/search?q=${encodeURIComponent(q)}&type=${tab}&page=${p}`)
@@ -82,100 +84,146 @@ export default function SearchEngine() {
     fetchSuggestions(val)
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && suggestions.length > 0 && showSuggestions) {
-      setShowSuggestions(false)
-      doSearch(query, 1)
-    }
-  }
-
-  const openPage = async (url) => {
-    setViewing(url)
-    setViewContent(null)
-    setViewError('')
-    setViewLoading(true)
+  const openReader = async (url) => {
+    setReader(null)
+    setReaderError('')
+    setReaderLoading(true)
     try {
-      const data = await api(`/api/proxy?url=${encodeURIComponent(url)}`)
-      if (data.error) { setViewError(data.error) }
-      else { setViewContent(data.content) }
-    } catch {
-      setViewError('Sayfa yuklenemedi')
-    }
-    setViewLoading(false)
+      const data = await api(`/api/reader?url=${encodeURIComponent(url)}`)
+      if (data.error) setReaderError(data.error)
+      else setReader(data)
+    } catch { setReaderError('Sayfa okunamadi') }
+    setReaderLoading(false)
   }
 
-  if (viewing) {
+  const closeReader = () => {
+    setReader(null)
+    setReaderError('')
+  }
+
+  const openBrowser = (url) => setBrowserUrl(url)
+  const closeBrowser = () => setBrowserUrl(null)
+
+  if (browserUrl) {
     return (
-      <div>
-        <div className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur-sm pb-4 pt-4">
-          <div className="flex items-center gap-3 max-w-5xl">
-            <button onClick={() => { setViewing(null); setViewContent(null); setViewError('') }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-300 hover:border-gray-600 transition-colors">
-              <ArrowLeft size={16} /> Sonuclar
+      <div className="flex flex-col h-[calc(100vh-3rem)] animate-fade-in">
+        <div className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-t-xl" style={{background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)'}}>
+          <button onClick={closeBrowser}
+            className="btn-ghost p-1.5 rounded-lg flex items-center gap-1 text-xs"
+            style={{color: 'var(--text-muted)'}}>
+            <ArrowLeft size={16} /> Aramaya Dön
+          </button>
+          <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs truncate"
+            style={{background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
+            <Globe size={12} style={{color: 'var(--accent)'}} />
+            <span className="truncate">{browserUrl}</span>
+          </div>
+          <a href={browserUrl} target="_blank" rel="noopener noreferrer"
+            className="btn-ghost p-1.5 rounded-lg"
+            style={{color: 'var(--text-muted)'}}>
+            <ExternalLink size={16} />
+          </a>
+        </div>
+        <div className="flex-1 min-h-0">
+          <iframe
+            ref={iframeRef}
+            src={`/api/proxy/page?url=${encodeURIComponent(browserUrl)}`}
+            className="w-full h-full border-0"
+            title="Tarayıcı"
+            style={{background: '#fff'}}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (reader) {
+    return (
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-10 pb-4 pt-4" style={{background: 'color-mix(in srgb, var(--bg-primary) 95%, transparent)', backdropFilter: 'blur(8px)'}}>
+          <div className="flex items-center gap-3 max-w-4xl mx-auto">
+            <button onClick={closeReader}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
+              style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
+              <ArrowLeft size={16} /> Geri
             </button>
-            <a href={viewing} target="_blank" rel="noopener noreferrer"
-              className="text-xs text-gray-500 hover:text-cyan-400 truncate flex items-center gap-1">
-              {viewing} <ExternalIcon size={12} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate" style={{color: 'var(--text)'}}>{reader.title}</p>
+              <p className="text-xs truncate" style={{color: 'var(--text-muted)'}}>{reader.domain}</p>
+            </div>
+            <a href={reader.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
+              style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
+              <ExternalLink size={14} /> Orijinal Sayfa
             </a>
           </div>
         </div>
-        {viewLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 size={24} className="text-cyan-400 animate-spin" />
-            <span className="ml-3 text-gray-500 text-sm">Sayfa yukleniyor...</span>
-          </div>
-        ) : viewError ? (
-          <div className="max-w-3xl mx-auto mt-8 p-6 bg-red-900/10 border border-red-900/30 rounded-xl text-center">
-            <p className="text-red-400 text-sm">{viewError}</p>
-            <a href={viewing} target="_blank" rel="noopener noreferrer"
-              className="mt-3 inline-block text-xs text-cyan-500 hover:underline">
-              Tarayicida ac
-            </a>
-          </div>
-        ) : (
-          <div className="max-w-5xl mx-auto bg-white rounded-xl overflow-hidden">
-            <iframe srcDoc={viewContent} className="w-full h-[calc(100vh-180px)]" sandbox="allow-same-origin" title="sayfa" />
-          </div>
-        )}
+        <div className="max-w-3xl mx-auto">
+          <article className="prose prose-invert max-w-none px-1" style={{color: 'var(--text)'}}>
+            <h1 className="text-2xl font-bold mb-6" style={{color: 'var(--text)'}}>{reader.title}</h1>
+            <div
+              className="leading-relaxed space-y-4 text-base [&_p]:mb-3 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-6 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-5 [&_h3]:font-medium [&_h3]:mt-4 [&_img]:rounded-xl [&_img]:max-w-full [&_img]:my-4 [&_img]:mx-auto [&_img]:block [&_pre]:bg-gray-900 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_pre]:text-sm [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:opacity-80"
+              style={{color: 'var(--text-secondary)'}}
+              dangerouslySetInnerHTML={{ __html: reader.content }} />
+          </article>
+        </div>
       </div>
     )
   }
 
   if (!searched) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
+      <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 animate-fade-in">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <Sparkles size={32} className="text-cyan-400" />
-            <h1 className="text-4xl font-bold text-white tracking-tight">
-              Pc<span className="text-cyan-400">_Search_Engine</span>
+          <div className="inline-flex items-center gap-3 mb-5">
+            <div style={{
+              background: 'var(--accent-glow)',
+              borderRadius: '1rem',
+              padding: '0.75rem',
+              display: 'inline-flex',
+            }}>
+              <GlobeIcon size={28} style={{color: 'var(--accent)'}} />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight" style={{color: 'var(--text)'}}>
+              Arama<span style={{color: 'var(--accent)'}}> Motoru</span>
             </h1>
           </div>
-          <p className="text-gray-500 text-sm">Web, yerel dosya ve sistem arama motoru</p>
+          <p style={{color: 'var(--text-muted)'}} className="text-sm">Web, yerel dosya ve sistem arama</p>
         </div>
 
         <div className="w-full max-w-2xl">
           <form onSubmit={handleSubmit} className="relative">
             <div className="relative">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input ref={inputRef} value={query} onChange={e => handleInputChange(e.target.value)} onFocus={() => suggestions.length > 0 && setShowSuggestions(true)} onKeyDown={handleKeyDown}
-                placeholder="Pc_Search_Engine ile arayin..."
-                className="w-full bg-gray-900 border-2 border-gray-700 rounded-2xl pl-12 pr-24 py-4 text-base text-white placeholder-gray-600 focus:outline-none focus:border-cyan-700 transition-colors" />
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{color: 'var(--text-muted)'}} />
+              <input ref={inputRef} value={query} onChange={e => handleInputChange(e.target.value)} onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="Aramak istediginiz seyi yazin..."
+                className="w-full rounded-2xl pl-12 pr-24 py-4 text-base transition-colors"
+                style={{
+                  background: 'var(--bg-surface)',
+                  border: '2px solid var(--border)',
+                  color: 'var(--text)',
+                }} />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {TABS.map(t => (
                   <button key={t.id} type="button" onClick={() => setTab(t.id)}
-                    className={`p-2 rounded-lg transition-colors ${tab === t.id ? 'bg-cyan-900/30 text-cyan-400' : 'text-gray-600 hover:text-gray-400'}`}>
+                    className="p-2 rounded-lg transition-colors"
+                    style={{
+                      color: tab === t.id ? 'var(--accent)' : 'var(--text-muted)',
+                      background: tab === t.id ? 'var(--accent-glow)' : 'transparent',
+                    }}>
                     <t.icon size={16} />
                   </button>
                 ))}
               </div>
             </div>
             {showSuggestions && suggestions.length > 0 && (
-              <div ref={suggestRef} className="absolute top-full mt-1 left-0 right-0 bg-gray-900 border border-gray-700 rounded-xl overflow-hidden z-10 shadow-xl">
+              <div ref={suggestRef} className="absolute top-full mt-1 left-0 right-0 rounded-xl overflow-hidden z-10 shadow-xl"
+                style={{background: 'var(--bg-card)', border: '1px solid var(--border)'}}>
                 {suggestions.map((s, i) => (
                   <button key={i} type="button" onClick={() => handleSuggestionClick(s)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 transition-colors">
-                    <Search size={14} className="text-gray-600 shrink-0" />
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors"
+                    style={{color: 'var(--text-secondary)'}}>
+                    <Search size={14} style={{color: 'var(--text-muted)'}} />
                     {s}
                   </button>
                 ))}
@@ -183,10 +231,14 @@ export default function SearchEngine() {
             )}
           </form>
 
-          <div className="flex justify-center gap-4 mt-6 text-xs text-gray-600">
+          <div className="flex justify-center gap-4 mt-6 text-xs">
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${tab === t.id ? 'bg-cyan-900/20 text-cyan-400' : 'hover:text-gray-400'}`}>
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
+                style={{
+                  color: tab === t.id ? 'var(--accent)' : 'var(--text-muted)',
+                  background: tab === t.id ? 'var(--accent-glow)' : 'transparent',
+                }}>
                 <t.icon size={12} /> {t.label}
               </button>
             ))}
@@ -197,18 +249,27 @@ export default function SearchEngine() {
   }
 
   return (
-    <div>
-      <div className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur-sm pb-4 pt-4">
+    <div className="animate-fade-in">
+      <div className="sticky top-0 z-10 pb-4 pt-4" style={{background: 'color-mix(in srgb, var(--bg-primary) 95%, transparent)', backdropFilter: 'blur(8px)'}}>
         <form onSubmit={handleSubmit} className="relative max-w-3xl">
           <div className="relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{color: 'var(--text-muted)'}} />
             <input value={query} onChange={e => handleInputChange(e.target.value)}
               placeholder="Ara..."
-              className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-32 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-700" />
+              className="w-full rounded-xl pl-10 pr-32 py-2.5 text-sm"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+              }} />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
               {TABS.map(t => (
                 <button key={t.id} type="button" onClick={() => { setTab(t.id); setSearched(false) }}
-                  className={`p-1.5 rounded-md text-xs transition-colors ${tab === t.id ? 'bg-cyan-900/30 text-cyan-400' : 'text-gray-600 hover:text-gray-400'}`}>
+                  className="p-1.5 rounded-md text-xs transition-colors"
+                  style={{
+                    color: tab === t.id ? 'var(--accent)' : 'var(--text-muted)',
+                    background: tab === t.id ? 'var(--accent-glow)' : 'transparent',
+                  }}>
                   <t.icon size={14} />
                 </button>
               ))}
@@ -219,70 +280,116 @@ export default function SearchEngine() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="text-cyan-400 animate-spin" />
-          <span className="ml-3 text-gray-500 text-sm">Araniyor...</span>
+          <Loader2 size={24} className="animate-spin" style={{color: 'var(--accent)'}} />
+          <span className="ml-3 text-sm" style={{color: 'var(--text-muted)'}}>Araniyor...</span>
         </div>
       ) : error ? (
-        <div className="max-w-3xl mx-auto mt-8 p-6 bg-red-900/10 border border-red-900/30 rounded-xl text-center">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button onClick={() => doSearch(query, 1)} className="mt-3 text-xs text-cyan-500 hover:underline">Tekrar dene</button>
+        <div className="max-w-3xl mx-auto mt-8 p-6 rounded-xl text-center"
+          style={{background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)'}}>
+          <p style={{color: '#ef4444'}} className="text-sm">{error}</p>
+          <button onClick={() => doSearch(query, 1)} className="mt-3 text-xs hover:underline" style={{color: 'var(--accent)'}}>Tekrar dene</button>
         </div>
       ) : results ? (
         <div className="max-w-3xl mx-auto">
-          <p className="text-xs text-gray-600 mb-4">
-            {results.query} icin {results.total} sonuc
+          <p className="text-xs mb-4" style={{color: 'var(--text-muted)'}}>
+            {results.query} için {results.total} sonuç
+            {tab !== 'local' && results.total > 0 && (
+              <span className="ml-2">— {results.total > 10 ? `${Math.ceil(results.total / 10)}` : '1'} sayfa</span>
+            )}
           </p>
 
           {tab === 'web' && results.results?.map((r, i) => (
-            <div key={i} className="mb-5">
-              <div onClick={() => openPage(r.url)} className="group block cursor-pointer">
-                <p className="text-xs text-gray-600 truncate mb-0.5">{r.url}</p>
-                <h3 className="text-base font-medium text-cyan-400 group-hover:underline mb-0.5">
-                  {r.title || 'Basliksiz'}
-                </h3>
-                <p className="text-sm text-gray-400 line-clamp-2">{r.snippet || ''}</p>
+            <div key={i} className="card p-4 mb-3 animate-scale-in"
+              style={{animationDelay: `${i * 50}ms`, animationFillMode: 'both'}}>
+              <div className="flex items-center gap-2 mb-1">
+                {r.favicon ? (
+                  <img src={r.favicon} alt="" className="w-4 h-4 rounded shrink-0" onError={(e) => e.target.style.display = 'none'} />
+                ) : (
+                  <Globe size={14} className="shrink-0" style={{color: 'var(--text-muted)'}} />
+                )}
+                <span className="text-xs truncate" style={{color: 'var(--text-muted)'}}>{r.domain}</span>
+              </div>
+              <button onClick={() => openBrowser(r.url)}
+                className="text-base font-semibold hover:underline mb-0.5 block text-left"
+                style={{color: 'var(--accent)'}}>
+                {r.title || r.domain}
+              </button>
+              {r.snippet && (
+                <p className="text-sm leading-relaxed line-clamp-2 mb-2" style={{color: 'var(--text-secondary)'}}>{r.snippet}</p>
+              )}
+              <div className="flex items-center gap-2 mt-1">
+                <button onClick={() => openBrowser(r.url)}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors"
+                  style={{color: 'var(--text-muted)'}}>
+                  <Globe size={12} /> Sayfada Aç
+                </button>
+                <button onClick={() => openReader(r.url)}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors"
+                  style={{color: 'var(--text-muted)'}}>
+                  <BookOpenText size={12} /> Oku
+                </button>
               </div>
             </div>
           ))}
 
+          {readerLoading && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background: 'rgba(0,0,0,0.5)'}}>
+              <div className="card p-6 flex items-center gap-3">
+                <Loader2 size={20} className="animate-spin" style={{color: 'var(--accent)'}} />
+                <span className="text-sm" style={{color: 'var(--text-secondary)'}}>Sayfa okunuyor...</span>
+              </div>
+            </div>
+          )}
+
+          {readerError && (
+            <div className="max-w-3xl mx-auto mt-4 p-4 rounded-lg text-sm"
+              style={{background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444'}}>
+              {readerError}
+            </div>
+          )}
+
           {tab === 'local' && results.results?.map((r, i) => (
-            <div key={i} className="mb-4 pb-4 border-b border-gray-800 last:border-0">
-              <p className="text-xs text-gray-600 font-mono">{r.path}</p>
-              <p className="text-sm font-medium text-gray-200 mt-0.5">{r.name}</p>
-              {r.snippet && <p className="text-sm text-gray-400 mt-1 line-clamp-2">{r.snippet}</p>}
+            <div key={i} className="card p-4 mb-2">
+              <p className="text-xs font-mono truncate" style={{color: 'var(--text-muted)'}}>{r.path}</p>
+              <p className="text-sm font-medium mt-0.5" style={{color: 'var(--text)'}}>{r.name}</p>
+              {r.snippet && <p className="text-sm mt-1 line-clamp-2" style={{color: 'var(--text-secondary)'}}>{r.snippet}</p>}
             </div>
           ))}
 
           {tab === 'system' && results.results?.map((cat, ci) => (
-            <div key={ci} className="mb-6">
-              <h3 className="text-sm font-medium text-gray-300 mb-2">{cat.category}</h3>
-              {cat.items.map((item, ii) => (
-                <div key={ii} className="mb-2 p-3 bg-gray-900 rounded-xl border border-gray-800">
-                  {item.name && <p className="text-sm font-medium text-gray-200">{item.name}</p>}
-                  {item.pid && <p className="text-xs text-gray-500 mt-0.5">PID: {item.pid} | CPU: %{item.cpu} | MEM: %{item.mem}</p>}
-                  {item.status && <p className="text-xs text-gray-500 mt-0.5">Durum: {item.status}</p>}
-                  {item.repo && <p className="text-xs text-gray-500 mt-0.5">{item.repo}/{item.name} {item.version}</p>}
-                </div>
-              ))}
+            <div key={ci} className="mb-5">
+              <h3 className="text-sm font-medium mb-2" style={{color: 'var(--text-secondary)'}}>{cat.category}</h3>
+              <div className="space-y-2">
+                {cat.items.map((item, ii) => (
+                  <div key={ii} className="card p-3">
+                    {item.name && <p className="text-sm font-medium" style={{color: 'var(--text)'}}>{item.name}</p>}
+                    {item.pid && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>PID: {item.pid} | CPU: %{item.cpu} | MEM: %{item.mem}</p>}
+                    {item.status && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>Durum: {item.status}</p>}
+                    {item.repo && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>{item.repo}/{item.name} {item.version}</p>}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
 
           {results.results?.length === 0 && !error && (
             <div className="text-center py-20">
-              <p className="text-gray-500">Sonuc bulunamadi.</p>
-              <p className="text-xs text-gray-600 mt-1">Farkli kelimelerle tekrar deneyin.</p>
+              <p style={{color: 'var(--text-secondary)'}}>Sonuç bulunamadı.</p>
+              <p className="text-xs mt-1" style={{color: 'var(--text-muted)'}}>Farklı kelimelerle tekrar deneyin.</p>
             </div>
           )}
 
           {tab === 'web' && results.total > 10 && (
             <div className="flex items-center justify-center gap-4 mt-8 mb-12">
               <button disabled={page <= 1} onClick={() => doSearch(query, page - 1)}
-                className="flex items-center gap-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-xl text-sm text-gray-300 disabled:opacity-30 hover:border-gray-600 transition-colors">
-                <ChevronLeft size={16} /> Onceki
+                className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm disabled:opacity-30 transition-colors"
+                style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
+                <ChevronLeft size={16} /> Önceki
               </button>
-              <span className="text-sm text-gray-500">Sayfa {page}</span>
+              <span className="text-sm" style={{color: 'var(--text-muted)'}}>Sayfa {page}</span>
               <button disabled={results.results?.length < 10} onClick={() => doSearch(query, page + 1)}
-                className="flex items-center gap-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-xl text-sm text-gray-300 disabled:opacity-30 hover:border-gray-600 transition-colors">
+                className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm disabled:opacity-30 transition-colors"
+                style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
                 Sonraki <ChevronRight size={16} />
               </button>
             </div>

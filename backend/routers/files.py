@@ -13,19 +13,21 @@ def list_files(path: str = Query("/", alias="path")):
         if not p.exists():
             raise HTTPException(404, "path not found")
         items = []
-        for entry in sorted(p.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+        for entry in sorted(p.iterdir(), key=lambda x: x.name.lower()):
             try:
                 stat = entry.lstat()
+                is_dir = stat.st_mode & 0o40000  # S_IFDIR
                 items.append({
                     "name": entry.name,
                     "path": str(entry),
-                    "is_dir": entry.is_dir(),
+                    "is_dir": bool(is_dir),
                     "size": stat.st_size,
                     "mtime": stat.st_mtime,
                     "mode": stat.st_mode
                 })
             except (PermissionError, OSError):
                 continue
+        items.sort(key=lambda x: (not x["is_dir"], x["name"].lower()))
         return {"path": str(p), "parent": str(p.parent) if str(p) != "/" else None, "items": items}
     except PermissionError:
         raise HTTPException(403, "permission denied")
