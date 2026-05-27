@@ -344,6 +344,209 @@ def tool_system_summary(params: dict) -> str:
     }, ensure_ascii=False)
 
 
+# ──────────────────────────────────────────
+# NEW TOOLS: Docker, Firewall, Speedtest, Windows, Power, Updates, Cron, Settings
+# ──────────────────────────────────────────
+
+import shlex
+
+
+def tool_docker_list(params: dict) -> str:
+    try:
+        r = subprocess.run(["docker", "ps", "-a", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"],
+                           capture_output=True, text=True, timeout=8)
+        containers = [l.split("\t") for l in r.stdout.strip().split("\n") if l.strip()]
+        out = []
+        for c in containers[:20]:
+            out.append({"id": c[0], "name": c[1], "image": c[2], "status": c[3], "ports": c[4] if len(c) > 4 else ""})
+        r2 = subprocess.run(["docker", "images", "--format", "{{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.Size}}"],
+                            capture_output=True, text=True, timeout=8)
+        images = [l.split("\t") for l in r2.stdout.strip().split("\n") if l.strip()]
+        img_out = [{"repo": i[0], "tag": i[1], "id": i[2], "size": i[3]} for i in images[:10]]
+        return json.dumps({"containers": out, "images": img_out}, ensure_ascii=False)
+    except FileNotFoundError:
+        return json.dumps({"error": "Docker kurulu degil"}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_docker_action(params: dict) -> str:
+    action = params.get("action", "")
+    container = params.get("container", "")
+    if not action or not container:
+        return json.dumps({"error": "action ve container gerekli"}, ensure_ascii=False)
+    if action == "logs":
+        r = subprocess.run(["docker", "logs", "--tail", "30", container], capture_output=True, text=True, timeout=8)
+        return json.dumps({"container": container, "logs": r.stdout[-2000:] or r.stderr[-2000:]}, ensure_ascii=False)
+    try:
+        r = subprocess.run(["docker", action, container], capture_output=True, text=True, timeout=15)
+        return json.dumps({"success": r.returncode == 0, "action": action, "container": container, "output": (r.stdout or r.stderr).strip()[:500]}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_firewall(params: dict) -> str:
+    action = params.get("action", "status")
+    from .firewall import _run_ufw
+    try:
+        if action == "status":
+            raw = _run_ufw(["ufw", "status", "verbose"])
+            for line in raw.split("\n"):
+                if "Status:" in line:
+                    return json.dumps({"status": "active" if "active" in line else "inactive", "raw": raw[:1000]}, ensure_ascii=False)
+            return json.dumps({"status": "inactive", "raw": raw[:1000]}, ensure_ascii=False)
+        elif action in ("enable", "disable", "reload", "reset"):
+            out = _run_ufw(["ufw", "--force", action])
+            return json.dumps({"success": True, "action": action, "output": out[:300]}, ensure_ascii=False)
+        elif action == "rules":
+            raw = _run_ufw(["ufw", "status", "numbered"])
+            return json.dumps({"rules": raw[:2000]}, ensure_ascii=False)
+        elif action == "add":
+            rule_type = params.get("type", "allow")
+            direction = params.get("direction", "in")
+            port = params.get("port", "")
+            ip = params.get("ip", "")
+            args = ["ufw", rule_type, direction]
+            if port:
+                proto = params.get("protocol", "")
+                args.append(f"{port}/{proto}" if proto else port)
+            if ip:
+                args.append("from" if direction == "in" else "to")
+                args.append(ip)
+            out = _run_ufw(args)
+            return json.dumps({"success": True, "rule": " ".join(args[1:]), "output": out[:300]}, ensure_ascii=False)
+        elif action == "delete":
+            num = params.get("rule_num", 0)
+            out = _run_ufw(["ufw", "--force", "delete", str(num)])
+            return json.dumps({"success": True, "rule_num": num, "output": out[:300]}, ensure_ascii=False)
+        return json.dumps({"error": f"bilinmeyen aksiyon: {action}"}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_speedtest(params: dict) -> str:
+    action = params.get("action", "status")
+    try:
+        if action == "status":
+            from .speedtest import _results as st_results
+            with st_results.get("_state_lock", __import__("threading").Lock()):
+                safe = dict(st_results)
+            return json.dumps({"status": safe.get("status", "idle")}, ensure_ascii=False)
+        elif action == "history":
+            import json as j
+            p = __import__("pathlib").Path(__file__).parent.parent / "speedtest_history.json"
+            if p.exists():
+                hist = j.loads(p.read_text())
+                return json.dumps({"history": hist[-5:]}, ensure_ascii=False)
+            return json.dumps({"history": []}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_windows(params: dict) -> str:
+    what = params.get("what", "services")
+    pwsh = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+    try:
+        if what == "services":
+            r = subprocess.run("sc.exe query 2>/dev/null || /mnt/c/Windows/System32/sc.exe query 2>/dev/null || echo no",
+                               shell=True, capture_output=True, text=True, timeout=8)
+            return json.dumps({"services": r.stdout[:2000] or r.stderr[:500]}, ensure_ascii=False)
+        elif what == "processes":
+            r = subprocess.run([pwsh, "-NoProfile", "-Command", "Get-Process | Select-Object Name,CPU,PM | ConvertTo-Json -Depth 1"],
+                               capture_output=True, text=True, timeout=8)
+            return json.dumps({"processes": (r.stdout or r.stderr)[:2000]}, ensure_ascii=False)
+        elif what == "disks":
+            r = subprocess.run([pwsh, "-NoProfile", "-Command", "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free | ConvertTo-Json"],
+                               capture_output=True, text=True, timeout=8)
+            return json.dumps({"disks": (r.stdout or r.stderr)[:2000]}, ensure_ascii=False)
+        elif what == "command":
+            cmd = params.get("command", "")
+            r = subprocess.run([pwsh, "-NoProfile", "-Command", cmd], capture_output=True, text=True, timeout=15)
+            return json.dumps({"output": (r.stdout or r.stderr)[:2000]}, ensure_ascii=False)
+        else:
+            return json.dumps({"error": f"bilinmeyen: {what}"}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_power(params: dict) -> str:
+    action = params.get("action", "")
+    if action not in ("shutdown", "reboot"):
+        return json.dumps({"error": "sadece shutdown ve reboot desteklenir"}, ensure_ascii=False)
+    try:
+        r = subprocess.run(["systemctl", action], capture_output=True, text=True, timeout=5)
+        return json.dumps({"success": True, "action": action}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_updates(params: dict) -> str:
+    action = params.get("action", "check")
+    try:
+        if action == "upgrade":
+            r = subprocess.run(["apt", "list", "--upgradable", "-q"], capture_output=True, text=True, timeout=30)
+            return json.dumps({"upgradable": r.stdout[:2000] or "guncelleme yok"}, ensure_ascii=False)
+        return json.dumps({"error": "check icin komut calistirin: exec_command ile apt list --upgradable"}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_cron(params: dict) -> str:
+    action = params.get("action", "list")
+    try:
+        if action == "list":
+            r = subprocess.run(["crontab", "-l"], capture_output=True, text=True, timeout=5)
+            lines = [l for l in r.stdout.split("\n") if l.strip() and not l.startswith("#")]
+            return json.dumps({"jobs": lines[:20]}, ensure_ascii=False)
+        elif action == "add":
+            schedule = params.get("schedule", "")
+            command = params.get("command", "")
+            if not schedule or not command:
+                return json.dumps({"error": "schedule ve command gerekli"}, ensure_ascii=False)
+            existing = subprocess.run(["crontab", "-l"], capture_output=True, text=True, timeout=5).stdout
+            new = existing.strip() + f"\n{schedule} {command}\n"
+            r = subprocess.run(["crontab", "-"], input=new, capture_output=True, text=True, timeout=5)
+            return json.dumps({"success": r.returncode == 0, "output": (r.stdout or r.stderr)[:300]}, ensure_ascii=False)
+        elif action == "delete":
+            keyword = params.get("keyword", "")
+            if not keyword:
+                return json.dumps({"error": "silinecek komut icin keyword gerekli"}, ensure_ascii=False)
+            existing = subprocess.run(["crontab", "-l"], capture_output=True, text=True, timeout=5).stdout
+            lines = [l for l in existing.split("\n") if keyword not in l]
+            r = subprocess.run(["crontab", "-"], input="\n".join(lines), capture_output=True, text=True, timeout=5)
+            return json.dumps({"success": r.returncode == 0, "output": (r.stdout or r.stderr)[:300]}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_settings(params: dict) -> str:
+    action = params.get("action", "get")
+    try:
+        p = __import__("pathlib").Path(__file__).parent.parent / "config.json"
+        if action == "get":
+            cfg = json.loads(p.read_text()) if p.exists() else {}
+            return json.dumps({k: v for k, v in cfg.items() if k != "_password_hash"}, ensure_ascii=False)
+        elif action == "update":
+            new_vals = params.get("values", {})
+            if not new_vals:
+                return json.dumps({"error": "values gerekli"}, ensure_ascii=False)
+            cfg = json.loads(p.read_text()) if p.exists() else {}
+            deep_update(cfg, new_vals)
+            p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+            return json.dumps({"success": True, "updated": list(new_vals.keys())}, ensure_ascii=False)
+        return json.dumps({"error": f"bilinmeyen aksiyon: {action}"}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def deep_update(d, u):
+    for k, v in u.items():
+        if isinstance(v, dict) and k in d and isinstance(d[k], dict):
+            deep_update(d[k], v)
+        else:
+            d[k] = v
+
+
 TOOLS: dict[str, dict] = {
     "get_cpu": {
         "fn": tool_get_cpu,
@@ -604,6 +807,165 @@ TOOLS: dict[str, dict] = {
                 "name": "system_summary",
                 "description": "Tek cagrida tum sistem ozeti: CPU, RAM, disk, uptime, hostname, kernel, kullanicilar",
                 "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "docker_list": {
+        "fn": tool_docker_list,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "docker_list",
+                "description": "Docker container'lari ve image'lari listele",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "docker_action": {
+        "fn": tool_docker_action,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "docker_action",
+                "description": "Docker container yonetimi: start, stop, restart, remove, logs action'lari ile",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["start", "stop", "restart", "remove", "logs"], "description": "yapilacak islem"},
+                        "container": {"type": "string", "description": "container ID veya adi"},
+                    },
+                    "required": ["action", "container"],
+                },
+            },
+        },
+    },
+    "firewall": {
+        "fn": tool_firewall,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "firewall",
+                "description": "UFW guvenlik duvari yonetimi. Action: status, enable, disable, reload, reset, rules, add, delete",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["status", "enable", "disable", "reload", "reset", "rules", "add", "delete"], "description": "yapilacak islem"},
+                        "type": {"type": "string", "description": "kural icin: allow veya deny (sadece action=add icin)"},
+                        "direction": {"type": "string", "description": "kural icin: in veya out"},
+                        "port": {"type": "string", "description": "port numarasi (sadece action=add icin)"},
+                        "protocol": {"type": "string", "description": "tcp veya udp"},
+                        "ip": {"type": "string", "description": "IP adresi"},
+                        "rule_num": {"type": "integer", "description": "silinecek kural numarasi (sadece action=delete icin)"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "speedtest": {
+        "fn": tool_speedtest,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "speedtest",
+                "description": "Internet hiz testi durumu ve gecmisi. Action: status (mevcut durum), history (son 5 test)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["status", "history"], "description": "status=mevcut durum, history=gecmis"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "windows": {
+        "fn": tool_windows,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "windows",
+                "description": "Windows (WSL) yonetimi: services, processes, disks, command. what parametresi ile secim yap.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "what": {"type": "string", "enum": ["services", "processes", "disks", "command"], "description": "goruntulenecek bilgi"},
+                        "command": {"type": "string", "description": "calistirilacak PowerShell komutu (sadece what=command icin)"},
+                    },
+                    "required": ["what"],
+                },
+            },
+        },
+    },
+    "power": {
+        "fn": tool_power,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "power",
+                "description": "Sistemi kapat veya yeniden baslat. Action: shutdown, reboot",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["shutdown", "reboot"], "description": "shutdown=kapat, reboot=yeniden baslat"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "updates": {
+        "fn": tool_updates,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "updates",
+                "description": "Sistem guncelleme kontrolu. Action: upgrade (yuklenebilir paketleri listeler)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["upgrade"], "description": "yapilacak islem"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "cron": {
+        "fn": tool_cron,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "cron",
+                "description": "Cron job yonetimi. Action: list (job'lari listele), add (ekle), delete (sil). schedule='dakika saat gun ay hafta' formatinda",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["list", "add", "delete"], "description": "yapilacak islem"},
+                        "schedule": {"type": "string", "description": "cron schedule (sadece action=add icin). Orn: */5 * * * *"},
+                        "command": {"type": "string", "description": "calistirilacak komut (sadece action=add icin)"},
+                        "keyword": {"type": "string", "description": "silinecek job'daki anahtar kelime (sadece action=delete icin)"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "settings": {
+        "fn": tool_settings,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "settings",
+                "description": "PC Manager ayarlarini goruntule veya guncelle. Action: get (goruntule), update (guncelle). Sifre gostermez.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["get", "update"], "description": "get=goruntule, update=guncelle"},
+                        "values": {"type": "object", "description": "guncellenecek degerler (sadece action=update icin). Orn: {\"ollama\": {\"model\": \"gemma4:31b-cloud\"}}"},
+                    },
+                    "required": ["action"],
+                },
             },
         },
     },

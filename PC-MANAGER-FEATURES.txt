@@ -1,0 +1,339 @@
+# PC Manager — Tüm Özellik Kataloğu
+
+---
+
+## 🖥️ SİSTEM & MONİTÖR
+
+### Dashboard (Ana Sayfa)
+- `GET /api/system/stats` — CPU (yüzde/çekirdek/frekans), RAM (toplam/kullanılan/yüzde), Disk, sıcaklık sensörleri, uptime, hostname, OS
+- `GET /api/system/stats/history` — 60 örneklik CPU/RAM geçmişi (1sn poll)
+- `WS /api/system/ws` — WebSocket ile canlı CPU/RAM/Disk/Network her saniye
+- Canlı çizgi grafik (canvas), otomatik yenileme (5sn)
+
+### Isı Takibi (Sıcaklık & Sistem)
+- `GET /api/temperature` — GPU sıcaklık/kullanım/güç (nvidia-smi via Windows), CPU model/frekans/çekirdek, sistem yükü (1/5/15dk), bellek, uptime
+- WSL üzerinden Windows WMI ve nvidia-smi erişimi
+- Renk kodlaması: >75°C kırmızı, >%80 kullanım uyarı
+
+### Sistem Bilgi
+- `GET /api/system/info` — Hostname, OS, kernel, mimari, boot zamanı, uptime, CPU marka/çekirdek/frekans, RAM toplam/swap, disk partitionları, kullanıcılar
+- `GET /api/system/disks` — Disk partition detayı (device, mount, fstype, total, used, free, percent)
+
+### Processler
+- `GET /api/processes` — Process listesi, sıralama (cpu/memory/pid), limit, arama filtresi. PID, ad, cpu%, ram%, status, username, create_time
+- `POST /api/processes/kill` — Process sonlandırma (SIGTERM/SIGKILL)
+- `GET /api/processes/{pid}` — Detay: exe, cwd, status, username, cpu/memory, threads, connections, open files
+
+### Disk Analizi
+- `GET /api/disks/list` — Partition listesi (device, mount, fstype, total/used/free, %)
+- `GET /api/disks/usage` — Dizin bazında recursive boyut analizi (top 100, max 10GB)
+
+---
+
+## 🌐 AĞ
+
+### Ağ Monitörü
+- `GET /api/network/interfaces` — Arayüz listesi (IP, family, netmask)
+- `GET /api/network/stats` — I/O istatistikleri (bytes/packets sent/recv, anlık hız bps)
+
+### Hız Testi
+- `POST /api/speedtest/start` — Arka planda hız testi başlatma
+- `GET /api/speedtest/status` — Canlı durum: faz (hazirlik/indirme/yukleme), anlık Mbps, ping, nihai sonuçlar
+- `GET /api/speedtest/history` — Son 20 test kaydı (JSON dosyasına kalıcı kayıt, son 100)
+- Paralel indirme/yükleme, byte tracker ile anlık hız takibi
+
+### Güvenlik Duvarı (UFW)
+- `GET /api/firewall/status` — UFW durumu, varsayılan politikalar, kayıt seviyesi, ham kurallar
+- `POST /api/firewall/toggle` — enable/disable/reload/reset
+- `POST /api/firewall/rule` — Kural ekle (type: allow/deny/reject, direction: in/out, port, protocol, IP)
+- `DELETE /api/firewall/rule` — Kural sil (numara ile)
+- `GET /api/firewall/rules` — Numaralı kural listesi
+
+---
+
+## 📁 DOSYA & DEPOLAMA
+
+### Dosya Yöneticisi
+- `GET /api/files/list` — Dizin içeriği listele (isim, yol, dizin/dosya, boyut, mtime, izin)
+- `GET /api/files/download` — Dosya indir (FileResponse)
+- `POST /api/files/upload` — Dosya yükle
+- `DELETE /api/files/delete` — Dosya/dizin sil (recursive)
+- `POST /api/files/mkdir` — Dizin oluştur (parents ile)
+- `PUT /api/files/rename` — Dosya/dizin yeniden adlandır
+
+### Arama Motoru
+- `GET /api/search` — 3 mod: web (DuckDuckGo), local (grep), system (ps/systemctl/pacman)
+- `GET /api/search/suggest` — DuckDuckGo otomatik tamamlama
+- `GET /api/reader` — URL'den içerik çıkarma (BeautifulSoup, HTML temizleme)
+- `GET /api/proxy` — Basit HTTP proxy
+
+---
+
+## ⚡ GÜÇ & ZAMANLAMA
+
+### Güç Yönetimi
+- `POST /api/power/shutdown` — Sistemi kapat
+- `POST /api/power/reboot` — Yeniden başlat
+- `POST /api/power/suspend` — Uyku modu
+- `POST /api/power/logout` — Kullanıcı oturumunu kapat
+
+### Zamanlayıcı (Cron)
+- `GET /api/cron/jobs` — Crontab işlerini listele (insan tarafından okunabilir açıklama)
+- `POST /api/cron/jobs` — Yeni cron işi ekle
+- `DELETE /api/cron/jobs` — Cron işi sil
+- Hazır schedule presetleri: her dakika, 5dk, 15dk, saatlik, günlük, haftalık
+
+---
+
+## 🐳 DOCKER
+
+### Docker Yönetimi
+- `GET /api/docker/info` — Docker arkaplan bilgisi (kurulu mu, container/image sayısı, versiyon)
+- `GET /api/docker/containers` — Container listesi (ID, name, image, status, state, ports, created)
+- `GET /api/docker/images` — Image listesi (ID, repo, tag, size, created)
+- `POST /api/docker/container/start` — Container başlat
+- `POST /api/docker/container/stop` — Container durdur
+- `POST /api/docker/container/restart` — Container yeniden başlat
+- `DELETE /api/docker/container` — Container sil (force flag)
+- `GET /api/docker/logs/{container_id}` — Container logları (tail lines)
+
+---
+
+## 🔧 SERVİS & GÜNCELLEME
+
+### Servis Yönetimi (systemd)
+- `GET /api/services` — Servis listesi (name, load, active, sub, description), arama filtresi
+- `POST /api/services/start` — Servis başlat
+- `POST /api/services/stop` — Servis durdur
+- `POST /api/services/restart` — Servis yeniden başlat
+- `GET /api/services/{name}` — Servis detayı (systemctl show)
+
+### Güncellemeler
+- `GET /api/updates/check` — Güncelleme kontrolü (pacman/apt/dnf otomatik algılama)
+- `POST /api/updates/upgrade` — Arka planda sistem güncellemesi başlatma
+
+### Loglar
+- `GET /api/logs` — journalctl sorgusu (unit filtresi, satır sayısı max 500, priority)
+- `GET /api/logs/units` — Tüm systemd unit'leri (load, active, sub state)
+
+---
+
+## 🪟 WINDOWS (WSL)
+
+### Windows Yönetimi
+- `GET /api/windows/config` — Yapılandırma ve WSL durumu
+- `GET /api/windows/services` — Windows servisleri (sc.exe query)
+- `GET /api/windows/processes` — Windows processleri (tasklist /FO CSV)
+- `GET /api/windows/disks` — Windows diskleri (Get-PSDrive)
+- `GET /api/windows/network` — ipconfig /all çıktısı
+- `GET /api/windows/system` — systeminfo çıktısı (key-value parse)
+- `GET /api/windows/events/{log_name}` — Windows Event Log (System/Application/Security/Setup)
+- `POST /api/windows/command` — cmd.exe veya PowerShell komutu çalıştırma
+- `GET /api/windows/status` — Feature enable durumu
+
+---
+
+## 🤖 YAPAY ZEKA & ASİSTAN
+
+### AI Asistan (Ollama)
+- `POST /api/ollama/chat/stream` — **18 araçlı** streaming AI agent (SSE)
+  - `get_cpu` — CPU bilgisi
+  - `get_memory` — RAM/Swap bilgisi
+  - `get_disk` — Disk partition bilgisi
+  - `get_processes` — Process listesi
+  - `kill_process` — Process sonlandırma
+  - `get_services` — Servis listesi
+  - `manage_service` — Servis başlat/durdur/yeniden başlat
+  - `get_network` — Ağ arayüz/istatistik
+  - `exec_command` — Shell komutu çalıştırma
+  - `get_temperature` — Sıcaklık sensörleri
+  - `get_logs` — Sistem logları
+  - `list_files` — Dizin listeleme
+  - `read_file` — Dosya okuma
+  - `write_file` — Dosya yazma
+  - `get_deprem` — Deprem verisi (Kandilli/AFAD)
+  - `web_search` — Web arama (DuckDuckGo)
+  - `web_fetch` — URL içerik çekme
+  - `system_summary` — Sistem özeti
+- `GET /api/ollama/models` — Ollama modellerini listele
+- `POST /api/ollama/unload` — Modeli bellekten boşalt
+- `GET /api/ollama/emergency` — Acil durum modu durumu
+- `POST /api/ollama/emergency` — Acil durum modu aç/kapa
+
+### Debug Agent
+- `POST /api/debug/agent/check` — Kod tabanını analiz et (target filtresi ile)
+- `POST /api/debug/agent/fix` — Belirtilen sorunu otomatik düzelt (git checkpoint ile)
+- `POST /api/debug/agent/rollback/{checkpoint_id}` — Checkpoint'e geri dön
+- `GET /api/debug/agent/checkpoints` — Checkpoint listesi (id, label, timestamp, commit)
+- `GET /api/debug/agent/status` — Agent durumu (değişiklikler, git durumu)
+
+### Sohbet Asistanı (Rule-based)
+- `GET /api/chat/start` — PTY shell oturumu başlat
+- `POST /api/chat/{session_id}` — Mesaj gönder (intent detection + shell fallback)
+- `DELETE /api/chat/{session_id}` — Oturum sonlandır
+- `GET /api/chat/sessions` — Aktif oturum listesi
+- Desteklenen intent'ler: cpu, ram, disk, temp, shutdown, reboot, process, network, service, update, uptime, users, datetime, log, help
+
+---
+
+## 🛡️ GÜVENLİK & OSINT
+
+### Pen-Test (27 Araç)
+- `GET /api/pentest/tools` — 27 aracı kategorileriyle listele
+- `GET /api/pentest/tools/{tool_id}` — Araç detayı
+- `POST /api/pentest/run` — Araç çalıştır (session_id döner)
+- `GET /api/pentest/sessions` — Oturum listesi
+- `GET /api/pentest/sessions/{session_id}` — Oturum detayı
+- `GET /api/pentest/sessions/{session_id}/results` — Parse edilmiş sonuçlar
+- `DELETE /api/pentest/sessions/{session_id}` — Oturum sil
+- `GET /api/pentest/sessions/{session_id}/export` — TXT/JSON export
+- `POST /api/pentest/schedule` — Tekrarlayan tarama planla
+- `GET /api/pentest/schedule` — Planlı taramaları listele
+- `DELETE /api/pentest/schedule/{task_id}` — Planlı taramayı sil
+- `GET /api/pentest/presets` — Kullanıcı presetlerini listele
+- `POST /api/pentest/presets` — Preset kaydet
+- `DELETE /api/pentest/presets/{tool_id}/{label}` — Preset sil
+- `POST /api/pentest/osint-scan` — OSINT taraması (email/username/domain/phone/auto-detect)
+- `WS /api/pentest/ws/{session_id}` — WebSocket canlı çıktı akışı
+
+**Kategoriler:**
+- Ağ Tarama: nmap, masscan, dnsrecon, enum4linux, metasploit
+- Web: gobuster, nikto, whatweb, sqlmap, wfuzz, dirb, searchsploit, sherlock, igcheck, theharvester
+- Parola: hydra, john
+- Ağ İzleme: tcpdump, nc, netstat, wireshark (tshark)
+- OSINT: holehe, h8mail, maigret, whatsmyname, socialscan, amass, subfinder, dnstwist, phoneinfoga, whatbreach, exiftool
+
+---
+
+## 🌍 DEPREM İZLEME
+
+### Deprem Uyarı Sistemi
+- `GET /api/deprem/son` — Son 30 deprem (Kandilli + AFAD fallback)
+- `GET /api/deprem/uyari` — Son 5 dakikadaki depremler + otomatik Telegram bildirimi
+- `GET /api/deprem/stream` — SSE stream (15sn'de bir güncelleme)
+- Risk seviyeleri: KRITIK (M>=5, <200km), YUKSEK (M>=4, <150km), ORTA (M>=3, <100km), DIKKAT, BILGI
+- Haversine mesafe hesaplaması (İstanbul)
+- Deduplikasyon (hash tabanlı)
+- Leaflet harita görselleştirmesi
+
+---
+
+## 🔔 BİLDİRİMLER
+
+### Uyarı Sistemi
+- Arka plan checker (30sn'de bir)
+- CPU, RAM, Disk eşik takibi
+- Kanal: Telegram, Email (SMTP+STARTTLS), Webhook
+- `GET /api/notifications/history` — Alarm geçmişi
+- `DELETE /api/notifications/history` — Geçmişi temizle
+
+---
+
+## ⚙️ AYARLAR & KURULUM
+
+### Ayarlar
+- `GET /api/settings` — Tüm yapılandırma (merge varsayılanlarla)
+- `PUT /api/settings` — Yapılandırma güncelle (deep merge)
+- Bölümler: general, notifications, email, webhook, ollama, telegram, debug, windows
+
+### Kurulum
+- `GET /api/setup` — Kurulum durumu
+- `POST /api/setup` — İlk kurulum (site_name, admin_name, password) veya yeniden yapılandırma
+- bcrypt parola hash'leme, JWT token
+
+---
+
+## 🔧 HATA AYIKLAMA
+
+### Debug Paneli
+- `GET /api/debug/info` — Python versiyon, CWD, config dump, env (secrets filtrelenmiş)
+- `GET /api/debug/packages` — pip ve npm paket listesi
+- `GET /api/debug/logs` — Son N satır journald log
+- `POST /api/debug/test-error` — Test hatası fırlatma
+
+---
+
+## 🔐 KİMLİK DOĞRULAMA
+
+- `POST /api/auth/login` — Parola ile JWT token (480dk expiry, bcrypt)
+- Ön yüzde login sayfası, token localStorage'da saklanır
+- `require_auth` dependency ile korunan route'lar
+- Setup tamamlanmadıysa Setup sayfasına yönlendirme
+
+---
+
+## 📡 TELEGRAM ENTEGRASYONU
+
+- `POST /api/telegram/test` — Test mesajı gönder
+- Hem async (`send_telegram`) hem sync (`send_telegram_sync`) fonksiyon
+- HTML parse mode ile zengin format
+- Bildirimler ve deprem alarmları için kullanılır
+
+---
+
+## 📝 ÖN YÜZ SAYFALARI (26 sayfa)
+
+| Sayfa | Route | Açıklama |
+|-------|-------|----------|
+| Dashboard | `/` | Ana sistem durumu |
+| Terminal | `/terminal` | Web tabanlı terminal (xterm.js) |
+| Dosyalar | `/files` | Dosya yöneticisi |
+| Güç | `/power` | Shutdown/reboot/suspend/logout |
+| Asistan | `/chat` | Rule-based sohbet asistanı |
+| Pen-Test | `/pentest` | 27 güvenlik aracı |
+| Processler | `/processes` | Process yönetimi |
+| Ağ | `/network` | Ağ monitörü |
+| Sistem Bilgi | `/system-info` | Donanım envanteri |
+| Disk Analizi | `/disk-usage` | Disk kullanım analizi |
+| Güncellemeler | `/updates` | Paket güncellemeleri |
+| Loglar | `/logs` | Sistem logları |
+| Servisler | `/services` | systemd servis yönetimi |
+| Docker | `/docker` | Container yönetimi |
+| Zamanlayıcı | `/cron` | Cron job yönetimi |
+| Ayarlar | `/settings` | Yapılandırma |
+| Debug | `/debug` | Hata ayıklama |
+| Deprem | `/deprem` | Deprem izleme |
+| AI Asistan | `/ai` | Ollama AI sohbet |
+| Arama | `/search` | Web/local/system arama |
+| Hız Testi | `/speedtest` | Internet hız testi |
+| Güvenlik Duvarı | `/firewall` | UFW yönetimi |
+| Windows | `/windows` | WSL Windows yönetimi |
+| Isı Takibi | `/temperature` | Sıcaklık sensörleri |
+| Giriş | `/login` | Kimlik doğrulama |
+| Kurulum | `/setup` | İlk kurulum sihirbazı |
+
+---
+
+## 📊 İSTATİSTİK
+
+- **Backend router dosyası:** 30 adet
+- **API endpoint:** 110+ (HTTP + WebSocket + SSE)
+- **AI Agent tool:** 18 adet
+- **Pen-Test aracı:** 27 adet
+- **Ön yüz sayfası:** 26 adet
+- **Kullanılan teknolojiler:** FastAPI, React 19, Vite, Tailwind 4, xterm.js, Leaflet, psutil, Ollama, WebSocket, SSE
+- **Port:** 8081
+- **Kimlik doğrulama:** JWT (bcrypt)
+- **Hedef platform:** Linux (WSL2 destekli)
+
+---
+
+## 🔌 TOOL KATEGORİLERİ (AI Agent)
+
+AI Asistanı (`/ai`) şu an **18 tool** biliyor. Aşağıdaki özellikler için **tool eklenmemiş**:
+
+| Özellik | Mevcut mu? |
+|---------|-----------|
+| Docker (container/image yönetimi) | ❌ |
+| UFW Firewall yönetimi | ❌ |
+| Speedtest başlatma/sonuç sorgulama | ❌ |
+| Windows (WSL) servis/process/disk/event | ❌ |
+| PenTest araç çalıştırma/session yönetimi | ❌ |
+| Cron job görüntüleme/ekleme/silme | ❌ |
+| Sistem güncelleme kontrolü/yükseltme | ❌ |
+| Bildirim geçmişi/konfigürasyon | ❌ |
+| Disk kullanım analizi (dizin bazında) | ❌ |
+| Sistem bilgi detayı | ❌ |
+| Ayarları görüntüleme/değiştirme | ❌ |
+| Dosya yükleme | ❌ |
+| Sistemi kapatma/yeniden başlatma | ❌ |
