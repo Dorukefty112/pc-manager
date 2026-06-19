@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Gauge, ArrowDown, ArrowUp, Activity, Timer, Server, Wifi, RefreshCw, MapPin } from 'lucide-react'
 
 export default function Speedtest() {
+  const { t } = useI18n()
   const [status, setStatus] = useState({ status: 'idle', results: null, error: null, progress: '' })
   const [running, setRunning] = useState(false)
   const [history, setHistory] = useState([])
@@ -29,12 +31,12 @@ export default function Speedtest() {
         const lv = s.live
         if (lv && lv.phase) {
           if (lv.phase === 'hazirlik') {
-            setLivePhase('Hazirlaniyor...')
+            setLivePhase(t('Hazirlaniyor...'))
           } else if (lv.phase === 'indirme') {
-            setLivePhase('Indiriliyor...')
+            setLivePhase(t('Indiriliyor...'))
             setLiveSpeed(lv.download > 0 ? { type: 'download', value: lv.download } : null)
           } else if (lv.phase === 'yukleme') {
-            setLivePhase('Yukleniyor...')
+            setLivePhase(t('Yukleniyor...'))
             setLiveSpeed(lv.upload > 0 ? { type: 'upload', value: lv.upload } : null)
           }
         }
@@ -63,8 +65,8 @@ export default function Speedtest() {
       <div className="card p-8 text-center">
         <div className="mb-6">
           <Gauge size={48} className="mx-auto mb-2" style={{color: 'var(--accent)'}} />
-          <h2 className="text-xl font-semibold" style={{color: 'var(--text)'}}>Hiz Testi</h2>
-          <p className="text-sm" style={{color: 'var(--text-muted)'}}>Internet baglanti hizini olc</p>
+          <h2 className="text-xl font-semibold" style={{color: 'var(--text)'}}>{t('Hiz Testi')}</h2>
+          <p className="text-sm" style={{color: 'var(--text-muted)'}}>{t('Internet baglanti hizini olc')}</p>
         </div>
 
         {isRunning && (
@@ -99,7 +101,7 @@ export default function Speedtest() {
               </div>
             ) : (
               <span className="text-sm" style={{color: 'var(--text-secondary)'}}>
-                {status.progress || livePhase || 'Test devam ediyor...'}
+                {status.progress || livePhase || t('Test devam ediyor...')}
               </span>
             )}
           </div>
@@ -109,7 +111,7 @@ export default function Speedtest() {
           <button onClick={start} disabled={running}
             className="btn-primary text-base px-8 py-3 rounded-xl transition-all hover:scale-105"
             style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
-            <Activity size={20} /> Testi Baslat
+            <Activity size={20} /> {t('Testi Baslat')}
           </button>
         )}
 
@@ -125,10 +127,10 @@ export default function Speedtest() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="card p-6 text-center">
               <ArrowDown size={28} className="mx-auto mb-2" style={{color: '#22d3ee'}} />
-              <div className="text-xs font-medium mb-1" style={{color: 'var(--text-muted)'}}>Indirme</div>
+              <div className="text-xs font-medium mb-1" style={{color: 'var(--text-muted)'}}>{t('Indirme')}</div>
               <div className="text-3xl font-bold mb-1" style={{color: 'var(--text)'}}>{formatSpeed(r.download)}</div>
               <div className="text-xs" style={{color: 'var(--text-secondary)'}}>
-                {(r.download_bytes / 1_000_000).toFixed(0)} MB alindi
+                {t('{n} MB alindi').replace('{n}', (r.download_bytes / 1_000_000).toFixed(0))}
               </div>
               <div className="w-full h-2 rounded-full mt-3 overflow-hidden" style={{background: 'var(--border)'}}>
                 <div className="h-full rounded-full transition-all duration-1000"
@@ -138,10 +140,10 @@ export default function Speedtest() {
 
             <div className="card p-6 text-center">
               <ArrowUp size={28} className="mx-auto mb-2" style={{color: '#a78bfa'}} />
-              <div className="text-xs font-medium mb-1" style={{color: 'var(--text-muted)'}}>Yukleme</div>
+              <div className="text-xs font-medium mb-1" style={{color: 'var(--text-muted)'}}>{t('Yukleme')}</div>
               <div className="text-3xl font-bold mb-1" style={{color: 'var(--text)'}}>{formatSpeed(r.upload)}</div>
               <div className="text-xs" style={{color: 'var(--text-secondary)'}}>
-                {(r.upload_bytes / 1_000_000).toFixed(0)} MB gonderildi
+                {t('{n} MB gonderildi').replace('{n}', (r.upload_bytes / 1_000_000).toFixed(0))}
               </div>
               <div className="w-full h-2 rounded-full mt-3 overflow-hidden" style={{background: 'var(--border)'}}>
                 <div className="h-full rounded-full transition-all duration-1000"
@@ -155,28 +157,28 @@ export default function Speedtest() {
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <Timer size={14} style={{color: 'var(--text-muted)'}} />
-                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>Ping</span>
+                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Ping')}</span>
                 </div>
                 <div className="text-lg font-semibold" style={{color: 'var(--text)'}}>{r.ping} ms</div>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <Server size={14} style={{color: 'var(--text-muted)'}} />
-                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>Sunucu</span>
+                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Sunucu')}</span>
                 </div>
                 <div className="text-lg font-semibold truncate" style={{color: 'var(--text)'}} title={r.server_host}>{r.server_name}</div>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <MapPin size={14} style={{color: 'var(--text-muted)'}} />
-                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>Konum</span>
+                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Konum')}</span>
                 </div>
                 <div className="text-lg font-semibold truncate" style={{color: 'var(--text)'}}>{r.server_location}</div>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <Wifi size={14} style={{color: 'var(--text-muted)'}} />
-                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>ISP</span>
+                  <span className="text-xs" style={{color: 'var(--text-muted)'}}>{t('ISP')}</span>
                 </div>
                 <div className="text-lg font-semibold truncate" style={{color: 'var(--text)'}}>{r.isp || '-'}</div>
               </div>
@@ -187,7 +189,7 @@ export default function Speedtest() {
             <button onClick={start} disabled={running}
               className="btn-primary px-6 py-2 rounded-xl text-sm transition-all hover:scale-105"
               style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
-              <RefreshCw size={16} /> Tekrar Test Et
+              <RefreshCw size={16} /> {t('Tekrar Test Et')}
             </button>
           </div>
         </>

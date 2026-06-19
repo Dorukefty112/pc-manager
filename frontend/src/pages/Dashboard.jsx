@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
 import { useWebSocket } from '../useWebSocket'
+import { useI18n } from '../context/I18nContext'
 import { Cpu, MemoryStick, Activity, RefreshCw, Wifi, WifiOff, Gauge, Timer } from 'lucide-react'
 
 export default function Dashboard() {
+  const { t } = useI18n()
   const [stats, setStats] = useState(null)
   const [history, setHistory] = useState({ cpu: [], memory: [] })
   const [wsData, setWsData] = useState(null)
@@ -113,16 +115,16 @@ export default function Dashboard() {
     <div className="flex items-center justify-center h-64">
       <div className="flex flex-col items-center gap-3" style={{color: 'var(--text-muted)'}}>
         <Activity size={32} className="animate-pulse" style={{color: 'var(--accent)'}} />
-        <span className="text-sm">Yükleniyor...</span>
+        <span className="text-sm">{t("Yükleniyor...")}</span>
       </div>
     </div>
   )
 
   const cards = [
-    { icon: Cpu, label: 'CPU', value: `${mergedStats.cpu.percent}%`, detail: `${stats.cpu.count} çekirdek`, color: '--accent' },
+    { icon: Cpu, label: 'CPU', value: `${mergedStats.cpu.percent}%`, detail: `${stats.cpu.count} ${t("çekirdek")}`, color: '--accent' },
     { icon: MemoryStick, label: 'RAM', value: `${mergedStats.memory.percent}%`, detail: `${(stats.memory.used / 1e9).toFixed(1)}/${(stats.memory.total / 1e9).toFixed(1)} GB`, color: '#a78bfa' },
     { icon: Gauge, label: 'Disk', value: `${stats.disk.percent.toFixed(1)}%`, detail: `${(stats.disk.used / 1e9).toFixed(1)}/${(stats.disk.total / 1e9).toFixed(1)} GB`, color: '#34d399' },
-    { icon: Timer, label: 'Açık Kalma', value: uptimeStr, detail: stats.hostname, color: '#fb923c' },
+    { icon: Timer, label: t('Açık Kalma'), value: uptimeStr, detail: stats.hostname, color: '#fb923c' },
   ]
 
   const Bar = ({ pct, color }) => (
@@ -135,7 +137,7 @@ export default function Dashboard() {
     <div className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 style={{color: 'var(--text)'}} className="text-xl font-semibold tracking-tight">Sistem Durumu</h2>
+          <h2 style={{color: 'var(--text)'}} className="text-xl font-semibold tracking-tight">{t("Sistem Durumu")}</h2>
           <span className={`flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full ${wsConnected ? 'text-green-500' : ''}`}
             style={{
               background: wsConnected ? 'rgba(34,197,94,0.1)' : 'var(--bg-surface)',
@@ -143,13 +145,13 @@ export default function Dashboard() {
               border: wsConnected ? '1px solid rgba(34,197,94,0.2)' : '1px solid var(--border)',
             }}>
             <span className={`glow-dot ${wsConnected ? 'green' : ''}`} style={!wsConnected ? {background: 'var(--text-muted)'} : {}} />
-            {wsConnected ? 'Canlı' : 'Bağlanıyor...'}
+            {wsConnected ? t("Canlı") : t("Bağlanıyor...")}
           </span>
         </div>
         <label className="flex items-center gap-2 text-xs cursor-pointer select-none" style={{color: 'var(--text-secondary)'}}>
           <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)}
             className="w-3.5 h-3.5 rounded" style={{accentColor: 'var(--accent)'}} />
-          Otomatik yenile
+          {t("Otomatik yenile")}
         </label>
       </div>
 
@@ -170,7 +172,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{color: 'var(--text-secondary)'}}>CPU - RAM Geçmişi (60s)</span>
+            <span className="text-sm font-medium" style={{color: 'var(--text-secondary)'}}>{t("CPU - RAM Geçmişi (60s)")}</span>
             <span className="flex gap-4 text-xs" style={{color: 'var(--text-muted)'}}>
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{background: '#22d3ee'}} /> CPU</span>
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{background: '#a78bfa'}} /> RAM</span>
@@ -180,7 +182,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card p-5">
-          <div className="text-sm font-medium mb-4" style={{color: 'var(--text-secondary)'}}>Canlı Kullanım</div>
+          <div className="text-sm font-medium mb-4" style={{color: 'var(--text-secondary)'}}>{t("Canlı Kullanım")}</div>
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1">
@@ -209,7 +211,7 @@ export default function Dashboard() {
 
       {stats.temp?.length > 0 && (
         <div className="card p-5 animate-fade-in">
-          <h3 className="text-sm font-medium mb-4" style={{color: 'var(--text-secondary)'}}>Sıcaklıklar</h3>
+          <h3 className="text-sm font-medium mb-4" style={{color: 'var(--text-secondary)'}}>{t("Sıcaklıklar")}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {stats.temp.map((t, i) => (
               <div key={i} className="rounded-lg px-3 py-2" style={{background: 'var(--bg-surface)'}}>
@@ -224,7 +226,7 @@ export default function Dashboard() {
       <div className="card p-4">
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{color: 'var(--text-muted)'}}>{stats.os}</span>
-          <span className="text-xs" style={{color: 'var(--text-muted)'}}>Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}</span>
+          <span className="text-xs" style={{color: 'var(--text-muted)'}}>{t("Son güncelleme:")} {new Date().toLocaleTimeString('tr-TR')}</span>
         </div>
       </div>
     </div>

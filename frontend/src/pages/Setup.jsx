@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, setToken } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Shield, Eye, EyeOff, Check, ArrowRight, User, Globe, Lock, Server } from 'lucide-react'
 
 export default function Setup() {
+  const { t } = useI18n()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -13,7 +15,7 @@ export default function Setup() {
 
   const [form, setForm] = useState({
     admin_name: '',
-    site_name: 'PC Manager',
+    site_name: t('PC Manager'),
     password: '',
     confirm: '',
   })
@@ -33,10 +35,10 @@ export default function Setup() {
 
   const handleSubmit = async () => {
     setError('')
-    if (!form.password) { setError('Şifre gerekli'); return }
-    if (form.password.length < 4) { setError('Şifre en az 4 karakter olmalı'); return }
-    if (form.password !== form.confirm) { setError('Şifreler eşleşmiyor'); return }
-    if (!form.site_name.trim()) { setError('Site adı gerekli'); return }
+    if (!form.password) { setError(t('Şifre gerekli')); return }
+    if (form.password.length < 4) { setError(t('Şifre en az 4 karakter olmalı')); return }
+    if (form.password !== form.confirm) { setError(t('Şifreler eşleşmiyor')); return }
+    if (!form.site_name.trim()) { setError(t('Site adı gerekli')); return }
 
     setSubmitting(true)
     try {
@@ -58,7 +60,7 @@ export default function Setup() {
       setDone(true)
       navigate('/')
     } catch (e) {
-      setError(e.message || 'Kurulum hatası')
+      setError(e.message || t('Kurulum hatası'))
     }
     setSubmitting(false)
   }
@@ -66,7 +68,7 @@ export default function Setup() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-        <div className="text-gray-500">Yükleniyor...</div>
+        <div className="text-gray-500">{t('Yükleniyor...')}</div>
       </div>
     )
   }
@@ -74,9 +76,9 @@ export default function Setup() {
   if (done) return null
 
   const steps = [
-    { icon: User, title: 'Yönetici', desc: 'Adınız (isteğe bağlı)' },
-    { icon: Globe, title: 'Site', desc: 'Site adınız' },
-    { icon: Lock, title: 'Şifre', desc: 'Giriş şifrenizi belirleyin' },
+    { icon: User, title: t('Yönetici'), desc: t('Adınız (isteğe bağlı)') },
+    { icon: Globe, title: t('Site'), desc: t('Site adınız') },
+    { icon: Lock, title: t('Şifre'), desc: t('Giriş şifrenizi belirleyin') },
   ]
 
   return (
@@ -87,7 +89,7 @@ export default function Setup() {
             <Server size={32} className="text-cyan-400" />
           </div>
           <h1 className="text-2xl font-bold text-white">PC Manager</h1>
-          <p className="text-gray-500 text-sm mt-1">İlk kurulum</p>
+          <p className="text-gray-500 text-sm mt-1">{t('İlk kurulum')}</p>
         </div>
 
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
@@ -104,17 +106,17 @@ export default function Setup() {
                   <User size={20} className="text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-medium">Adınız nedir?</h3>
-                  <p className="text-xs text-gray-500">Kontrol panelinde görünecek</p>
+                  <h3 className="text-white font-medium">{t('Adınız nedir?')}</h3>
+                  <p className="text-xs text-gray-500">{t('Kontrol panelinde görünecek')}</p>
                 </div>
               </div>
               <input value={form.admin_name} onChange={e => update('admin_name', e.target.value)}
-                placeholder="Örn: Ahmet"
+                placeholder={t('Örn: Ahmet')}
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-700" />
-              <p className="text-xs text-gray-600">Boş bırakabilirsiniz.</p>
+              <p className="text-xs text-gray-600">{t('Boş bırakabilirsiniz.')}</p>
               <button onClick={() => setStep(1)}
                 className="w-full bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                Devam <ArrowRight size={16} />
+                {t('Devam')} <ArrowRight size={16} />
               </button>
             </div>
           )}
@@ -126,15 +128,15 @@ export default function Setup() {
                   <Globe size={20} className="text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-medium">Site adı ne olsun?</h3>
-                  <p className="text-xs text-gray-500">Tarayıcı sekmesinde görünecek</p>
+                  <h3 className="text-white font-medium">{t('Site adı ne olsun?')}</h3>
+                  <p className="text-xs text-gray-500">{t('Tarayıcı sekmesinde görünecek')}</p>
                 </div>
               </div>
               <input value={form.site_name} onChange={e => update('site_name', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-700" />
               <button onClick={() => setStep(2)}
                 className="w-full bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                Devam <ArrowRight size={16} />
+                {t('Devam')} <ArrowRight size={16} />
               </button>
             </div>
           )}
@@ -146,14 +148,14 @@ export default function Setup() {
                   <Lock size={20} className="text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-medium">Giriş şifresi</h3>
-                  <p className="text-xs text-gray-500">PC Manager'a giriş yapmak için</p>
+                  <h3 className="text-white font-medium">{t('Giriş şifresi')}</h3>
+                  <p className="text-xs text-gray-500">{t('PC Manager\'a giriş yapmak için')}</p>
                 </div>
               </div>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} value={form.password}
                   onChange={e => update('password', e.target.value)}
-                  placeholder="En az 4 karakter"
+                  placeholder={t('En az 4 karakter')}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-700 pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
@@ -163,12 +165,12 @@ export default function Setup() {
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} value={form.confirm}
                   onChange={e => update('confirm', e.target.value)}
-                  placeholder="Şifre tekrar"
+                  placeholder={t('Şifre tekrar')}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-700" />
               </div>
               <button onClick={handleSubmit} disabled={submitting || !form.password || !form.confirm}
                 className="w-full bg-cyan-700 hover:bg-cyan-600 disabled:opacity-40 text-white rounded-xl px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                {submitting ? 'Kaydediliyor...' : <><Check size={16} /> Kurulumu Tamamla</>}
+                {submitting ? t('Kaydediliyor...') : <><Check size={16} /> {t('Kurulumu Tamamla')}</>}
               </button>
             </div>
           )}

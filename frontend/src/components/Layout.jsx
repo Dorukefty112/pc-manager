@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { Monitor, Terminal, Folder, Power, Cpu, Wifi, HardDrive, Package, ScrollText, Server, Info, MessageSquare, Shield, Menu, X, Container, Clock, LogOut, Activity, Brain, Search, AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug, Gauge } from 'lucide-react'
 import { setToken, api } from '../api'
 import { useTheme } from '../context/ThemeContext'
+import { useI18n } from '../context/I18nContext'
 
 const links = [
   { to: '/', label: 'Sistem Durumu', icon: Monitor },
@@ -26,6 +27,7 @@ const links = [
   { to: '/speedtest', label: 'Hiz Testi', icon: Gauge },
   { to: '/firewall', label: 'Guvenlik Duvar', icon: ShieldOff },
   { to: '/windows', label: 'Windows', icon: Monitor, highlight: false },
+  { to: '/playbooks', label: 'Playbook', icon: Server },
 ]
 
 export default function Layout({ children }) {
@@ -33,6 +35,7 @@ export default function Layout({ children }) {
   const [emergency, setEmergency] = useState(false)
   const location = useLocation()
   const { theme, toggle } = useTheme()
+  const { t } = useI18n()
 
   useEffect(() => { setOpen(false) }, [location.pathname])
 
@@ -65,12 +68,12 @@ export default function Layout({ children }) {
         <div className="shrink-0 relative z-50 bg-red-700/90 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold animate-pulse backdrop-blur">
           <div className="flex items-center gap-2">
             <AlertTriangle size={18} className="animate-bounce" />
-            <span>ACİL DURUM MODU AKTİF — Asistan hayatta kalma moduna geçti</span>
+            <span>{t("ACİL DURUM MODU AKTİF — Asistan hayatta kalma moduna geçti")}</span>
           </div>
           <button onClick={toggleEmergency}
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-900/50 hover:bg-red-800 text-white text-xs transition-colors whitespace-nowrap">
             <ShieldOff size={14} />
-            Devre Dışı Bırak
+            {t("Devre Dışı Bırak")}
           </button>
         </div>
       )}
@@ -100,7 +103,7 @@ export default function Layout({ children }) {
                   background: isActive && !l.highlight ? 'var(--accent-glow)' : undefined,
                 })}>
                 <l.icon size={16} className="shrink-0" />
-                <span className="truncate">{l.label}</span>
+                <span className="truncate">{t(l.label)}</span>
               </NavLink>
             ))}
           </div>
@@ -115,7 +118,7 @@ export default function Layout({ children }) {
                 background: isActive ? 'var(--accent-glow)' : undefined,
               })}>
               <Settings size={16} />
-              <span>Ayarlar</span>
+              <span>{t("Ayarlar")}</span>
             </NavLink>
             <NavLink to="/debug"
               className={({ isActive }) =>
@@ -126,7 +129,7 @@ export default function Layout({ children }) {
                 background: isActive ? 'var(--accent-glow)' : undefined,
               })}>
               <Bug size={16} />
-              <span>Debug</span>
+              <span>{t("Debug")}</span>
             </NavLink>
           </div>
 
@@ -134,7 +137,7 @@ export default function Layout({ children }) {
             <button onClick={toggle}
               className="btn-ghost flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm flex-1 justify-center">
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              <span style={{color: 'var(--text-muted)'}}>{theme === 'dark' ? 'Aydınlık' : 'Karanlık'}</span>
+              <span style={{color: 'var(--text-muted)'}}>{theme === 'dark' ? t("Aydınlık") : t("Karanlık")}</span>
             </button>
             <button onClick={() => { setToken(null); window.location.href = '/login' }}
               className="btn-ghost flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm"

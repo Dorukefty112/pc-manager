@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Folder, File, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X, HardDrive, Home } from 'lucide-react'
 
 export default function Files() {
+  const { t } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
   const path = searchParams.get('path') || '/'
   const [data, setData] = useState(null)
@@ -30,7 +32,7 @@ export default function Files() {
   const navigate = (p) => setSearchParams({ path: p })
 
   const del = async (itemPath) => {
-    if (!confirm('Silmek istediğine emin misin?')) return
+    if (!confirm(t('Silmek istediğine emin misin?'))) return
     await api(`/api/files/delete?path=${encodeURIComponent(itemPath)}`, { method: 'DELETE' })
     load()
   }
@@ -48,7 +50,7 @@ export default function Files() {
   }
 
   const mkdir = async () => {
-    const name = prompt('Dizin adı:')
+    const name = prompt(t('Dizin adı:'))
     if (!name) return
     await api(`/api/files/mkdir?path=${encodeURIComponent(path + '/' + name)}`, { method: 'POST' })
     load()
@@ -89,26 +91,26 @@ export default function Files() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-xl sm:text-2xl font-semibold">Dosyalar</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold">{t("Dosyalar")}</h2>
         <div className="flex gap-1.5 sm:gap-2">
           <div className="flex gap-1">
             <input value={searchQ} onChange={e => setSearchQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()}
-              placeholder="Ara..." className="w-24 sm:w-40 bg-gray-900 border border-gray-800 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:outline-none focus:border-cyan-700" />
+              placeholder={t("Ara...")} className="w-24 sm:w-40 bg-gray-900 border border-gray-800 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:outline-none focus:border-cyan-700" />
             <button onClick={doSearch} className="p-1.5 bg-gray-800 rounded-lg hover:bg-gray-700"><Search size={16} /></button>
           </div>
           <label className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 text-sm">
-            <Upload size={14} /> <span className="hidden sm:inline">Yükle</span>
+            <Upload size={14} /> <span className="hidden sm:inline">{t("Yükle")}</span>
             <input type="file" className="hidden" ref={uploadRef} onChange={upload} multiple />
           </label>
           <button onClick={mkdir} className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
-            <Plus size={14} /> <span className="hidden sm:inline">Dizin</span>
+            <Plus size={14} /> <span className="hidden sm:inline">{t("Dizin")}</span>
           </button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
         <button onClick={() => navigate('/')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
-          <HardDrive size={14} /> Kök
+          <HardDrive size={14} /> {t("Kök")}
         </button>
         <button onClick={() => navigate('/mnt/c')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
           <HardDrive size={14} /> Windows (C:)
@@ -123,7 +125,7 @@ export default function Files() {
           {data?.parent && !searchResults && (
             <button onClick={() => navigate(data.parent)} className="hover:text-white p-1"><ArrowLeft size={16} /></button>
           )}
-          <span className="font-mono text-xs truncate">{searchResults ? `Arama: "${searchQ}"` : path}</span>
+          <span className="font-mono text-xs truncate">{searchResults ? `${t("Arama:")} "${searchQ}"` : path}</span>
           {searchResults && <button onClick={() => { setSearchResults(null); setSearchQ('') }} className="ml-auto text-gray-500 hover:text-white p-1"><X size={14} /></button>}
         </div>
 
@@ -156,7 +158,7 @@ export default function Files() {
               </div>
             </div>
           ))}
-          {(searchResults?.length === 0 || data?.items?.length === 0) && <div className="p-8 text-center text-gray-600">Sonuç bulunamadı</div>}
+          {(searchResults?.length === 0 || data?.items?.length === 0) && <div className="p-8 text-center text-gray-600">{t("Sonuç bulunamadı")}</div>}
         </div>
       </div>
     </div>

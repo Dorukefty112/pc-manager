@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { MessageSquare, Send, X, Terminal, Cpu } from 'lucide-react'
 
 export default function Chat() {
+  const { t } = useI18n()
   const [sessionId, setSessionId] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -53,7 +55,7 @@ export default function Chat() {
       })
       setMessages(prev => [...prev, { role: 'assistant', text: res.response }])
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', text: `Hata: ${e.message}` }])
+      setMessages(prev => [...prev, { role: 'assistant', text: t('Hata: ') + e.message }])
     }
     setLoading(false)
   }, [input, sessionId, loading])
@@ -88,7 +90,7 @@ export default function Chat() {
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-2 mb-3">
         <MessageSquare size={18} className="text-cyan-400" />
-        <h2 className="text-lg sm:text-xl font-semibold">Asistan</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">{t('Asistan')}</h2>
         {sessionId && <span className="text-[10px] text-gray-600 font-mono ml-auto">ID: {sessionId}</span>}
       </div>
 
@@ -102,7 +104,7 @@ export default function Chat() {
                   : 'bg-gray-800 text-gray-200 rounded-bl-md'
               }`}>
                 <div className="text-xs opacity-60 mb-1 flex items-center gap-1">
-                  {m.role === 'user' ? 'Sen' : <><Cpu size={10} /> Asistan</>}
+                  {m.role === 'user' ? t('Sen') : <><Cpu size={10} /> {t('Asistan')}</>}
                 </div>
                 {formatText(m.text)}
               </div>
@@ -129,7 +131,7 @@ export default function Chat() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              placeholder="Mesaj yaz veya komut ver..."
+              placeholder={t('Mesaj yaz veya komut ver...')}
               disabled={!sessionId || loading}
               className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-700 disabled:opacity-50"
             />

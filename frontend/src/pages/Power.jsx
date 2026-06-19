@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Power as PowerIcon, RotateCw, Moon, LogOut, AlertTriangle } from 'lucide-react'
 
-const actions = [
-  { key: 'shutdown', label: 'Kapat', icon: PowerIcon, color: 'red', desc: 'Sistemi tamamen kapatır', confirm: 'Bilgisayar KAPANACAK! Emin misin?' },
-  { key: 'reboot', label: 'Yeniden Başlat', icon: RotateCw, color: 'yellow', desc: 'Sistemi yeniden başlatır', confirm: 'Bilgisayar YENİDEN BAŞLAYACAK! Emin misin?' },
-  { key: 'suspend', label: 'Uyku', icon: Moon, color: 'blue', desc: 'Sistemi uyku moduna alır', confirm: 'Bilgisayar uyku moduna geçecek. Emin misin?' },
-  { key: 'logout', label: 'Oturumu Kapat', icon: LogOut, color: 'gray', desc: 'Mevcut kullanıcı oturumunu kapatır', confirm: 'Oturumun kapatılacak. Emin misin?' },
-]
-
 export default function Power() {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(null)
   const [result, setResult] = useState('')
+
+  const actions = [
+    { key: 'shutdown', label: t('Kapat'), icon: PowerIcon, color: 'red', desc: t('Sistemi tamamen kapatır'), confirm: t('Bilgisayar KAPANACAK! Emin misin?') },
+    { key: 'reboot', label: t('Yeniden Başlat'), icon: RotateCw, color: 'yellow', desc: t('Sistemi yeniden başlatır'), confirm: t('Bilgisayar YENİDEN BAŞLAYACAK! Emin misin?') },
+    { key: 'suspend', label: t('Uyku'), icon: Moon, color: 'blue', desc: t('Sistemi uyku moduna alır'), confirm: t('Bilgisayar uyku moduna geçecek. Emin misin?') },
+    { key: 'logout', label: t('Oturumu Kapat'), icon: LogOut, color: 'gray', desc: t('Mevcut kullanıcı oturumunu kapatır'), confirm: t('Oturumun kapatılacak. Emin misin?') },
+  ]
 
   const run = async (action) => {
     const a = actions.find(x => x.key === action)
@@ -20,16 +22,16 @@ export default function Power() {
     setResult('')
     try {
       await api(`/api/power/${action}`, { method: 'POST' })
-      setResult(`${a.label} komutu gönderildi.`)
+      setResult(t('{label} komutu gönderildi.').replace('{label}', a.label))
     } catch (e) {
-      setResult(`Hata: ${e.message}`)
+      setResult(t('Hata: ') + e.message)
     }
     setLoading(null)
   }
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-6">Güç Yönetimi</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-6">{t('Güç Yönetimi')}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {actions.map(({ key, label, icon: Icon, color, desc }) => (
@@ -65,8 +67,7 @@ export default function Power() {
         <div className="flex items-start gap-3">
           <AlertTriangle size={18} className="text-red-400 mt-0.5 shrink-0" />
           <div className="text-sm text-red-300">
-            <strong>Uyarı:</strong> Kapatma ve yeniden başlatma işlemleri sunucuyu kapatacağı için web arayüzü de kapanacaktır.
-            Erişmek için bilgisayarın tekrar açılması gerekecektir.
+            <strong>{t('Uyarı:')}</strong> {t('Kapatma ve yeniden başlatma işlemleri sunucuyu kapatacağı için web arayüzü de kapanacaktır. Erişmek için bilgisayarın tekrar açılması gerekecektir.')}
           </div>
         </div>
       </div>

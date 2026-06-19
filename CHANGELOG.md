@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.3.0] — 2026-06-19
+
+- **Çoklu Dağıtım Desteği**: install.sh artık Arch/Debian/Fedora/openSUSE ve türevlerini otomatik algılar, pacman/apt/dnf/zypper ile kurulum yapar.
+- **i18n / Çoklu Dil Desteği**: Türkçe + İngilizce tam çeviri. Tüm frontend sayfaları `t()` fonksiyonu ile dönüştürüldü. Ayarlar > Genel'den dil seçimi.
+- **Podman + Docker Compose Desteği**: Podman otomatik algılama, docker-compose projelerini listeleme/başlatma/durdurma/log görüntüleme. Konteyner CPU/RAM istatistikleri.
+- **nftables/iptables Firewall**: UFW'ye ek olarak native Linux firewall yönetimi. Tablo/chain listeleme, kural ekleme/silme, flush.
+- **Playbook Motoru**: Ansible benzeri otomasyon sistemi. JSON tabanlı playbook'lar (komut/service/paket/dosya/bekleme/webhook adımları). CRUD + canlı WebSocket çalıştırma. AI asistan üzerinden de yönetilebilir.
+- **AI Agent Araçları**: firewal native, playbook, docker compose için yeni tool'lar eklendi.
+- **install.sh İyileştirmeleri**: `hostname -I` yerine `ip -4 addr` ile taşınabilir IP tespiti. Python/nodejs eksiklerinde otomatik kurulum.
+
+## [1.2.0] — 2026-05-27
+
+- **9 Yeni AI Agent Aracı**: Docker yönetimi, Güvenlik Duvarı (UFW), Hız Testi, Windows/WSL, Güç yönetimi, Güncellemeler, Cron, Ayarlar, Bildirimler — AI asistan artık 25+ aracı kullanabilir.
+- **Windows/WSL**: tools.py'ye windows tool'u eklendi (servisler, processler, diskler, komut çalıştırma).
+- **Firewall Tool**: UFW durumu sorgulama, aç/kapa, kural ekleme/silme.
+- **Hız Testi Tool**: Speedtest başlatma ve sonuç sorgulama.
+- **Güç Tool**: Shutdown/reboot.
+- **Güncelleme Tool**: apt/pacman güncelleme kontrolü ve yükseltme.
+- **Cron Tool**: Cron job listeleme, ekleme, silme.
+- **Ayarlar Tool**: PC Manager config okuma ve güncelleme.
+
+## [1.1.0] — 2026-05-27
+
+- **Sıcaklık İzleme**: GPU (nvidia-smi), CPU sensör sıcaklıkları, sistem yükü. Yeni dashboard olarak `Temperature.jsx`.
+- **Yenilenen Dashboard**: Canlı CPU/RAM geçmişi grafiği, sıcaklık kartları, sistem yükü göstergeleri.
+- **Speedtest**: Internet hız testi (speedtest-cli), canlı ilerleme, geçmiş kaydı. 3 faz: hazırlık/indirme/yükleme.
+- **Güvenlik Duvarı Yönetimi**: UFW durum/kural görüntüleme, aç/kapa/yeniden yükle/sıfırla, kural ekleme/silme.
+- **Router Düzeltmesi**: 26 endpoint'ten 10'una eksik auth eklendi (speedtest, firewall, temperature dahil).
+- **Speedtest Tool**: AI agent için speedtest tool'u eklendi.
+
 ## [1.0.7] — 2026-05-26
 
 - **Windows/WSL Entegrasyonu**: Servisler, processler, diskler, ağ, sistem bilgisi, event log ve komut çalıştırma. Settings'ten aç/kapa.

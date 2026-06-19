@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api, API } from '../api'
+import { useI18n } from '../context/I18nContext'
 import {
   MessageSquare, Send, X, Cpu, Activity, HardDrive, Wifi,
   Server, Terminal, Thermometer, FileText, Package, Clock,
@@ -27,6 +28,7 @@ const TOOL_ICONS = {
 }
 
 function ToolCallDisplay({ name, status, args, result }) {
+  const { t } = useI18n()
   const Icon = TOOL_ICONS[name] || Cog
   const [expanded, setExpanded] = useState(false)
 
@@ -44,7 +46,7 @@ function ToolCallDisplay({ name, status, args, result }) {
         <span className={`font-medium ${status === 'running' ? 'text-cyan-300' : status === 'done' ? 'text-green-300' : 'text-gray-300'}`}>
           {name}
         </span>
-        {status === 'running' && <span className="text-cyan-500 animate-pulse">çalışıyor...</span>}
+        {status === 'running' && <span className="text-cyan-500 animate-pulse">{t('çalışıyor...')}</span>}
         {expanded && (
           <pre className="text-[10px] text-gray-500 ml-auto overflow-x-auto max-w-[200px]">
             {JSON.stringify(args).slice(0, 100)}
@@ -69,6 +71,7 @@ function BotIcon() {
 }
 
 export default function OllamaChat() {
+  const { t } = useI18n()
   const [models, setModels] = useState([])
   const [selectedModel, setSelectedModel] = useState('gemma4:e4b')
   const [messages, setMessages] = useState([])
@@ -92,7 +95,7 @@ export default function OllamaChat() {
       if (data.length > 0 && !data.find(m => m.name === selectedModel)) {
         setSelectedModel(data[0].name)
       }
-    }).catch(() => setOllamaError('Ollama servisine ulasilamadi'))
+    }).catch(() => setOllamaError(t('Ollama servisine ulasilamadi')))
   }, [])
 
   useEffect(() => () => abortRef.current?.abort(), [])
@@ -138,7 +141,7 @@ export default function OllamaChat() {
 
       if (!res.ok) {
         const errText = await res.text()
-        setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${errText.slice(0, 200)}` }])
+        setMessages(prev => [...prev, { role: 'assistant', content: t('Hata: ') + errText.slice(0, 200) }])
         setLoading(false)
         return
       }
@@ -164,7 +167,7 @@ export default function OllamaChat() {
             const parsed = JSON.parse(data)
 
             if (parsed.error) {
-              setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${parsed.error}` }])
+              setMessages(prev => [...prev, { role: 'assistant', content: t('Hata: ') + parsed.error }])
               setLoading(false)
               return
             }
@@ -197,10 +200,10 @@ export default function OllamaChat() {
         }
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: accumulated || '(cevap uretilemedi)' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: accumulated || t('(cevap uretilemedi)') }])
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setMessages(prev => [...prev, { role: 'assistant', content: `Baglanti hatasi: ${e.message.slice(0, 100)}` }])
+        setMessages(prev => [...prev, { role: 'assistant', content: t('Baglanti hatasi: ') + e.message.slice(0, 100) }])
       }
     }
 
@@ -303,7 +306,7 @@ export default function OllamaChat() {
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <Bot size={18} className="text-violet-400" />
-        <h2 className="text-lg sm:text-xl font-semibold">Yapay Zeka Asistan</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">{t('Yapay Zeka Asistan')}</h2>
 
         {models.length > 0 && (
           <select value={selectedModel} onChange={e => setSelectedModel(e.target.value)}
@@ -316,13 +319,13 @@ export default function OllamaChat() {
 
         <button onClick={() => setShowTools(p => !p)}
           className={`p-1.5 rounded-lg transition-colors text-xs ${showTools ? 'bg-violet-900/30 text-violet-400' : 'bg-gray-800 text-gray-500'}`}
-          title="Tool cagrilarini goster/gizle">
+          title={t("Tool cagrilarini goster/gizle")}>
           <Cog size={14} />
         </button>
 
         <button onClick={clearChat}
           className="p-1.5 rounded-lg bg-gray-800 text-gray-500 hover:text-red-400 transition-colors"
-          title="Sohbeti temizle">
+          title={t("Sohbeti temizle")}>
           <Trash2 size={14} />
         </button>
       </div>
@@ -330,10 +333,10 @@ export default function OllamaChat() {
       {ollamaError && (
         <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 mb-3">
           <div className="flex items-center gap-2 text-red-400 text-sm font-medium mb-1">
-            <AlertTriangle size={16} /> Ollama Baglanti Hatasi
+            <AlertTriangle size={16} /> {t('Ollama Baglanti Hatasi')}
           </div>
           <p className="text-red-300 text-xs">{ollamaError}</p>
-          <p className="text-gray-400 text-xs mt-2">Terminalde <code className="bg-gray-800 px-1 rounded">ollama serve</code> komutunu calistirip tekrar dene.</p>
+          <p className="text-gray-400 text-xs mt-2">{t('Terminalde')} <code className="bg-gray-800 px-1 rounded">ollama serve</code> {t('komutunu calistirip tekrar dene.')}</p>
         </div>
       )}
 
@@ -342,15 +345,15 @@ export default function OllamaChat() {
           {messages.length === 0 && !streamingContent && (
             <div className="text-center py-16 text-gray-500">
               <BotIcon />
-              <div className="mt-3 text-sm">PC Manager yapay zeka asistanina hos geldin!</div>
+              <div className="mt-3 text-sm">{t('PC Manager yapay zeka asistanina hos geldin!')}</div>
               <div className="text-xs text-gray-600 mt-2 max-w-md mx-auto space-y-1">
-                <p>Ornek sorular:</p>
-                <p className="text-gray-500">"Sistem durumu nasil?"</p>
-                <p className="text-gray-500">"En cok RAM harcayan 5 process hangisi?"</p>
-                <p className="text-gray-500">"Diskleri kontrol et, temizlik oner"</p>
-                <p className="text-gray-500">"Servislerde sorun var mi?"</p>
-                <p className="text-gray-500">"Son depremleri goster"</p>
-                <p className="text-gray-500">"Biraz once ne kadar ag trafigim oldu?"</p>
+                <p>{t('Ornek sorular:')}</p>
+                <p className="text-gray-500">{t('"Sistem durumu nasil?"')}</p>
+                <p className="text-gray-500">{t('"En cok RAM harcayan 5 process hangisi?"')}</p>
+                <p className="text-gray-500">{t('"Diskleri kontrol et, temizlik oner"')}</p>
+                <p className="text-gray-500">{t('"Servislerde sorun var mi?"')}</p>
+                <p className="text-gray-500">{t('"Son depremleri goster"')}</p>
+                <p className="text-gray-500">{t('"Biraz once ne kadar ag trafigim oldu?"')}</p>
               </div>
             </div>
           )}
@@ -364,8 +367,8 @@ export default function OllamaChat() {
                     : 'bg-gray-800 text-gray-200 rounded-bl-md'
                 }`}>
                   <div className="text-xs opacity-60 mb-1 flex items-center gap-1">
-                    {m.role === 'user' ? 'Sen' : <Bot size={12} />}
-                    {m.role !== 'user' && ' Asistan'}
+                    {m.role === 'user' ? t('Sen') : <Bot size={12} />}
+                    {m.role !== 'user' && t(' Asistan')}
                   </div>
                   {formatText(m.content)}
                 </div>
@@ -413,7 +416,7 @@ export default function OllamaChat() {
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
               }}
-              placeholder="Mesaj yaz... (orn: sistem durumu, depremler, processler...)"
+              placeholder={t('Mesaj yaz... (orn: sistem durumu, depremler, processler...)')}
               disabled={loading || !!ollamaError}
               className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-700 disabled:opacity-50"
             />

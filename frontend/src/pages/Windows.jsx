@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Monitor, Cpu, HardDrive, Wifi, Info, Terminal, ScrollText, Server, Activity, RefreshCw, Play, Square } from 'lucide-react'
 
-const TABS = [
-  { id: 'services', label: 'Servisler', icon: Server },
-  { id: 'processes', label: 'Processler', icon: Cpu },
-  { id: 'disks', label: 'Diskler', icon: HardDrive },
-  { id: 'network', label: 'Ağ', icon: Wifi },
-  { id: 'system', label: 'Sistem', icon: Info },
-  { id: 'events', label: 'Event Log', icon: ScrollText },
-  { id: 'command', label: 'Komut', icon: Terminal },
-]
-
 export default function Windows() {
+  const { t } = useI18n()
+  const TABS = [
+    { id: 'services', label: t('Servisler'), icon: Server },
+    { id: 'processes', label: t('Processler'), icon: Cpu },
+    { id: 'disks', label: t('Diskler'), icon: HardDrive },
+    { id: 'network', label: t('Ağ'), icon: Wifi },
+    { id: 'system', label: t('Sistem'), icon: Info },
+    { id: 'events', label: t('Event Log'), icon: ScrollText },
+    { id: 'command', label: t('Komut'), icon: Terminal },
+  ]
   const [tab, setTab] = useState('services')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -32,7 +33,7 @@ export default function Windows() {
       const result = await api(`/api/windows/${endpoint}`)
       setData(result)
     } catch (e) {
-      setError(e.message || 'Veri alınamadı')
+      setError(e.message || t('Veri alınamadı'))
     }
     setLoading(false)
   }
@@ -60,9 +61,9 @@ export default function Windows() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: cmdInput, shell: cmdShell }),
       })
-      setCmdOutput(r.stdout || r.stderr || '(boş çıktı)')
+      setCmdOutput(r.stdout || r.stderr || t('(boş çıktı)'))
     } catch (e) {
-      setCmdOutput('Hata: ' + e.message)
+      setCmdOutput(t('Hata: ') + e.message)
     }
     setLoading(false)
   }
@@ -73,8 +74,8 @@ export default function Windows() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <HardDrive size={48} style={{color: 'var(--text-muted)'}} />
-        <p style={{color: 'var(--text-secondary)'}} className="text-sm">WSL algılanmadı — /mnt/c/Windows bulunamadı</p>
-        <p style={{color: 'var(--text-muted)'}} className="text-xs">Bu özellik yalnızca WSL üzerinde çalışır</p>
+        <p style={{color: 'var(--text-secondary)'}} className="text-sm">{t('WSL algılanmadı — /mnt/c/Windows bulunamadı')}</p>
+        <p style={{color: 'var(--text-muted)'}} className="text-xs">{t('Bu özellik yalnızca WSL üzerinde çalışır')}</p>
       </div>
     )
   }
@@ -83,8 +84,8 @@ export default function Windows() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <Monitor size={48} style={{color: 'var(--text-muted)'}} />
-        <p style={{color: 'var(--text-secondary)'}} className="text-sm">Windows entegrasyonu devre dışı</p>
-        <p style={{color: 'var(--text-muted)'}} className="text-xs">Ayarlar → Windows sekmesinden aktifleştirebilirsin</p>
+        <p style={{color: 'var(--text-secondary)'}} className="text-sm">{t('Windows entegrasyonu devre dışı')}</p>
+        <p style={{color: 'var(--text-muted)'}} className="text-xs">{t('Ayarlar → Windows sekmesinden aktifleştirebilirsin')}</p>
       </div>
     )
   }
@@ -101,7 +102,7 @@ export default function Windows() {
             <span className="text-xs" style={{color: 'var(--text-muted)'}}>{s.state}</span>
           </div>
         ))}
-        {svcs.length === 0 && <p className="text-xs" style={{color: 'var(--text-muted)'}}>Servis bulunamadı</p>}
+        {svcs.length === 0 && <p className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Servis bulunamadı')}</p>}
       </div>
     )
   }
@@ -114,9 +115,9 @@ export default function Windows() {
         <table className="w-full text-sm">
           <thead>
             <tr style={{color: 'var(--text-muted)'}} className="text-xs uppercase tracking-wider">
-              <th className="text-left py-2 px-2">İsim</th>
+              <th className="text-left py-2 px-2">{t('İsim')}</th>
               <th className="text-right py-2 px-2">PID</th>
-              <th className="text-right py-2 px-2">Bellek (KB)</th>
+              <th className="text-right py-2 px-2">{t('Bellek (KB)')}</th>
             </tr>
           </thead>
           <tbody>
@@ -129,7 +130,7 @@ export default function Windows() {
             ))}
           </tbody>
         </table>
-        {procs.length === 0 && <p className="text-xs py-4" style={{color: 'var(--text-muted)'}}>Process bulunamadı</p>}
+        {procs.length === 0 && <p className="text-xs py-4" style={{color: 'var(--text-muted)'}}>{t('Process bulunamadı')}</p>}
       </div>
     )
   }
@@ -156,11 +157,11 @@ export default function Windows() {
               <div className="w-full h-2 rounded-full overflow-hidden" style={{background: 'var(--border)'}}>
                 <div className="h-full rounded-full transition-all" style={{width: `${Math.min(pct, 100)}%`, background: 'var(--accent)'}} />
               </div>
-              <div className="text-xs mt-1 text-right" style={{color: 'var(--text-muted)'}}>{pct.toFixed(1)}% dolu</div>
+              <div className="text-xs mt-1 text-right" style={{color: 'var(--text-muted)'}}>{pct.toFixed(1)}% {t('dolu')}</div>
             </div>
           )
         })}
-        {disks.length === 0 && <p className="text-xs" style={{color: 'var(--text-muted)'}}>Disk bulunamadı</p>}
+        {disks.length === 0 && <p className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Disk bulunamadı')}</p>}
       </div>
     )
   }
@@ -223,7 +224,7 @@ export default function Windows() {
               <p style={{color: 'var(--text)'}} className="line-clamp-2">{e.Message}</p>
             </div>
           ))}
-          {events.length === 0 && <p className="text-xs" style={{color: 'var(--text-muted)'}}>Olay bulunamadı</p>}
+          {events.length === 0 && <p className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Olay bulunamadı')}</p>}
         </div>
       </div>
     )
@@ -241,13 +242,13 @@ export default function Windows() {
         <input type="text" value={cmdInput}
           onChange={e => setCmdInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && runCommand()}
-          placeholder="Windows komutu girin..."
+          placeholder={t('Windows komutu girin...')}
           className="flex-1 text-sm rounded-lg px-3 py-2"
           style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)'}} />
         <button onClick={runCommand} disabled={loading || !cmdInput.trim()}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
           style={{background: 'var(--accent)', opacity: loading || !cmdInput.trim() ? 0.5 : 1, color: '#fff'}}>
-          <Play size={14} /> Çalıştır
+          <Play size={14} /> {t('Çalıştır')}
         </button>
       </div>
       {cmdOutput && (
@@ -262,11 +263,11 @@ export default function Windows() {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center gap-3">
         <Monitor size={20} style={{color: 'var(--accent)'}} />
-        <h2 style={{color: 'var(--text)'}} className="text-xl font-semibold tracking-tight">Windows Yönetimi</h2>
+        <h2 style={{color: 'var(--text)'}} className="text-xl font-semibold tracking-tight">{t('Windows Yönetimi')}</h2>
         <span className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full"
           style={{background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)'}}>
           <span className="glow-dot green" />
-          WSL Bağlı
+          {t('WSL Bağlı')}
         </span>
       </div>
 
@@ -314,9 +315,9 @@ export default function Windows() {
 
       {data && tab !== 'command' && tab !== 'events' && (
         <div className="flex justify-between text-xs pt-2" style={{color: 'var(--text-muted)'}}>
-          <span>{data.count ?? data.services?.length ?? data.processes?.length ?? (data.disks?.length ?? 0)} kayıt</span>
+          <span>{t('{n} kayıt').replace('{n}', data.count ?? data.services?.length ?? data.processes?.length ?? (data.disks?.length ?? 0))}</span>
           <button onClick={() => fetchData(tab)} className="flex items-center gap-1 hover:opacity-70">
-            <RefreshCw size={12} /> Yenile
+            <RefreshCw size={12} /> {t('Yenile')}
           </button>
         </div>
       )}

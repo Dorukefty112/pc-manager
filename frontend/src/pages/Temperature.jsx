@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
 import { useWebSocket } from '../useWebSocket'
+import { useI18n } from '../context/I18nContext'
 import { Thermometer, Cpu, Monitor, Activity, Gauge, Timer, HardDrive, MemoryStick, RefreshCw } from 'lucide-react'
 
 function fmtUptime(s) {
@@ -19,6 +20,7 @@ function fmtBytes(b) {
 }
 
 export default function Temperature() {
+  const { t } = useI18n()
   const [stats, setStats] = useState(null)
   const [tempData, setTempData] = useState(null)
   const [history, setHistory] = useState({ cpu: [], memory: [] })
@@ -127,9 +129,9 @@ export default function Temperature() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Activity size={24} style={{ color: 'var(--accent)' }} />
-          <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>Sistem Durumu</h2>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>{t("Sistem Durumu")}</h2>
         </div>
-        <button onClick={fetchAll} className="btn-ghost p-2 rounded-lg" style={{ color: 'var(--text-muted)' }} title="Yenile">
+        <button onClick={fetchAll} className="btn-ghost p-2 rounded-lg" style={{ color: 'var(--text-muted)' }} title={t("Yenile")}>
           <RefreshCw size={16} />
         </button>
       </div>
@@ -155,7 +157,7 @@ export default function Temperature() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kullanim</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t("Kullanim")}</div>
                       <div className="flex items-center gap-2">
                         <Activity size={14} style={{ color: gpu.util_pct > 80 ? '#ef4444' : '#a78bfa' }} />
                         <span className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text)' }}>{gpu.util_pct}%</span>
@@ -163,7 +165,7 @@ export default function Temperature() {
                       <Bar pct={gpu.util_pct} color={gpu.util_pct > 80 ? '#ef4444' : '#22d3ee'} />
                     </div>
                     <div>
-                      <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Guc</div>
+                      <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t("Guc")}</div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text)' }}>{gpu.power_w}W</span>
                       </div>
@@ -171,7 +173,7 @@ export default function Temperature() {
                   </div>
                 </>
               ) : (
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Veri alinamadi</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Veri alinamadi")}</div>
               )}
             </div>
 
@@ -191,15 +193,15 @@ export default function Temperature() {
                   </div>
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     <div className="text-center">
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Kullanim</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Kullanim")}</div>
                       <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text)' }}>{Math.round(cpu.percent)}%</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Cekirdek</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Cekirdek")}</div>
                       <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text)' }}>{cpuWin?.cores || cpu?.count}/{cpuWin?.threads || cpu?.count}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Frekans</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Frekans")}</div>
                       <div className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text)' }}>
                         {cpu.freq?.current > 0 ? `${(cpu.freq.current / 1000).toFixed(1)} GHz` : '-'}
                       </div>
@@ -214,7 +216,7 @@ export default function Temperature() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="card p-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>CPU - RAM Geçmişi (60s)</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t("CPU - RAM Geçmişi (60s)")}</span>
                 <span className="flex gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
                   <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#22d3ee' }} /> CPU</span>
                   <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#a78bfa' }} /> RAM</span>
@@ -224,7 +226,7 @@ export default function Temperature() {
             </div>
 
             <div className="card p-5">
-              <div className="text-sm font-medium mb-4" style={{ color: 'var(--text-secondary)' }}>Canli Kullanim</div>
+              <div className="text-sm font-medium mb-4" style={{ color: 'var(--text-secondary)' }}>{t("Canli Kullanim")}</div>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
@@ -255,7 +257,7 @@ export default function Temperature() {
             <div className="card p-4 flex items-center gap-3">
               <Timer size={18} style={{ color: '#fb923c' }} />
               <div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Acilma Suresi</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Acilma Suresi")}</div>
                 <div className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text)' }}>
                   {stats?.uptime ? fmtUptime(Date.now() / 1000 - stats.uptime) : '-'}
                 </div>
@@ -264,7 +266,7 @@ export default function Temperature() {
             <div className="card p-4 flex items-center gap-3">
               <MemoryStick size={18} style={{ color: '#a78bfa' }} />
               <div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Bellek</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Bellek")}</div>
                 <div className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text)' }}>
                   {sys?.memory ? `${sys.memory.used_mb}/${sys.memory.total_mb} MB` : mem ? `${fmtBytes(mem.used)}/${fmtBytes(mem.total)}` : '-'}
                 </div>
@@ -282,7 +284,7 @@ export default function Temperature() {
             <div className="card p-4 flex items-center gap-3">
               <Gauge size={18} style={{ color: '#22d3ee' }} />
               <div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Sistem Yuklemesi</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Sistem Yuklemesi")}</div>
                 <div className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text)' }}>
                   {sys ? `${sys.load[0]}/${sys.load[1]}/${sys.load[2]}` : '-'}
                 </div>
@@ -293,7 +295,7 @@ export default function Temperature() {
           <div className="card p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{stats?.os} · {stats?.hostname}</span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Son: {new Date().toLocaleTimeString('tr-TR')}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t("Son:")} {new Date().toLocaleTimeString('tr-TR')}</span>
             </div>
           </div>
         </>

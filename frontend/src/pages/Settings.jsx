@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import Toggle from '../components/Toggle'
 import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, History, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink } from 'lucide-react'
 
-const TABS = [
-  { id: 'general', label: 'Genel', icon: Settings },
-  { id: 'notifications', label: 'Bildirimler', icon: Bell },
-  { id: 'ollama', label: 'Ollama', icon: Cpu },
-  { id: 'emergency', label: 'Acil Durum', icon: AlertTriangle },
-  { id: 'email', label: 'E-posta', icon: Mail },
-  { id: 'webhook', label: 'Webhook', icon: Webhook },
-  { id: 'telegram', label: 'Telegram', icon: Send },
-  { id: 'debug', label: 'Debug', icon: Bug },
-  { id: 'windows', label: 'Windows', icon: Monitor },
-]
-
 export default function SettingsPage() {
+  const { t } = useI18n()
+  const TABS = [
+    { id: 'general', label: t('Genel'), icon: Settings },
+    { id: 'notifications', label: t('Bildirimler'), icon: Bell },
+    { id: 'ollama', label: t('Ollama'), icon: Cpu },
+    { id: 'emergency', label: t('Acil Durum'), icon: AlertTriangle },
+    { id: 'email', label: t('E-posta'), icon: Mail },
+    { id: 'webhook', label: t('Webhook'), icon: Webhook },
+    { id: 'telegram', label: t('Telegram'), icon: Send },
+    { id: 'debug', label: t('Debug'), icon: Bug },
+    { id: 'windows', label: t('Windows'), icon: Monitor },
+  ]
   const [config, setConfig] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -60,18 +61,18 @@ export default function SettingsPage() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e) {
-      alert('Kaydedilemedi: ' + e.message)
+      alert(t('Kaydedilemedi: ') + e.message)
     }
     setSaving(false)
   }
 
-  if (!config) return <div className="text-center py-12 text-gray-500">Yukleniyor...</div>
+  if (!config) return <div className="text-center py-12 text-gray-500">{t('Yukleniyor...')}</div>
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center gap-2 mb-4">
         <Settings size={20} className="text-cyan-400" />
-        <h2 className="text-xl font-semibold">Ayarlar</h2>
+        <h2 className="text-xl font-semibold">{t('Ayarlar')}</h2>
       </div>
 
       <div className="flex gap-1 mb-2 border-b border-gray-800 pb-2 overflow-x-auto">
@@ -91,15 +92,15 @@ export default function SettingsPage() {
         <button onClick={save} disabled={saving}
           className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 rounded-lg text-sm transition-colors min-w-[120px] justify-center">
           {saving ? <Loader size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
-          {saved ? 'Kaydedildi' : 'Kaydet'}
+          {saved ? t('Kaydedildi') : t('Kaydet')}
         </button>
       </div>
 
       {activeTab === 'general' && (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Genel Ayarlar</h3>
+          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Genel Ayarlar')}</h3>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Dil / Language</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('Dil / Language')}</label>
             <select value={config.general?.language || 'tr'}
               onChange={e => update('general', 'language', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
@@ -112,13 +113,13 @@ export default function SettingsPage() {
 
       {activeTab === 'notifications' && (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Uyari Esik Degerleri</h3>
+          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Uyari Esik Degerleri')}</h3>
           {[
-            { key: 'cpu_threshold', label: 'CPU Kullanim Uyari (%)', min: 50, max: 100 },
-            { key: 'memory_threshold', label: 'RAM Kullanim Uyari (%)', min: 50, max: 100 },
-            { key: 'disk_threshold', label: 'Disk Doluluk Uyari (%)', min: 50, max: 100 },
-            { key: 'earthquake_magnitude', label: 'Deprem Buyukluk Esigi', min: 2, max: 8, step: 0.5 },
-            { key: 'earthquake_distance', label: 'Deprem Mesafe Esigi (km)', min: 10, max: 500, step: 10 },
+            { key: 'cpu_threshold', label: t('CPU Kullanim Uyari (%)'), min: 50, max: 100 },
+            { key: 'memory_threshold', label: t('RAM Kullanim Uyari (%)'), min: 50, max: 100 },
+            { key: 'disk_threshold', label: t('Disk Doluluk Uyari (%)'), min: 50, max: 100 },
+            { key: 'earthquake_magnitude', label: t('Deprem Buyukluk Esigi'), min: 2, max: 8, step: 0.5 },
+            { key: 'earthquake_distance', label: t('Deprem Mesafe Esigi (km)'), min: 10, max: 500, step: 10 },
           ].map(item => (
             <div key={item.key}>
               <div className="flex justify-between text-sm mb-1">
@@ -135,16 +136,16 @@ export default function SettingsPage() {
             <input type="checkbox" id="sound_enabled" checked={config.notifications?.sound_enabled ?? true}
               onChange={e => update('notifications', 'sound_enabled', e.target.checked)}
               className="accent-cyan-500" />
-            <label htmlFor="sound_enabled" className="text-sm text-gray-400">Sesli Bildirim</label>
+            <label htmlFor="sound_enabled" className="text-sm text-gray-400">{t('Sesli Bildirim')}</label>
           </div>
 
           <div className="pt-3 border-t border-gray-800">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Bildirim Kanallari</h4>
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">{t('Bildirim Kanallari')}</h4>
             <div className="space-y-2">
               {[
-                { key: 'telegram', label: 'Telegram' },
-                { key: 'email', label: 'E-posta' },
-                { key: 'webhook', label: 'Webhook' },
+                { key: 'telegram', label: t('Telegram') },
+                { key: 'email', label: t('E-posta') },
+                { key: 'webhook', label: t('Webhook') },
               ].map(ch => (
                 <div key={ch.key} className="flex items-center justify-between">
                   <span className="text-sm text-gray-300">{ch.label}</span>
@@ -160,18 +161,18 @@ export default function SettingsPage() {
 
           <div className="pt-3 border-t border-gray-800">
             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
-              <span>Alarm Gecmisi</span>
+              <span>{t('Alarm Gecmisi')}</span>
               {alerts.length > 0 && (
                 <button onClick={async () => {
                   await api('/api/notifications/history', { method: 'DELETE' })
                   setAlerts([])
                 }} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
-                  <Trash2 size={12} /> Temizle
+                  <Trash2 size={12} /> {t('Temizle')}
                 </button>
               )}
             </h4>
             {alerts.length === 0 && (
-              <p className="text-xs text-gray-600">Henuz alarm yok. Esik degerleri asildiginda burada gorunecek.</p>
+              <p className="text-xs text-gray-600">{t('Henuz alarm yok. Esik degerleri asildiginda burada gorunecek.')}</p>
             )}
             <div className="space-y-1.5 max-h-60 overflow-y-auto">
               {alerts.slice(0, 50).map((a, i) => (
@@ -188,7 +189,7 @@ export default function SettingsPage() {
               ))}
             </div>
             {alerts.length > 50 && (
-              <p className="text-xs text-gray-600 mt-1">+{alerts.length - 50} daha eski kayit</p>
+              <p className="text-xs text-gray-600 mt-1">{t('+{n} daha eski kayit').replace('{n}', alerts.length - 50)}</p>
             )}
           </div>
         </div>
@@ -196,9 +197,9 @@ export default function SettingsPage() {
 
       {activeTab === 'ollama' && (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Yapay Zeka Asistan</h3>
+          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Yapay Zeka Asistan')}</h3>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Model</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('Model')}</label>
             <select value={config.ollama?.model || 'gemma4:e4b'}
               onChange={e => update('ollama', 'model', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
@@ -207,7 +208,7 @@ export default function SettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Maksimum Tool Turu</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('Maksimum Tool Turu')}</label>
             <input type="number" min={1} max={10}
               value={config.ollama?.max_tool_rounds ?? 5}
               onChange={e => update('ollama', 'max_tool_rounds', parseInt(e.target.value) || 1)}
@@ -221,12 +222,10 @@ export default function SettingsPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
             <div className="flex items-center gap-2 text-red-400 mb-2">
               <AlertTriangle size={18} />
-              <h3 className="text-sm font-medium uppercase tracking-wider">Acil Durum Modu</h3>
+              <h3 className="text-sm font-medium uppercase tracking-wider">{t('Acil Durum Modu')}</h3>
             </div>
             <p className="text-xs text-gray-500">
-              Buyuk bir deprem aninda asistan hayatta kalma moduna gecer. KRITIK seviye deprem algilandiginda
-              otomatik olarak aktiflesir. Bu modda asistan sadece kritik bilgi verir: ilk yardim, enkaz,
-              su/yiyecek yonetimi, guvenli toplanma alanlari, iletisim.
+              {t('Buyuk bir deprem aninda asistan hayatta kalma moduna gecer. KRITIK seviye deprem algilandiginda otomatik olarak aktiflesir. Bu modda asistan sadece kritik bilgi verir: ilk yardim, enkaz, su/yiyecek yonetimi, guvenli toplanma alanlari, iletisim.')}
             </p>
             <div className="flex flex-col items-center gap-3 pt-2">
               <div className={`flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl border-2 transition-all ${
@@ -237,10 +236,10 @@ export default function SettingsPage() {
                 <Shield size={24} className={emergency ? 'text-red-400' : 'text-gray-500'} />
                 <div className="flex-1">
                   <p className={`text-sm font-semibold ${emergency ? 'text-red-300' : 'text-gray-300'}`}>
-                    {emergency ? 'Acil Durum Modu AKTIF' : 'Acil Durum Modu'}
+                    {emergency ? t('Acil Durum Modu AKTIF') : t('Acil Durum Modu')}
                   </p>
                   <p className={`text-xs ${emergency ? 'text-red-400/70' : 'text-gray-500'}`}>
-                    {emergency ? 'Asistan hayatta kalma modunda' : 'Su an devre disi'}
+                    {emergency ? t('Asistan hayatta kalma modunda') : t('Su an devre disi')}
                   </p>
                 </div>
                 <button onClick={toggleEmergency}
@@ -249,14 +248,13 @@ export default function SettingsPage() {
                       ? 'bg-red-700 hover:bg-red-600 text-white'
                       : 'bg-cyan-700 hover:bg-cyan-600 text-white'
                   }`}>
-                  {emergency ? 'Devre Disi Birak' : 'Aktiflestir'}
+                  {emergency ? t('Devre Disi Birak') : t('Aktiflestir')}
                 </button>
               </div>
             </div>
             <div className="pt-2 border-t border-gray-800">
               <p className="text-xs text-gray-400 leading-relaxed">
-                <strong className="text-gray-300">Otomatik aktivasyon:</strong> KRITIK risk seviyesindeki bir deprem
-                (&ge;5.0, 200km icin) algilandiginda Acil Durum Modu otomatik olarak devreye girer.
+                <strong className="text-gray-300">{t('Otomatik aktivasyon:')}</strong> {t('KRITIK risk seviyesindeki bir deprem (&ge;5.0, 200km icin) algilandiginda Acil Durum Modu otomatik olarak devreye girer.')}
               </p>
             </div>
           </div>
@@ -268,26 +266,26 @@ export default function SettingsPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
             <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
               <Mail size={14} className="text-cyan-400" />
-              E-posta (SMTP)
+              {t('E-posta (SMTP)')}
             </h3>
             <p className="text-xs text-gray-500">
-              CPU/RAM/Disk esik degerleri asildiginda e-posta ile bildirim gonder.
+              {t('CPU/RAM/Disk esik degerleri asildiginda e-posta ile bildirim gonder.')}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">Aktif</span>
+              <span className="text-sm text-gray-300">{t('Aktif')}</span>
               <Toggle checked={config.email?.enabled}
                 onChange={() => update('email', 'enabled', !config.email?.enabled)} />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">SMTP Sunucu</label>
-              <input type="text" placeholder="smtp.gmail.com"
+            <label className="block text-sm text-gray-400 mb-1">{t('SMTP Sunucu')}</label>
+            <input type="text" placeholder={t('smtp.gmail.com')}
                 value={config.email?.smtp_server || ''}
                 onChange={e => update('email', 'smtp_server', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Port</label>
-              <input type="number" placeholder="587"
+            <label className="block text-sm text-gray-400 mb-1">{t('Port')}</label>
+            <input type="number" placeholder="587"
                 value={config.email?.smtp_port ?? 587}
                 onChange={e => update('email', 'smtp_port', parseInt(e.target.value) || 587)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
@@ -296,31 +294,31 @@ export default function SettingsPage() {
               <input type="checkbox" id="use_tls" checked={config.email?.use_tls ?? true}
                 onChange={e => update('email', 'use_tls', e.target.checked)}
                 className="accent-cyan-500" />
-              <label htmlFor="use_tls" className="text-sm text-gray-400">TLS Kullan</label>
+              <label htmlFor="use_tls" className="text-sm text-gray-400">{t('TLS Kullan')}</label>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Kullanici Adi</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('Kullanici Adi')}</label>
               <input type="text" placeholder="ornek@gmail.com"
                 value={config.email?.smtp_user || ''}
                 onChange={e => update('email', 'smtp_user', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Sifre</label>
-              <input type="password" placeholder="App sifresi"
+              <label className="block text-sm text-gray-400 mb-1">{t('Sifre')}</label>
+              <input type="password" placeholder={t('App sifresi')}
                 value={config.email?.smtp_password || ''}
                 onChange={e => update('email', 'smtp_password', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Gonderen Adres</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('Gonderen Adres')}</label>
               <input type="email" placeholder="ornek@gmail.com"
                 value={config.email?.from_addr || ''}
                 onChange={e => update('email', 'from_addr', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Alici Adres</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('Alici Adres')}</label>
               <input type="email" placeholder="ornek@gmail.com"
                 value={config.email?.to_addr || ''}
                 onChange={e => update('email', 'to_addr', e.target.value)}
@@ -335,19 +333,19 @@ export default function SettingsPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
             <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
               <Webhook size={14} className="text-cyan-400" />
-              Webhook
+              {t('Webhook')}
             </h3>
             <p className="text-xs text-gray-500">
-              Discord, Slack, Teams gibi servislere bildirim gonder. Webhook URL'sini ilgili servisten al.
+              {t('Discord, Slack, Teams gibi servislere bildirim gonder. Webhook URL\'sini ilgili servisten al.')}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">Aktif</span>
+              <span className="text-sm text-gray-300">{t('Aktif')}</span>
               <Toggle checked={config.webhook?.enabled}
                 onChange={() => update('webhook', 'enabled', !config.webhook?.enabled)} />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Webhook URL</label>
-              <input type="url" placeholder="https://discord.com/api/webhooks/..."
+              <label className="block text-sm text-gray-400 mb-1">{t('Webhook URL')}</label>
+              <input type="url" placeholder={t('https://discord.com/api/webhooks/...')}
                 value={config.webhook?.url || ''}
                 onChange={e => update('webhook', 'url', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
@@ -361,22 +359,20 @@ export default function SettingsPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
             <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
               <Send size={14} className="text-cyan-400" />
-              Telegram Bildirimleri
+              {t('Telegram Bildirimleri')}
             </h3>
             <p className="text-xs text-gray-500">
-              KRITIK ve YUKSEK seviye depremlerde telefona aninda bildirim gelmesi icin
-              Telegram bot bilgilerini gir. Bot'u <code className="text-cyan-300">@BotFather</code>'dan olustur,
-              mesaj at, sonra <code className="text-cyan-300">/getUpdates</code> ile Chat ID'ni bul.
+              {t('KRITIK ve YUKSEK seviye depremlerde telefona aninda bildirim gelmesi icin Telegram bot bilgilerini gir.')} {t('Bot\'u')} <code className="text-cyan-300">@BotFather</code>{t('\'dan olustur, mesaj at, sonra')} <code className="text-cyan-300">/getUpdates</code> {t('ile Chat ID\'ni bul.')}
             </p>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Bot Token</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('Bot Token')}</label>
               <input type="password" placeholder="123456:ABC-DEF1234..."
                 value={config.telegram?.bot_token || ''}
                 onChange={e => update('telegram', 'bot_token', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Chat ID</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('Chat ID')}</label>
               <input type="text" placeholder="123456789"
                 value={config.telegram?.chat_id || ''}
                 onChange={e => update('telegram', 'chat_id', e.target.value)}
@@ -386,18 +382,18 @@ export default function SettingsPage() {
               <button onClick={save}
                 className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg text-sm transition-colors">
                 {saving ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
-                Kaydet
+                {t('Kaydet')}
               </button>
               <button onClick={async () => {
                 await save()
                 try {
                   const r = await api('/api/telegram/test', {method: 'POST'})
                   alert(r.message)
-                } catch(e) { alert('Hata: ' + e.message) }
+                } catch(e) { alert(t('Hata: ') + e.message) }
               }}
                 className="flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
                 <Send size={14} />
-                Test Mesaji Gonder
+                {t('Test Mesaji Gonder')}
               </button>
             </div>
           </div>
@@ -407,11 +403,11 @@ export default function SettingsPage() {
       {activeTab === 'debug' && (
         <div className="space-y-4">
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Debug Modu</h3>
+            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Debug Modu')}</h3>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-300">Debug Modu</p>
-                <p className="text-xs text-gray-500">Acil kodu ayiklama araclari ve debug agent</p>
+                <p className="text-sm text-gray-300">{t('Debug Modu')}</p>
+                <p className="text-xs text-gray-500">{t('Acil kodu ayiklama araclari ve debug agent')}</p>
               </div>
               <Toggle checked={config.debug?.enabled}
                 onChange={() => update('debug', 'enabled', !config.debug?.enabled)} />
@@ -419,7 +415,7 @@ export default function SettingsPage() {
             {config.debug?.enabled && (
               <>
                 <div className="flex items-center justify-between pt-2 border-t border-gray-800">
-                  <span className="text-sm text-gray-400">API Cagrilarini Logla</span>
+                  <span className="text-sm text-gray-400">{t('API Cagrilarini Logla')}</span>
                   <input type="checkbox" checked={config.debug?.log_api_calls ?? true}
                     onChange={e => update('debug', 'log_api_calls', e.target.checked)}
                     className="accent-cyan-500" />
@@ -428,7 +424,7 @@ export default function SettingsPage() {
                   <a href="/debug"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-cyan-300 transition-colors">
                     <Bug size={14} />
-                    Debug Paneline Git
+                    {t('Debug Paneline Git')}
                   </a>
                 </div>
               </>
@@ -442,17 +438,15 @@ export default function SettingsPage() {
           <div className="card p-4 space-y-4">
             <h3 className="text-sm font-medium uppercase tracking-wider flex items-center gap-2" style={{color: 'var(--text-secondary)'}}>
               <Monitor size={14} style={{color: 'var(--accent)'}} />
-              Windows Entegrasyonu
+              {t('Windows Entegrasyonu')}
             </h3>
             <p className="text-xs" style={{color: 'var(--text-muted)'}}>
-              WSL üzerinden Windows sistem yönetimi. Etkinleştirildiğinde Windows servislerini,
-              processlerini, disklerini, ağ bilgilerini ve event log'larını PC Manager üzerinden
-              yönetebilirsin.
+              {t('WSL üzerinden Windows sistem yönetimi. Etkinleştirildiğinde Windows servislerini, processlerini, disklerini, ağ bilgilerini ve event log\'larını PC Manager üzerinden yönetebilirsin.')}
             </p>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium" style={{color: 'var(--text)'}}>Windows Entegrasyonu</p>
-                <p className="text-xs" style={{color: 'var(--text-muted)'}}>Ana etkinleştirme</p>
+                <p className="text-sm font-medium" style={{color: 'var(--text)'}}>{t('Windows Entegrasyonu')}</p>
+                <p className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Ana etkinleştirme')}</p>
               </div>
               <Toggle checked={config.windows?.enabled || false}
                 onChange={() => update('windows', 'enabled', !config.windows?.enabled)} />
@@ -460,14 +454,14 @@ export default function SettingsPage() {
             {config.windows?.enabled && (
               <>
                 <div className="border-t pt-4 space-y-3" style={{borderColor: 'var(--border)'}}>
-                  <p className="text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-muted)'}}>Alt Özellikler</p>
+                  <p className="text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-muted)'}}>{t('Alt Özellikler')}</p>
                   {[
-                    { key: 'services', label: 'Servis Yönetimi', icon: Server },
-                    { key: 'processes', label: 'Process Listesi', icon: Monitor },
-                    { key: 'disk_info', label: 'Disk Bilgisi', icon: HardDrive },
-                    { key: 'network', label: 'Ağ Bilgisi', icon: Wifi },
-                    { key: 'event_log', label: 'Event Log', icon: ScrollText },
-                    { key: 'command_palette', label: 'Komut Çalıştırma', icon: Terminal },
+                    { key: 'services', label: t('Servis Yönetimi'), icon: Server },
+                    { key: 'processes', label: t('Process Listesi'), icon: Monitor },
+                    { key: 'disk_info', label: t('Disk Bilgisi'), icon: HardDrive },
+                    { key: 'network', label: t('Ağ Bilgisi'), icon: Wifi },
+                    { key: 'event_log', label: t('Event Log'), icon: ScrollText },
+                    { key: 'command_palette', label: t('Komut Çalıştırma'), icon: Terminal },
                   ].map(f => (
                     <div key={f.key} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -484,7 +478,7 @@ export default function SettingsPage() {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
                     style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
                     <ExternalLink size={14} />
-                    Windows Yönetim Paneline Git
+                    {t('Windows Yönetim Paneline Git')}
                   </a>
                 </div>
               </>

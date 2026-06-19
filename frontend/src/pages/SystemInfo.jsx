@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Monitor, Cpu, HardDrive, Users, Clock, CircuitBoard } from 'lucide-react'
 
 export default function SystemInfo() {
+  const { t } = useI18n()
   const [info, setInfo] = useState(null)
 
   useEffect(() => {
     api('/api/system/info').then(setInfo).catch(() => {})
   }, [])
 
-  if (!info) return <div className="text-center text-gray-500 mt-20">Yükleniyor...</div>
+  if (!info) return <div className="text-center text-gray-500 mt-20">{t("Yükleniyor...")}</div>
 
   const fmtBytes = (b) => {
     if (!b) return '0'
@@ -20,21 +22,21 @@ export default function SystemInfo() {
 
   const rows = [
     { label: 'Hostname', value: info.hostname, icon: Monitor },
-    { label: 'İşletim Sistemi', value: info.os, icon: Monitor },
+    { label: t('İşletim Sistemi'), value: info.os, icon: Monitor },
     { label: 'Kernel', value: info.kernel, icon: CircuitBoard },
-    { label: 'Mimari', value: info.arch, icon: CircuitBoard },
-    { label: 'Açık Kalma', value: `${info.uptime_days} gün`, icon: Clock },
-    { label: 'Çekirdekler', value: `${info.cpu.physical_cores} fiziksel / ${info.cpu.logical_cores} mantıksal`, icon: Cpu },
-    { label: 'CPU Modeli', value: info.cpu.brand, icon: Cpu },
-    { label: 'Max Frekans', value: info.cpu.max_freq ? `${info.cpu.max_freq.toFixed(0)} MHz` : '-', icon: Cpu },
-    { label: 'Toplam RAM', value: fmtBytes(info.memory.total), icon: HardDrive },
-    { label: 'Swap', value: fmtBytes(info.memory.swap_total), icon: HardDrive },
-    { label: 'Kullanıcılar', value: info.users?.join(', ') || '-', icon: Users },
+    { label: t('Mimari'), value: info.arch, icon: CircuitBoard },
+    { label: t('Açık Kalma'), value: `${info.uptime_days} ${t('gün')}`, icon: Clock },
+    { label: t('Çekirdekler'), value: `${info.cpu.physical_cores} ${t('fiziksel')} / ${info.cpu.logical_cores} ${t('mantıksal')}`, icon: Cpu },
+    { label: t('CPU Modeli'), value: info.cpu.brand, icon: Cpu },
+    { label: t('Max Frekans'), value: info.cpu.max_freq ? `${info.cpu.max_freq.toFixed(0)} MHz` : '-', icon: Cpu },
+    { label: t('Toplam RAM'), value: fmtBytes(info.memory.total), icon: HardDrive },
+    { label: t('Swap'), value: fmtBytes(info.memory.swap_total), icon: HardDrive },
+    { label: t('Kullanıcılar'), value: info.users?.join(', ') || '-', icon: Users },
   ]
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-6">Sistem Bilgileri</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-6">{t("Sistem Bilgileri")}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {rows.map(r => (
@@ -49,7 +51,7 @@ export default function SystemInfo() {
       </div>
 
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-        <h3 className="font-medium mb-4">Disk Bölümleri</h3>
+        <h3 className="font-medium mb-4">{t("Disk Bölümleri")}</h3>
         <div className="space-y-2">
           {info.disks?.filter(Boolean).map((d, i) => (
             <div key={i} className="bg-gray-800 rounded-lg p-3">

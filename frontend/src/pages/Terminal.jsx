@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useI18n } from '../context/I18nContext'
 import { Terminal as TerminalIcon, Maximize, Minimize, Wifi, WifiOff } from 'lucide-react'
 
 function getToken() {
@@ -15,6 +16,7 @@ function createWs(url, handlers) {
 }
 
 export default function Terminal() {
+  const { t } = useI18n()
   const termRef = useRef(null)
   const wsRef = useRef(null)
   const xtermRef = useRef(null)
@@ -50,7 +52,7 @@ export default function Terminal() {
       wsRef.current = null
       if (!mountedRef.current) return
       setConnected(false)
-      if (term) term.writeln('\x1b[33mBaglanti koptu, yeniden baglaniliyor...\x1b[0m')
+      if (term) term.writeln('\x1b[33m' + t('Baglanti koptu, yeniden baglaniliyor...') + '\x1b[0m')
       retryRef.current = setTimeout(connect, 3000)
     }
 
@@ -128,10 +130,10 @@ export default function Terminal() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <TerminalIcon size={18} className="text-green-400" />
-          <h2 className="text-lg sm:text-xl font-semibold">Terminal</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">{t("Terminal")}</h2>
         </div>
         <span className={`text-xs px-2 py-1 rounded ${connected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-          {connected ? 'Bağlı' : 'Bağlantı Kesik'}
+          {connected ? t("Bağlı") : t("Bağlantı Kesik")}
         </span>
       </div>
       <div ref={termRef} className="flex-1 min-h-[300px] rounded-xl overflow-hidden border border-gray-800" />

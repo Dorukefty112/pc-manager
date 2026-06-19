@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { MapPin, Clock, AlertTriangle, Activity, Crosshair, Bell, BellOff, RefreshCw } from 'lucide-react'
@@ -25,6 +26,7 @@ const RISK_RENK_HARITA = {
 const RISK_SIRALAMA = { KRITIK: 0, YUKSEK: 1, ORTA: 2, DIKKAT: 3, BILGI: 4, BILINMIYOR: 5 }
 
 function DepremMarker({ d, secili, setSecili }) {
+  const { t } = useI18n()
   const renk = RISK_RENK_HARITA[d.risk_seviyesi] || '#6b7280'
   const yaricap = Math.max(4, Math.min(20, (d.magnitude || 1) * 4))
   const opacity = d.risk_seviyesi === 'KRITIK' ? 1 : 0.7
@@ -48,9 +50,9 @@ function DepremMarker({ d, secili, setSecili }) {
           </div>
           <div className="text-gray-700 mb-1">{d.yer}</div>
           <div className="text-gray-500">{d.tarih} {d.saat}</div>
-          <div className="text-gray-500">{d.derinlik} km derinlik</div>
+          <div className="text-gray-500">{d.derinlik} {t('km derinlik')}</div>
           {d.istanbula_uzaklik !== undefined && (
-            <div className="text-gray-500">{d.istanbula_uzaklik} km Istanbul</div>
+            <div className="text-gray-500">{d.istanbula_uzaklik} {t('km Istanbul')}</div>
           )}
         </div>
       </Popup>
@@ -59,6 +61,7 @@ function DepremMarker({ d, secili, setSecili }) {
 }
 
 export default function DepremUyari() {
+  const { t } = useI18n()
   const [depremler, setDepremler] = useState([])
   const [secili, setSecili] = useState(null)
   const [bildirim, setBildirim] = useState(true)
@@ -70,7 +73,7 @@ export default function DepremUyari() {
   const fetchData = async () => {
     try {
       const data = await api('/api/deprem/son')
-      if (!Array.isArray(data)) throw new Error('Geçersiz veri')
+      if (!Array.isArray(data)) throw new Error(t('Geçersiz veri'))
       const sirali = data.sort((a, b) => {
         const riskA = RISK_SIRALAMA[a.risk_seviyesi] || 5
         const riskB = RISK_SIRALAMA[b.risk_seviyesi] || 5
@@ -81,7 +84,7 @@ export default function DepremUyari() {
       setHata(null)
       setYukleniyor(false)
     } catch (e) {
-      setHata('Deprem verileri alinamadi. Veri kaynagi su an erisilemez durumda.')
+      setHata(t('Deprem verileri alinamadi. Veri kaynagi su an erisilemez durumda.'))
       setYukleniyor(false)
     }
   }
@@ -109,15 +112,15 @@ export default function DepremUyari() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-semibold">Deprem İzleme</h2>
-          <span className="text-xs text-gray-500">Kandilli Rasathanesi</span>
+          <h2 className="text-2xl font-semibold">{t('Deprem İzleme')}</h2>
+          <span className="text-xs text-gray-500">{t('Kandilli Rasathanesi')}</span>
         </div>
         <div className="flex items-center gap-2">
           <select value={filtre} onChange={e => setFiltre(e.target.value)}
             className="bg-gray-800 border border-gray-700 text-sm rounded-lg px-3 py-1.5 text-gray-300">
-            <option value="tum">Tümü</option>
-            <option value="istanbul">İstanbul Çevresi</option>
-            <option value="kritik">Kritik Olanlar</option>
+            <option value="tum">{t('Tümü')}</option>
+            <option value="istanbul">{t('İstanbul Çevresi')}</option>
+            <option value="kritik">{t('Kritik Olanlar')}</option>
           </select>
           <button onClick={() => setBildirim(p => !p)}
             className={`p-2 rounded-lg transition-colors ${bildirim ? 'bg-cyan-900/30 text-cyan-400' : 'bg-gray-800 text-gray-500'}`}>
@@ -129,15 +132,15 @@ export default function DepremUyari() {
         </div>
       </div>
 
-      {hata && (
+          {hata && (
         <div className="mb-4 p-4 bg-red-900/20 border border-red-700 rounded-xl text-red-300 text-sm text-center">
           {hata}
-          <button onClick={fetchData} className="ml-3 underline hover:text-red-200">Tekrar dene</button>
+          <button onClick={fetchData} className="ml-3 underline hover:text-red-200">{t('Tekrar dene')}</button>
         </div>
       )}
 
       {yukleniyor ? (
-        <div className="text-center text-gray-500 mt-20">Deprem verileri yükleniyor...</div>
+        <div className="text-center text-gray-500 mt-20">{t('Deprem verileri yükleniyor...')}</div>
       ) : (
         <div className="space-y-4">
           <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden" style={{ height: 450 }}>
@@ -155,7 +158,7 @@ export default function DepremUyari() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div className="xl:col-span-2 space-y-2">
               {filtreli.length === 0 && (
-                <div className="text-center text-gray-500 py-20">Bu filtrede deprem bulunamadı.</div>
+                <div className="text-center text-gray-500 py-20">{t('Bu filtrede deprem bulunamadı.')}</div>
               )}
               {filtreli.slice(0, 50).map((d, i) => {
                 const renk = RISK_RENK[d.risk_seviyesi] || RISK_RENK.BILGI
@@ -179,14 +182,14 @@ export default function DepremUyari() {
                       <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
                         <span className="flex items-center gap-1"><Clock size={12} />{d.tarih.slice(5)} {d.saat}</span>
                         <span className="flex items-center gap-1"><Crosshair size={12} />{d.istanbula_uzaklik} km</span>
-                        <span>{d.derinlik} km derinlik</span>
+                        <span>{t('{n} km derinlik').replace('{n}', d.derinlik)}</span>
                       </div>
                       {secili === d && (
                         <div className="mt-3 pt-3 border-t border-gray-800 grid grid-cols-2 gap-2 text-xs text-gray-400">
-                          <span>Enlem: {d.enlem}</span>
-                          <span>Boylam: {d.boylam}</span>
-                          <span>Derinlik: {d.derinlik} km</span>
-                          <span>İstanbul'a: {d.istanbula_uzaklik} km</span>
+                          <span>{t('Enlem:')} {d.enlem}</span>
+                          <span>{t('Boylam:')} {d.boylam}</span>
+                          <span>{t('Derinlik:')} {d.derinlik} km</span>
+                          <span>{t("İstanbul'a:")} {d.istanbula_uzaklik} km</span>
                         </div>
                       )}
                     </div>
@@ -199,7 +202,7 @@ export default function DepremUyari() {
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
                 <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
                   <MapPin size={16} className="text-cyan-400" />
-                  İstanbul Analizi
+                  {t('İstanbul Analizi')}
                 </h3>
                 <div className="space-y-3">
                   {['KRITIK', 'YUKSEK', 'ORTA'].map(seviye => {
@@ -208,25 +211,25 @@ export default function DepremUyari() {
                     return (
                       <div key={seviye} className="flex items-center justify-between">
                         <RenkBadge risk={seviye} />
-                        <span className="text-sm font-bold">{sayi} deprem</span>
+                        <span className="text-sm font-bold">{t('{n} deprem').replace('{n}', sayi)}</span>
                       </div>
                     )
                   })}
                   {depremler.filter(d => d.risk_seviyesi === 'KRITIK').length === 0 && (
-                    <div className="text-center text-gray-500 text-sm py-4">Şu an kritik risk yok</div>
+                    <div className="text-center text-gray-500 text-sm py-4">{t('Şu an kritik risk yok')}</div>
                   )}
                 </div>
               </div>
 
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Risk Seviyeleri</h3>
+                <h3 className="text-sm font-medium text-gray-300 mb-3">{t('Risk Seviyeleri')}</h3>
                 <div className="space-y-2 text-xs">
                   {[
-                    { seviye: 'KRITIK', aciklama: 'M≥5, 200km içi', renk: 'bg-red-500' },
-                    { seviye: 'YUKSEK', aciklama: 'M≥4, 150km içi', renk: 'bg-orange-500' },
-                    { seviye: 'ORTA', aciklama: 'M≥3, 100km içi', renk: 'bg-yellow-500' },
-                    { seviye: 'DIKKAT', aciklama: 'M≥3, Marmara', renk: 'bg-cyan-500' },
-                    { seviye: 'BILGI', aciklama: 'Düşük risk', renk: 'bg-gray-500' },
+                    { seviye: 'KRITIK', aciklama: t('M≥5, 200km içi'), renk: 'bg-red-500' },
+                    { seviye: 'YUKSEK', aciklama: t('M≥4, 150km içi'), renk: 'bg-orange-500' },
+                    { seviye: 'ORTA', aciklama: t('M≥3, 100km içi'), renk: 'bg-yellow-500' },
+                    { seviye: 'DIKKAT', aciklama: t('M≥3, Marmara'), renk: 'bg-cyan-500' },
+                    { seviye: 'BILGI', aciklama: t('Düşük risk'), renk: 'bg-gray-500' },
                   ].map(l => (
                     <div key={l.seviye} className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${l.renk}`} />
@@ -239,9 +242,9 @@ export default function DepremUyari() {
 
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
                 <div className="text-xs text-gray-500">
-                  <p>Veri kaynağı: Boğaziçi Üniversitesi Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü</p>
-                  <p className="mt-2">Yedek: AFAD Deprem Veri Merkezi</p>
-                  <p className="mt-1">Her 30 saniyede bir güncellenir.</p>
+                  <p>{t('Veri kaynağı: Boğaziçi Üniversitesi Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü')}</p>
+                  <p className="mt-2">{t('Yedek: AFAD Deprem Veri Merkezi')}</p>
+                  <p className="mt-1">{t('Her 30 saniyede bir güncellenir.')}</p>
                 </div>
               </div>
             </div>

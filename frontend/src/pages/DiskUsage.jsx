@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { HardDrive, ArrowLeft, Folder, File } from 'lucide-react'
 
 export default function DiskUsage() {
+  const { t } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
   const path = searchParams.get('path') || '/'
   const [data, setData] = useState(null)
@@ -32,7 +34,7 @@ export default function DiskUsage() {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4">Disk Analizi</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-4">{t("Disk Analizi")}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         {disks.map((d, i) => (
@@ -61,7 +63,7 @@ export default function DiskUsage() {
           <span className="font-mono text-xs">{path}</span>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-gray-600">Taranıyor...</div>
+          <div className="p-8 text-center text-gray-600">{t("Taranıyor...")}</div>
         ) : (
           <div className="divide-y divide-gray-800 max-h-[600px] overflow-y-auto">
             {data?.items?.map(item => (
@@ -83,7 +85,7 @@ export default function DiskUsage() {
                 </div>
               </div>
             ))}
-            {data?.items?.length === 0 && <div className="p-8 text-center text-gray-600">Boş dizin</div>}
+            {data?.items?.length === 0 && <div className="p-8 text-center text-gray-600">{t("Boş dizin")}</div>}
           </div>
         )}
       </div>

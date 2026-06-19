@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { X, AlertTriangle, MapPin, Activity, Clock, Crosshair, Volume2, VolumeX, Shield, ShieldOff } from 'lucide-react'
 
 const SES_URL = '/deprem_alert.mp3'
 
 export default function DepremAlert() {
+  const { t } = useI18n()
   const [uyarilar, setUyarilar] = useState([])
   const [tamEkran, setTamEkran] = useState(null)
   const [sesAktif, setSesAktif] = useState(true)
@@ -151,14 +153,14 @@ export default function DepremAlert() {
                 <AlertTriangle size={48} className="text-red-500" />
               </div>
             </div>
-            <h1 className="text-4xl font-black text-red-500 mb-2 tracking-wider">DEPREM!</h1>
+            <h1 className="text-4xl font-black text-red-500 mb-2 tracking-wider">{t("DEPREM!")}</h1>
             <div className="flex justify-center gap-2 mb-4">
               <RiskBadge risk={tamEkran.risk_seviyesi} />
               <span className="text-2xl font-bold text-white">M{tamEkran.magnitude.toFixed(1)}</span>
             </div>
             <p className="text-lg text-gray-200 mb-2">{tamEkran.yer}</p>
             <p className="text-sm text-gray-400 mb-6">
-              {tamEkran.istanbula_uzaklik} km — {tamEkran.derinlik} km derinlik
+              {tamEkran.istanbula_uzaklik} km — {tamEkran.derinlik} {t("km derinlik")}
             </p>
             <div className="flex items-center justify-center gap-6 text-xs text-gray-500 mb-6">
               <span className="flex items-center gap-1"><Clock size={12} />{tamEkran.tarih.slice(5)} {tamEkran.saat}</span>
@@ -167,7 +169,7 @@ export default function DepremAlert() {
             <div className="flex gap-3 justify-center flex-wrap">
               <button onClick={() => setTamEkran(null)}
                 className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm font-medium transition-colors">
-                Tamam
+                {t("Tamam")}
               </button>
               <button onClick={() => setSesAktif(p => !p)}
                 className={`px-4 py-2.5 rounded-lg text-sm transition-colors ${sesAktif ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-gray-800 text-gray-500 hover:bg-gray-700'}`}>
@@ -177,7 +179,7 @@ export default function DepremAlert() {
                 <button onClick={activateEmergency}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-sm font-bold transition-colors animate-pulse">
                   <Shield size={16} />
-                  Acil Durum Modu
+                  {t("Acil Durum Modu")}
                 </button>
               )}
             </div>
@@ -195,7 +197,7 @@ export default function DepremAlert() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-bold text-orange-300">Deprem Algılandı</span>
+                  <span className="text-sm font-bold text-orange-300">{t("Deprem Algılandı")}</span>
                   <RiskBadge risk={b.risk_seviyesi} />
                 </div>
                 <p className="text-sm text-gray-300 truncate">{b.yer}</p>

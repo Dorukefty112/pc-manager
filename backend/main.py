@@ -13,7 +13,8 @@ from routers import (
     services, chat, pentest, auth as auth_router,
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
-    notifications, windows, speedtest, firewall, temperature,
+    notifications, windows, speedtest, firewall, firewall_native, temperature,
+    playbooks,
 )
 from dependencies import require_auth
 from routers.search_engine import _rewrite_html, _fetch_page
@@ -130,7 +131,9 @@ app.include_router(notifications.router, prefix="/api", dependencies=[Depends(re
 app.include_router(windows.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(speedtest.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(firewall.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(firewall_native.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(temperature.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(playbooks.router, prefix="/api")
 
 @app.get("/")
 def serve_index():

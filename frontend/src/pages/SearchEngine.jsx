@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Search, Globe, FolderOpen, Server, ExternalLink, ChevronLeft, ChevronRight, Loader2, Sparkles, ArrowLeft, BookOpenText, Globe as GlobeIcon, X, RefreshCw, House } from 'lucide-react'
 
-const TABS = [
-  { id: 'web', label: 'Web', icon: Globe },
-  { id: 'local', label: 'Yerel', icon: FolderOpen },
-  { id: 'system', label: 'Sistem', icon: Server },
-]
-
 export default function SearchEngine() {
+  const { t } = useI18n()
+  const TABS = [
+    { id: 'web', label: t('Web'), icon: Globe },
+    { id: 'local', label: t('Yerel'), icon: FolderOpen },
+    { id: 'system', label: t('Sistem'), icon: Server },
+  ]
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -61,7 +62,7 @@ export default function SearchEngine() {
       if (data.error) { setError(data.error); setResults(null) }
       else { setResults(data); setSearched(true) }
     } catch (e) {
-      setError('Arama basarisiz')
+      setError(t('Arama basarisiz'))
       setResults(null)
     }
     setLoading(false)
@@ -92,7 +93,7 @@ export default function SearchEngine() {
       const data = await api(`/api/reader?url=${encodeURIComponent(url)}`)
       if (data.error) setReaderError(data.error)
       else setReader(data)
-    } catch { setReaderError('Sayfa okunamadi') }
+    } catch { setReaderError(t('Sayfa okunamadi')) }
     setReaderLoading(false)
   }
 
@@ -111,7 +112,7 @@ export default function SearchEngine() {
           <button onClick={closeBrowser}
             className="btn-ghost p-1.5 rounded-lg flex items-center gap-1 text-xs"
             style={{color: 'var(--text-muted)'}}>
-            <ArrowLeft size={16} /> Aramaya Dön
+            <ArrowLeft size={16} /> {t('Aramaya Dön')}
           </button>
           <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs truncate"
             style={{background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
@@ -129,7 +130,7 @@ export default function SearchEngine() {
             ref={iframeRef}
             src={`/api/proxy/page?url=${encodeURIComponent(browserUrl)}`}
             className="w-full h-full border-0"
-            title="Tarayıcı"
+            title={t('Tarayıcı')}
             style={{background: '#fff'}}
           />
         </div>
@@ -145,7 +146,7 @@ export default function SearchEngine() {
             <button onClick={closeReader}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
               style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
-              <ArrowLeft size={16} /> Geri
+              <ArrowLeft size={16} /> {t('Geri')}
             </button>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate" style={{color: 'var(--text)'}}>{reader.title}</p>
@@ -154,7 +155,7 @@ export default function SearchEngine() {
             <a href={reader.url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
               style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
-              <ExternalLink size={14} /> Orijinal Sayfa
+              <ExternalLink size={14} /> {t('Orijinal Sayfa')}
             </a>
           </div>
         </div>
@@ -185,10 +186,10 @@ export default function SearchEngine() {
               <GlobeIcon size={28} style={{color: 'var(--accent)'}} />
             </div>
             <h1 className="text-4xl font-bold tracking-tight" style={{color: 'var(--text)'}}>
-              Arama<span style={{color: 'var(--accent)'}}> Motoru</span>
+              {t('Arama')}<span style={{color: 'var(--accent)'}}>{t(' Motoru')}</span>
             </h1>
           </div>
-          <p style={{color: 'var(--text-muted)'}} className="text-sm">Web, yerel dosya ve sistem arama</p>
+          <p style={{color: 'var(--text-muted)'}} className="text-sm">{t('Web, yerel dosya ve sistem arama')}</p>
         </div>
 
         <div className="w-full max-w-2xl">
@@ -196,7 +197,7 @@ export default function SearchEngine() {
             <div className="relative">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{color: 'var(--text-muted)'}} />
               <input ref={inputRef} value={query} onChange={e => handleInputChange(e.target.value)} onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder="Aramak istediginiz seyi yazin..."
+                placeholder={t('Aramak istediginiz seyi yazin...')}
                 className="w-full rounded-2xl pl-12 pr-24 py-4 text-base transition-colors"
                 style={{
                   background: 'var(--bg-surface)',
@@ -255,7 +256,7 @@ export default function SearchEngine() {
           <div className="relative">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{color: 'var(--text-muted)'}} />
             <input value={query} onChange={e => handleInputChange(e.target.value)}
-              placeholder="Ara..."
+              placeholder={t('Ara...')}
               className="w-full rounded-xl pl-10 pr-32 py-2.5 text-sm"
               style={{
                 background: 'var(--bg-surface)',
@@ -281,20 +282,20 @@ export default function SearchEngine() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin" style={{color: 'var(--accent)'}} />
-          <span className="ml-3 text-sm" style={{color: 'var(--text-muted)'}}>Araniyor...</span>
+          <span className="ml-3 text-sm" style={{color: 'var(--text-muted)'}}>{t('Araniyor...')}</span>
         </div>
       ) : error ? (
         <div className="max-w-3xl mx-auto mt-8 p-6 rounded-xl text-center"
           style={{background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)'}}>
           <p style={{color: '#ef4444'}} className="text-sm">{error}</p>
-          <button onClick={() => doSearch(query, 1)} className="mt-3 text-xs hover:underline" style={{color: 'var(--accent)'}}>Tekrar dene</button>
+          <button onClick={() => doSearch(query, 1)} className="mt-3 text-xs hover:underline" style={{color: 'var(--accent)'}}>{t('Tekrar dene')}</button>
         </div>
       ) : results ? (
         <div className="max-w-3xl mx-auto">
           <p className="text-xs mb-4" style={{color: 'var(--text-muted)'}}>
-            {results.query} için {results.total} sonuç
+            {t('{query} için {total} sonuç').replace('{query}', results.query).replace('{total}', results.total)}
             {tab !== 'local' && results.total > 0 && (
-              <span className="ml-2">— {results.total > 10 ? `${Math.ceil(results.total / 10)}` : '1'} sayfa</span>
+              <span className="ml-2">— {results.total > 10 ? `${Math.ceil(results.total / 10)}` : '1'} {t('sayfa')}</span>
             )}
           </p>
 
@@ -321,12 +322,12 @@ export default function SearchEngine() {
                 <button onClick={() => openBrowser(r.url)}
                   className="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors"
                   style={{color: 'var(--text-muted)'}}>
-                  <Globe size={12} /> Sayfada Aç
+                  <Globe size={12} /> {t('Sayfada Aç')}
                 </button>
                 <button onClick={() => openReader(r.url)}
                   className="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors"
                   style={{color: 'var(--text-muted)'}}>
-                  <BookOpenText size={12} /> Oku
+                  <BookOpenText size={12} /> {t('Oku')}
                 </button>
               </div>
             </div>
@@ -336,7 +337,7 @@ export default function SearchEngine() {
             <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background: 'rgba(0,0,0,0.5)'}}>
               <div className="card p-6 flex items-center gap-3">
                 <Loader2 size={20} className="animate-spin" style={{color: 'var(--accent)'}} />
-                <span className="text-sm" style={{color: 'var(--text-secondary)'}}>Sayfa okunuyor...</span>
+                <span className="text-sm" style={{color: 'var(--text-secondary)'}}>{t('Sayfa okunuyor...')}</span>
               </div>
             </div>
           )}
@@ -364,7 +365,7 @@ export default function SearchEngine() {
                   <div key={ii} className="card p-3">
                     {item.name && <p className="text-sm font-medium" style={{color: 'var(--text)'}}>{item.name}</p>}
                     {item.pid && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>PID: {item.pid} | CPU: %{item.cpu} | MEM: %{item.mem}</p>}
-                    {item.status && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>Durum: {item.status}</p>}
+                    {item.status && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>{t('Durum: ')}{item.status}</p>}
                     {item.repo && <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>{item.repo}/{item.name} {item.version}</p>}
                   </div>
                 ))}
@@ -374,8 +375,8 @@ export default function SearchEngine() {
 
           {results.results?.length === 0 && !error && (
             <div className="text-center py-20">
-              <p style={{color: 'var(--text-secondary)'}}>Sonuç bulunamadı.</p>
-              <p className="text-xs mt-1" style={{color: 'var(--text-muted)'}}>Farklı kelimelerle tekrar deneyin.</p>
+              <p style={{color: 'var(--text-secondary)'}}>{t('Sonuç bulunamadı.')}</p>
+              <p className="text-xs mt-1" style={{color: 'var(--text-muted)'}}>{t('Farklı kelimelerle tekrar deneyin.')}</p>
             </div>
           )}
 
@@ -384,13 +385,13 @@ export default function SearchEngine() {
               <button disabled={page <= 1} onClick={() => doSearch(query, page - 1)}
                 className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm disabled:opacity-30 transition-colors"
                 style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
-                <ChevronLeft size={16} /> Önceki
+                <ChevronLeft size={16} /> {t('Önceki')}
               </button>
-              <span className="text-sm" style={{color: 'var(--text-muted)'}}>Sayfa {page}</span>
+              <span className="text-sm" style={{color: 'var(--text-muted)'}}>{t('Sayfa {n}').replace('{n}', page)}</span>
               <button disabled={results.results?.length < 10} onClick={() => doSearch(query, page + 1)}
                 className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm disabled:opacity-30 transition-colors"
                 style={{background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
-                Sonraki <ChevronRight size={16} />
+                {t('Sonraki')} <ChevronRight size={16} />
               </button>
             </div>
           )}

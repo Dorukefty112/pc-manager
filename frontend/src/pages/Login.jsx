@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, setToken } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Shield, Eye, EyeOff, Server, Lock } from 'lucide-react'
 
 export default function Login() {
+  const { t } = useI18n()
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [show, setShow] = useState(false)
-  const [siteName, setSiteName] = useState('PC Manager')
+  const [siteName, setSiteName] = useState(t('PC Manager'))
   const navigate = useNavigate()
 
   useEffect(() => {
-    api('/api/setup').then(d => setSiteName(d.site_name || 'PC Manager')).catch(() => {})
+    api('/api/setup').then(d => setSiteName(d.site_name || t('PC Manager'))).catch(() => {})
   }, [])
 
   const handleSubmit = async (e) => {
@@ -28,7 +30,7 @@ export default function Login() {
       setToken(res.token)
       navigate('/')
     } catch (err) {
-      setError('Hatalı şifre')
+      setError(t('Hatalı şifre'))
     }
     setLoading(false)
   }
@@ -44,19 +46,19 @@ export default function Login() {
             <Server size={32} style={{color: 'var(--accent)'}} />
           </div>
           <h1 style={{color: 'var(--text)'}} className="text-2xl font-bold">{siteName}</h1>
-          <p style={{color: 'var(--text-muted)'}} className="text-sm mt-1">Sistem yönetim arayüzü</p>
+          <p style={{color: 'var(--text-muted)'}} className="text-sm mt-1">{t('Sistem yönetim arayüzü')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-6 space-y-4">
           <div>
-            <label style={{color: 'var(--text-secondary)'}} className="text-sm block mb-1.5">Şifre</label>
+            <label style={{color: 'var(--text-secondary)'}} className="text-sm block mb-1.5">{t('Şifre')}</label>
             <div className="relative">
               <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{color: 'var(--text-muted)'}} />
               <input
                 type={show ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Yönetici şifresi"
+                placeholder={t('Yönetici şifresi')}
                 autoFocus
                 className="w-full pl-9 pr-10 py-3 text-sm rounded-xl"
                 style={{
@@ -88,7 +90,7 @@ export default function Login() {
               opacity: loading || !password ? 0.5 : 1,
             }}
             className="w-full text-white font-medium rounded-xl px-4 py-3 text-sm transition-opacity">
-            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            {loading ? t('Giriş yapılıyor...') : t('Giriş Yap')}
           </button>
         </form>
       </div>

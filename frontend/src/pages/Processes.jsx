@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Search, XCircle, Skull } from 'lucide-react'
 
 export default function Processes() {
+  const { t } = useI18n()
   const [procs, setProcs] = useState([])
   const [sort, setSort] = useState('cpu')
   const [search, setSearch] = useState('')
@@ -17,7 +19,7 @@ export default function Processes() {
   }, [sort, search])
 
   const kill = async (pid, force = false) => {
-    if (!confirm(`${force ? 'SIGKILL' : 'SIGTERM'} ile process ${pid} sonlandırılsın mı?`)) return
+    if (!confirm(t(`${force ? 'SIGKILL' : 'SIGTERM'} ile process ${pid} sonlandırılsın mı?`))) return
     try {
       await api(`/api/processes/kill?pid=${pid}&force=${force}`, { method: 'POST' })
       setProcs(prev => prev.filter(p => p.pid !== pid))
@@ -32,12 +34,12 @@ export default function Processes() {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4">Process'ler</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-4">{t("Process'ler")}</h2>
 
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-md">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Process ara..." className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-cyan-700" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("Process ara...")} className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-cyan-700" />
         </div>
         <div className="flex gap-1 text-sm">
           <button onClick={() => setSort('cpu')} className={`px-3 py-2 rounded-lg ${sort === 'cpu' ? 'bg-cyan-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>CPU</button>
@@ -51,13 +53,13 @@ export default function Processes() {
             <thead>
               <tr className="border-b border-gray-800 text-gray-500 text-xs uppercase">
                 <th className="text-left px-2 sm:px-4 py-3 font-medium">PID</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium">İsim</th>
+                <th className="text-left px-2 sm:px-4 py-3 font-medium">{t("İsim")}</th>
                 <th className="text-right px-2 sm:px-4 py-3 font-medium">CPU%</th>
                 <th className="text-right px-2 sm:px-4 py-3 font-medium">RAM%</th>
                 <th className="text-right px-2 sm:px-4 py-3 font-medium hidden md:table-cell">RAM</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden sm:table-cell">Durum</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden lg:table-cell">Kullanıcı</th>
-                <th className="text-right px-2 sm:px-4 py-3 font-medium">İşlem</th>
+                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden sm:table-cell">{t("Durum")}</th>
+                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden lg:table-cell">{t("Kullanıcı")}</th>
+                <th className="text-right px-2 sm:px-4 py-3 font-medium">{t("İşlem")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -87,7 +89,7 @@ export default function Processes() {
             </tbody>
           </table>
         </div>
-        {procs.length === 0 && <div className="p-8 text-center text-gray-600">Process bulunamadı</div>}
+        {procs.length === 0 && <div className="p-8 text-center text-gray-600">{t("Process bulunamadı")}</div>}
       </div>
     </div>
   )

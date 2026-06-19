@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api, isAuthenticated } from '../api'
+import { useI18n } from '../context/I18nContext'
 import { Bug, X, ChevronUp, Terminal } from 'lucide-react'
 
 const MAX_CALLS = 20
 
 export default function DebugOverlay() {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [config, setConfig] = useState(null)
   const [apiCalls, setApiCalls] = useState([])
@@ -53,7 +55,7 @@ export default function DebugOverlay() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto text-xs font-mono p-2 space-y-1">
-            {apiCalls.length === 0 && <div className="text-gray-600 text-center py-4">Henuz API cagrisi yok</div>}
+            {apiCalls.length === 0 && <div className="text-gray-600 text-center py-4">{t("Henuz API cagrisi yok")}</div>}
             {apiCalls.map((call, i) => (
               <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded ${
                 call.status === 'ERR' ? 'bg-red-900/20' : 'bg-gray-800/50'

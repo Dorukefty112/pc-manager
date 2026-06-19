@@ -351,15 +351,20 @@ def tool_system_summary(params: dict) -> str:
 import shlex
 
 
+def _docker_cmd(*args):
+    from .docker import _get_runtime
+    return [_get_runtime()] + [a for a in args if a]
+
+
 def tool_docker_list(params: dict) -> str:
     try:
-        r = subprocess.run(["docker", "ps", "-a", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"],
+        r = subprocess.run(_docker_cmd("ps", "-a", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"),
                            capture_output=True, text=True, timeout=8)
         containers = [l.split("\t") for l in r.stdout.strip().split("\n") if l.strip()]
         out = []
         for c in containers[:20]:
             out.append({"id": c[0], "name": c[1], "image": c[2], "status": c[3], "ports": c[4] if len(c) > 4 else ""})
-        r2 = subprocess.run(["docker", "images", "--format", "{{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.Size}}"],
+        r2 = subprocess.run(_docker_cmd("images", "--format", "{{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.Size}}"),
                             capture_output=True, text=True, timeout=8)
         images = [l.split("\t") for l in r2.stdout.strip().split("\n") if l.strip()]
         img_out = [{"repo": i[0], "tag": i[1], "id": i[2], "size": i[3]} for i in images[:10]]
@@ -376,10 +381,56 @@ def tool_docker_action(params: dict) -> str:
     if not action or not container:
         return json.dumps({"error": "action ve container gerekli"}, ensure_ascii=False)
     if action == "logs":
-        r = subprocess.run(["docker", "logs", "--tail", "30", container], capture_output=True, text=True, timeout=8)
+        r = subprocess.run(_docker_cmd("logs", "--tail", "30", container), capture_output=True, text=True, timeout=8)
         return json.dumps({"container": container, "logs": r.stdout[-2000:] or r.stderr[-2000:]}, ensure_ascii=False)
+    if action == "compose_list":
+        from .docker import _get_compose_cmd
+        compose_cmd = _get_compose_cmd()
+        if not compose_cmd:
+            return json.dumps({"error": "Compose not available"}, ensure_ascii=False)
+        path = params.get("path", "")
+        if path:
+            search_paths = [path]
+        else:
+            search_paths = ["/home", "/opt", "/srv", "/etc/docker"]
+        projects = []
+        for d in search_paths:
+            if not os.path.isdir(d):
+                continue
+            try:
+                result = subprocess.run(
+                    ["find", d, "-maxdepth", "4", "-name", "docker-compose.yml", "-o", "-name", "compose.yml"],
+                    capture_output=True, text=True, timeout=5
+                )
+                for filepath in result.stdout.strip().split("\n"):
+                    if not filepath.strip():
+                        continue
+                    projects.append({"path": os.path.dirname(filepath), "file": filepath})
+            except Exception:
+                pass
+        return json.dumps({"projects": projects}, ensure_ascii=False)
+    if action in ("compose_up", "compose_down"):
+        from .docker import _get_compose_cmd
+        compose_cmd = _get_compose_cmd()
+        if not compose_cmd:
+            return json.dumps({"error": "Compose not available"}, ensure_ascii=False)
+        path = params.get("path", "")
+        if not path or not os.path.isdir(path):
+            return json.dumps({"error": "gecerli path gerekli"}, ensure_ascii=False)
+        sub_action = "up" if action == "compose_up" else "down"
+        compose_file = None
+        for name in ("docker-compose.yml", "compose.yml", "compose.yaml", "docker-compose.yaml"):
+            fp = os.path.join(path, name)
+            if os.path.isfile(fp):
+                compose_file = fp
+                break
+        if not compose_file:
+            return json.dumps({"error": "compose dosyasi bulunamadi"}, ensure_ascii=False)
+        cmd = compose_cmd + ["-f", compose_file, "up" if action == "compose_up" else "down"]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=path)
+        return json.dumps({"success": r.returncode == 0, "output": (r.stdout or r.stderr).strip()[:500]}, ensure_ascii=False)
     try:
-        r = subprocess.run(["docker", action, container], capture_output=True, text=True, timeout=15)
+        r = subprocess.run(_docker_cmd(action, container), capture_output=True, text=True, timeout=15)
         return json.dumps({"success": r.returncode == 0, "action": action, "container": container, "output": (r.stdout or r.stderr).strip()[:500]}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
@@ -545,6 +596,142 @@ def deep_update(d, u):
             deep_update(d[k], v)
         else:
             d[k] = v
+
+
+def tool_firewall_native_status(params: dict) -> str:
+    from .firewall_native import _detect_firewall, _run_cmd, _parse_nftables_rules, _parse_iptables_rules
+    fw = _detect_firewall()
+    if not fw:
+        return json.dumps({"firewall": None, "status": "none", "active_rules": 0}, ensure_ascii=False)
+    active_rules = 0
+    try:
+        if fw == "nftables":
+            output = _run_cmd(["nft", "-a", "list", "ruleset"])
+            active_rules = len(_parse_nftables_rules(output))
+        else:
+            output = _run_cmd(["iptables", "-L", "-n", "--line-numbers"])
+            active_rules = len(_parse_iptables_rules(output))
+    except:
+        pass
+    return json.dumps({"firewall": fw, "status": "active", "active_rules": active_rules}, ensure_ascii=False)
+
+
+def tool_firewall_native_list_rules(params: dict) -> str:
+    from .firewall_native import _detect_firewall, _run_cmd, _parse_nftables_rules, _parse_iptables_rules
+    fw = _detect_firewall()
+    if not fw:
+        return json.dumps({"firewall": None, "rules": []}, ensure_ascii=False)
+    try:
+        if fw == "nftables":
+            output = _run_cmd(["nft", "-a", "list", "ruleset"])
+            rules = _parse_nftables_rules(output)
+        else:
+            output = _run_cmd(["iptables", "-L", "-n", "--line-numbers"])
+            rules = _parse_iptables_rules(output)
+        return json.dumps({"firewall": fw, "rules": rules[:30]}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_firewall_native_add_rule(params: dict) -> str:
+    from .firewall_native import _detect_firewall, _run_cmd
+    fw = _detect_firewall()
+    if not fw:
+        return json.dumps({"error": "nftables veya iptables kurulu degil"}, ensure_ascii=False)
+    action = params.get("action", "accept")
+    protocol = params.get("protocol", "")
+    port = params.get("port", "")
+    source = params.get("source", "")
+    destination = params.get("destination", "")
+    chain = params.get("chain", "INPUT")
+    table = params.get("table", "filter")
+    try:
+        if fw == "nftables":
+            family = params.get("family", "inet")
+            parts = []
+            if protocol: parts.append(protocol)
+            if port: parts.extend(["dport", str(port)])
+            if source: parts.extend(["ip", "saddr", source])
+            if destination: parts.extend(["ip", "daddr", destination])
+            parts.append(action)
+            _run_cmd(["nft", "add", "rule", family, table, chain] + parts)
+        else:
+            cmd = ["iptables", "-A", chain]
+            if protocol: cmd.extend(["-p", protocol])
+            if source: cmd.extend(["-s", source])
+            if destination: cmd.extend(["-d", destination])
+            if port: cmd.extend(["--dport", str(port)])
+            jump = {"accept": "ACCEPT", "allow": "ACCEPT", "drop": "DROP", "reject": "REJECT"}.get(action, action.upper())
+            cmd.extend(["-j", jump])
+            _run_cmd(cmd)
+        return json.dumps({"success": True, "firewall": fw, "action": action, "chain": chain, "port": port}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def tool_playbook_list(params: dict) -> str:
+    from .playbooks import _get_playbooks
+    pbs = _get_playbooks()
+    out = []
+    for pb in pbs:
+        out.append({
+            "id": pb["id"],
+            "name": pb.get("name"),
+            "description": pb.get("description", ""),
+            "steps": len(pb.get("steps", [])),
+            "updated_at": pb.get("updated_at", ""),
+        })
+    return json.dumps(out, ensure_ascii=False)
+
+
+def tool_playbook_run(params: dict) -> str:
+    playbook_id = params.get("playbook_id", "")
+    if not playbook_id:
+        return json.dumps({"error": "playbook_id gerekli"}, ensure_ascii=False)
+    from .playbooks import _get_playbooks, _get_runs, _save_runs, active_runs, _execute_playbook
+    import uuid, threading
+    from datetime import datetime, timezone
+    pbs = _get_playbooks()
+    playbook = None
+    for pb in pbs:
+        if pb["id"] == playbook_id:
+            playbook = pb
+            break
+    if not playbook:
+        return json.dumps({"error": f"Playbook bulunamadi: {playbook_id}"}, ensure_ascii=False)
+    execution_id = str(uuid.uuid4())
+    steps = playbook.get("steps", [])
+    now = datetime.now(timezone.utc).isoformat()
+    run_data = {
+        "execution_id": execution_id,
+        "playbook_id": playbook_id,
+        "playbook_name": playbook.get("name", ""),
+        "status": "running",
+        "started_at": now,
+        "ended_at": None,
+        "current_step": 0,
+        "total_steps": len(steps),
+        "error_step": None,
+        "steps": [
+            {
+                "step": i + 1,
+                "type": s.get("type", ""),
+                "command": s.get("cmd", s.get("name", s.get("path", s.get("url", "")))),
+                "status": "pending",
+                "output": "",
+                "exit_code": None,
+                "duration": 0,
+            }
+            for i, s in enumerate(steps)
+        ],
+    }
+    runs = _get_runs()
+    runs.append(run_data)
+    _save_runs(runs)
+    active_runs[execution_id] = dict(run_data)
+    t = threading.Thread(target=_execute_playbook, args=(execution_id, playbook), daemon=True)
+    t.start()
+    return json.dumps({"execution_id": execution_id, "playbook_name": playbook.get("name"), "status": "started", "total_steps": len(steps)}, ensure_ascii=False)
 
 
 TOOLS: dict[str, dict] = {
@@ -754,59 +941,76 @@ TOOLS: dict[str, dict] = {
             },
         },
     },
-    "get_deprem": {
-        "fn": tool_get_deprem,
+    "firewall_native_status": {
+        "fn": tool_firewall_native_status,
         "spec": {
             "type": "function",
             "function": {
-                "name": "get_deprem",
-                "description": "Son deprem verilerini getir (Kandilli Rasathanesi)",
+                "name": "firewall_native_status",
+                "description": "nftables/iptables guvenlik duvari durumu - hangi firewall aktif, kural sayisi",
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         },
     },
-    "web_search": {
-        "fn": tool_web_search,
+    "firewall_native_list_rules": {
+        "fn": tool_firewall_native_list_rules,
         "spec": {
             "type": "function",
             "function": {
-                "name": "web_search",
-                "description": "Web'de arama yap (DuckDuckGo). Guncel bilgi, haber, dokuman, kod ornegi vb. icin kullan.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {"type": "string", "description": "aranacak sorgu (Turkce veya Ingilizce)"},
-                    },
-                    "required": ["query"],
-                },
-            },
-        },
-    },
-    "web_fetch": {
-        "fn": tool_web_fetch,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "web_fetch",
-                "description": "Belirtilen URL'deki sayfa icerigini getir. web_search ile bulunan linklerin detaylarini okumak icin kullan.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {"type": "string", "description": "getirilecek sayfa URL'si"},
-                    },
-                    "required": ["url"],
-                },
-            },
-        },
-    },
-    "system_summary": {
-        "fn": tool_system_summary,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "system_summary",
-                "description": "Tek cagrida tum sistem ozeti: CPU, RAM, disk, uptime, hostname, kernel, kullanicilar",
+                "name": "firewall_native_list_rules",
+                "description": "nftables/iptables kurallarini listele (table, chain, rule, handle/line)",
                 "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "firewall_native_add_rule": {
+        "fn": tool_firewall_native_add_rule,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "firewall_native_add_rule",
+                "description": "nftables/iptables'e kural ekle. action: accept/drop/reject, protocol: tcp/udp, port, source, destination, chain, table",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["accept", "drop", "reject"], "description": "aksiyon"},
+                        "protocol": {"type": "string", "description": "tcp veya udp"},
+                        "port": {"type": "string", "description": "port numarasi"},
+                        "source": {"type": "string", "description": "kaynak IP"},
+                        "destination": {"type": "string", "description": "hedef IP"},
+                        "chain": {"type": "string", "description": "zincir adi (INPUT/OUTPUT/FORWARD)"},
+                        "table": {"type": "string", "description": "tablo adi (filter)"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "playbook_list": {
+        "fn": tool_playbook_list,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "playbook_list",
+                "description": "Kayitli tum playbook'lari listele",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "playbook_run": {
+        "fn": tool_playbook_run,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "playbook_run",
+                "description": "Bir playbook'u ID ile calistir. Calistirmadan once playbook_list ile ID'yi bul.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "playbook_id": {"type": "string", "description": "calistirilacak playbook ID'si"},
+                    },
+                    "required": ["playbook_id"],
+                },
             },
         },
     },
@@ -816,7 +1020,7 @@ TOOLS: dict[str, dict] = {
             "type": "function",
             "function": {
                 "name": "docker_list",
-                "description": "Docker container'lari ve image'lari listele",
+                "description": "Docker/Podman container'lari ve image'lari listele",
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         },
@@ -827,142 +1031,13 @@ TOOLS: dict[str, dict] = {
             "type": "function",
             "function": {
                 "name": "docker_action",
-                "description": "Docker container yonetimi: start, stop, restart, remove, logs action'lari ile",
+                "description": "Docker/Podman container yonetimi: start, stop, restart, remove, logs. Ayrica compose_list, compose_up, compose_down ile compose projeleri",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "action": {"type": "string", "enum": ["start", "stop", "restart", "remove", "logs"], "description": "yapilacak islem"},
-                        "container": {"type": "string", "description": "container ID veya adi"},
-                    },
-                    "required": ["action", "container"],
-                },
-            },
-        },
-    },
-    "firewall": {
-        "fn": tool_firewall,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "firewall",
-                "description": "UFW guvenlik duvari yonetimi. Action: status, enable, disable, reload, reset, rules, add, delete",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["status", "enable", "disable", "reload", "reset", "rules", "add", "delete"], "description": "yapilacak islem"},
-                        "type": {"type": "string", "description": "kural icin: allow veya deny (sadece action=add icin)"},
-                        "direction": {"type": "string", "description": "kural icin: in veya out"},
-                        "port": {"type": "string", "description": "port numarasi (sadece action=add icin)"},
-                        "protocol": {"type": "string", "description": "tcp veya udp"},
-                        "ip": {"type": "string", "description": "IP adresi"},
-                        "rule_num": {"type": "integer", "description": "silinecek kural numarasi (sadece action=delete icin)"},
-                    },
-                    "required": ["action"],
-                },
-            },
-        },
-    },
-    "speedtest": {
-        "fn": tool_speedtest,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "speedtest",
-                "description": "Internet hiz testi durumu ve gecmisi. Action: status (mevcut durum), history (son 5 test)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["status", "history"], "description": "status=mevcut durum, history=gecmis"},
-                    },
-                    "required": ["action"],
-                },
-            },
-        },
-    },
-    "windows": {
-        "fn": tool_windows,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "windows",
-                "description": "Windows (WSL) yonetimi: services, processes, disks, command. what parametresi ile secim yap.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "what": {"type": "string", "enum": ["services", "processes", "disks", "command"], "description": "goruntulenecek bilgi"},
-                        "command": {"type": "string", "description": "calistirilacak PowerShell komutu (sadece what=command icin)"},
-                    },
-                    "required": ["what"],
-                },
-            },
-        },
-    },
-    "power": {
-        "fn": tool_power,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "power",
-                "description": "Sistemi kapat veya yeniden baslat. Action: shutdown, reboot",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["shutdown", "reboot"], "description": "shutdown=kapat, reboot=yeniden baslat"},
-                    },
-                    "required": ["action"],
-                },
-            },
-        },
-    },
-    "updates": {
-        "fn": tool_updates,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "updates",
-                "description": "Sistem guncelleme kontrolu. Action: upgrade (yuklenebilir paketleri listeler)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["upgrade"], "description": "yapilacak islem"},
-                    },
-                    "required": ["action"],
-                },
-            },
-        },
-    },
-    "cron": {
-        "fn": tool_cron,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "cron",
-                "description": "Cron job yonetimi. Action: list (job'lari listele), add (ekle), delete (sil). schedule='dakika saat gun ay hafta' formatinda",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["list", "add", "delete"], "description": "yapilacak islem"},
-                        "schedule": {"type": "string", "description": "cron schedule (sadece action=add icin). Orn: */5 * * * *"},
-                        "command": {"type": "string", "description": "calistirilacak komut (sadece action=add icin)"},
-                        "keyword": {"type": "string", "description": "silinecek job'daki anahtar kelime (sadece action=delete icin)"},
-                    },
-                    "required": ["action"],
-                },
-            },
-        },
-    },
-    "settings": {
-        "fn": tool_settings,
-        "spec": {
-            "type": "function",
-            "function": {
-                "name": "settings",
-                "description": "PC Manager ayarlarini goruntule veya guncelle. Action: get (goruntule), update (guncelle). Sifre gostermez.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["get", "update"], "description": "get=goruntule, update=guncelle"},
-                        "values": {"type": "object", "description": "guncellenecek degerler (sadece action=update icin). Orn: {\"ollama\": {\"model\": \"gemma4:31b-cloud\"}}"},
+                        "action": {"type": "string", "enum": ["start", "stop", "restart", "remove", "logs", "compose_list", "compose_up", "compose_down"], "description": "yapilacak islem"},
+                        "container": {"type": "string", "description": "container ID veya adi (compose action'lari icin gerekli degil)"},
+                        "path": {"type": "string", "description": "compose proje dizini (compose_up/compose_down icin)"},
                     },
                     "required": ["action"],
                 },
