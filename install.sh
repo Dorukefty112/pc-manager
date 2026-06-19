@@ -137,7 +137,7 @@ systemctl restart $SERVICE_NAME
 
 ok "Kurulum tamam!"
 echo -e "${GREEN}Web arayuz: http://localhost:8081${NC}"
-IP=$(ip -4 addr show | awk '/inet /{print $2}' | cut -d/ -f1 | grep -v '^127\.' | head -1)
+IP=$(ip -4 addr show | awk '/inet /{print $2}' | cut -d/ -f1 | grep -v '^127\.' | head -1 || true)
 if [ -n "$IP" ]; then
     echo -e "${GREEN}Ag:          http://$IP:8081${NC}"
 fi
