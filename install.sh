@@ -135,7 +135,10 @@ systemctl daemon-reload
 systemctl enable $SERVICE_NAME
 systemctl restart $SERVICE_NAME
 
-IP=$(hostname -I | awk '{print $1}')
 ok "Kurulum tamam!"
-echo -e "${GREEN}Web arayuz: http://$IP:8081${NC}"
+echo -e "${GREEN}Web arayuz: http://localhost:8081${NC}"
+IP=$(ip -4 addr show | awk '/inet /{print $2}' | cut -d/ -f1 | grep -v '^127\.' | head -1)
+if [ -n "$IP" ]; then
+    echo -e "${GREEN}Ag:          http://$IP:8081${NC}"
+fi
 echo -e "${GREEN}Giris sifresi: pcmanager${NC}"
