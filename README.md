@@ -1,5 +1,7 @@
 # PC Manager
 
+> _Not: Yapay zekâ araçlarında yaşadığım sorunlar nedeniyle güncellemeler bir süre daha yavaş ilerleyecek._
+
 **Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
