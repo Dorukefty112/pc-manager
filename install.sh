@@ -13,9 +13,52 @@ info()  { echo -e "${CYAN}[INFO]${NC} $1"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 err()   { echo -e "${RED}[HATA]${NC} $1"; exit 1; }
 
+# Dagitim algilama
+_detect_distro() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "$ID"
+    else
+        echo "unknown"
+    fi
+}
+
+# Paket yoneticisi uzerinden kurulum
+_install_pkgs() {
+    case "$(_detect_distro)" in
+        arch|manjaro|endeavouros|artix|arcolinux|garuda)
+            pacman -S --noconfirm --needed "$@"
+            ;;
+        debian|ubuntu|linuxmint|pop|elementary|kali|parrot|devuan)
+            apt update -qq && apt install -y -qq "$@"
+            ;;
+        fedora)
+            dnf install -y "$@"
+            ;;
+        opensuse*|suse)
+            zypper install -y "$@"
+            ;;
+        *)
+            err "Desteklenmeyen dagitim ($(_detect_distro)). Lutfen bagimliliklari manuel kurun: $*"
+            ;;
+    esac
+}
+
 if [ "$EUID" -ne 0 ]; then err "Bu script root olarak calistirilmalidir: sudo bash install.sh"; fi
-if ! command -v git &>/dev/null; then apt update -qq && apt install git -y -qq; fi
-if ! command -v curl &>/dev/null; then apt install curl -y -qq; fi
+
+# Temel bagimliliklari kontrol et
+if ! command -v git &>/dev/null; then _install_pkgs git; fi
+if ! command -v curl &>/dev/null; then _install_pkgs curl; fi
+if ! command -v python3 &>/dev/null; then
+    case "$(_detect_distro)" in
+        arch|manjaro|endeavouros|artix|arcolinux|garuda)
+            _install_pkgs python python-pip
+            ;;
+        *)
+            _install_pkgs python3 python3-pip python3-venv
+            ;;
+    esac
+fi
 
 info "PC Manager yukleniyor..."
 
@@ -47,8 +90,24 @@ pip install -q -r "$BACKEND_DIR/requirements.txt"
 info "Frontend derleniyor..."
 cd "$FRONTEND_DIR"
 if ! command -v node &>/dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt install nodejs -y -qq
+    case "$(_detect_distro)" in
+        arch|manjaro|endeavouros|artix|arcolinux|garuda)
+            _install_pkgs nodejs npm
+            ;;
+        debian|ubuntu|linuxmint|pop|elementary|kali|parrot|devuan)
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt install nodejs -y -qq
+            ;;
+        fedora)
+            dnf install -y nodejs npm
+            ;;
+        opensuse*|suse)
+            zypper install -y nodejs npm
+            ;;
+        *)
+            err "Node.js otomatik kurulumu bu dagitim icin desteklenmiyor. Lutfen manuel kurun: nodejs >= 18"
+            ;;
+    esac
 fi
 npm install -q
 npm run build
