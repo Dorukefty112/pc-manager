@@ -2,21 +2,49 @@ import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
 import Toggle from '../components/Toggle'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, History, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink } from 'lucide-react'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink } from 'lucide-react'
+
+function SettingRow({ label, desc, children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 0' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text)' }}>{label}</div>
+        {desc && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>{desc}</div>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Section({ title, icon: Icon, iconColor = 'var(--accent)', children, desc }) {
+  return (
+    <div className="card" style={{ padding: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: desc ? 8 : 16 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: `${iconColor}18`, border: `1px solid ${iconColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={16} color={iconColor} />
+        </div>
+        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text)' }}>{title}</span>
+      </div>
+      {desc && <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>{desc}</p>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{children}</div>
+    </div>
+  )
+}
 
 export default function SettingsPage() {
   const { t } = useI18n()
   const TABS = [
-    { id: 'general', label: t('Genel'), icon: Settings },
+    { id: 'general',       label: t('Genel'),       icon: Settings },
     { id: 'notifications', label: t('Bildirimler'), icon: Bell },
-    { id: 'ollama', label: t('Ollama'), icon: Cpu },
-    { id: 'emergency', label: t('Acil Durum'), icon: AlertTriangle },
-    { id: 'email', label: t('E-posta'), icon: Mail },
-    { id: 'webhook', label: t('Webhook'), icon: Webhook },
-    { id: 'telegram', label: t('Telegram'), icon: Send },
-    { id: 'debug', label: t('Debug'), icon: Bug },
-    { id: 'windows', label: t('Windows'), icon: Monitor },
+    { id: 'ollama',        label: 'Ollama',          icon: Cpu },
+    { id: 'emergency',     label: t('Acil Durum'),  icon: AlertTriangle },
+    { id: 'email',         label: t('E-posta'),      icon: Mail },
+    { id: 'webhook',       label: 'Webhook',         icon: Webhook },
+    { id: 'telegram',      label: 'Telegram',        icon: Send },
+    { id: 'debug',         label: 'Debug',           icon: Bug },
+    { id: 'windows',       label: 'Windows',         icon: Monitor },
   ]
+
   const [config, setConfig] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -33,458 +61,291 @@ export default function SettingsPage() {
   }, [])
 
   const toggleEmergency = async () => {
-    try {
-      const d = await api('/api/ollama/emergency', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({emergency: !emergency}),
-      })
-      setEmergency(d.emergency)
-    } catch {}
+    try { const d = await api('/api/ollama/emergency', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({emergency: !emergency}) }); setEmergency(d.emergency) } catch {}
   }
-
-  const update = (section, key, value) => {
-    setConfig(prev => ({
-      ...prev,
-      [section]: { ...prev[section], [key]: value },
-    }))
-  }
-
+  const update = (section, key, value) => setConfig(prev => ({ ...prev, [section]: { ...prev[section], [key]: value } }))
   const save = async () => {
     setSaving(true)
     try {
-      await api('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
-      })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (e) {
-      alert(t('Kaydedilemedi: ') + e.message)
-    }
+      await api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) })
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
+    } catch (e) { alert(t('Kaydedilemedi: ') + e.message) }
     setSaving(false)
   }
 
-  if (!config) return <div className="text-center py-12 text-gray-500">{t('Yukleniyor...')}</div>
+  if (!config) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, flexDirection: 'column', gap: 12 }}>
+      <div className="spinner spinner-lg" />
+    </div>
+  )
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-2 mb-4">
-        <Settings size={20} className="text-cyan-400" />
-        <h2 className="text-xl font-semibold">{t('Ayarlar')}</h2>
-      </div>
-
-      <div className="flex gap-1 mb-2 border-b border-gray-800 pb-2 overflow-x-auto">
-        {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm transition-colors whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'bg-gray-800 text-cyan-300 border-b-2 border-cyan-500'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}>
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex justify-end mb-4">
-        <button onClick={save} disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 rounded-lg text-sm transition-colors min-w-[120px] justify-center">
-          {saving ? <Loader size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
+    <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }} className="animate-fade-in">
+      <div className="page-header">
+        <h2 className="page-title">
+          <span className="page-title-icon"><Settings size={18} color="var(--accent)" /></span>
+          {t('Ayarlar')}
+        </h2>
+        <button onClick={save} disabled={saving} className="btn btn-primary" style={{ minWidth: 120 }}>
+          {saving ? <Loader size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : saved ? <Check size={14} /> : <Save size={14} />}
           {saved ? t('Kaydedildi') : t('Kaydet')}
         </button>
       </div>
 
+      {/* Tab nav */}
+      <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
+        <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border)', paddingBottom: 0, width: 'max-content', minWidth: '100%' }}>
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+              fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: 'transparent', whiteSpace: 'nowrap', transition: 'all 0.15s',
+              borderBottom: `2px solid ${activeTab === tab.id ? 'var(--accent)' : 'transparent'}`,
+              color: activeTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
+              marginBottom: -1,
+            }}>
+              <tab.icon size={13} /> {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* General */}
       {activeTab === 'general' && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Genel Ayarlar')}</h3>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">{t('Dil / Language')}</label>
-            <select value={config.general?.language || 'tr'}
-              onChange={e => update('general', 'language', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-              <option value="tr">Turkce</option>
+        <Section title={t('Genel Ayarlar')} icon={Settings}>
+          <SettingRow label={t('Dil / Language')}>
+            <select value={config.general?.language || 'tr'} onChange={e => update('general', 'language', e.target.value)} style={{ width: 140 }}>
+              <option value="tr">Türkçe</option>
               <option value="en">English</option>
             </select>
-          </div>
-        </div>
+          </SettingRow>
+        </Section>
       )}
 
+      {/* Notifications */}
       {activeTab === 'notifications' && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Uyari Esik Degerleri')}</h3>
-          {[
-            { key: 'cpu_threshold', label: t('CPU Kullanim Uyari (%)'), min: 50, max: 100 },
-            { key: 'memory_threshold', label: t('RAM Kullanim Uyari (%)'), min: 50, max: 100 },
-            { key: 'disk_threshold', label: t('Disk Doluluk Uyari (%)'), min: 50, max: 100 },
-            { key: 'earthquake_magnitude', label: t('Deprem Buyukluk Esigi'), min: 2, max: 8, step: 0.5 },
-            { key: 'earthquake_distance', label: t('Deprem Mesafe Esigi (km)'), min: 10, max: 500, step: 10 },
-          ].map(item => (
-            <div key={item.key}>
-              <div className="flex justify-between text-sm mb-1">
-                <label className="text-gray-400">{item.label}</label>
-                <span className="text-cyan-300 font-mono">{config.notifications?.[item.key] ?? 90}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Section title={t('Uyarı Eşik Değerleri')} icon={Bell}>
+            {[
+              { key: 'cpu_threshold', label: 'CPU Kullanım Uyarı (%)', min: 50, max: 100 },
+              { key: 'memory_threshold', label: 'RAM Kullanım Uyarı (%)', min: 50, max: 100 },
+              { key: 'disk_threshold', label: 'Disk Doluluk Uyarı (%)', min: 50, max: 100 },
+              { key: 'earthquake_magnitude', label: 'Deprem Büyüklük Eşiği', min: 2, max: 8, step: 0.5 },
+              { key: 'earthquake_distance', label: 'Deprem Mesafe Eşiği (km)', min: 10, max: 500, step: 10 },
+            ].map(item => (
+              <div key={item.key} style={{ padding: '8px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
+                  <span style={{ color: 'var(--accent)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{config.notifications?.[item.key] ?? 90}</span>
+                </div>
+                <input type="range" min={item.min} max={item.max} step={item.step || 1}
+                  value={config.notifications?.[item.key] ?? 90}
+                  onChange={e => update('notifications', item.key, parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent)' }} />
               </div>
-              <input type="range" min={item.min} max={item.max} step={item.step || 1}
-                value={config.notifications?.[item.key] ?? 90}
-                onChange={e => update('notifications', item.key, parseFloat(e.target.value))}
-                className="w-full accent-cyan-500" />
-            </div>
-          ))}
-          <div className="flex items-center gap-2 pt-2">
-            <input type="checkbox" id="sound_enabled" checked={config.notifications?.sound_enabled ?? true}
-              onChange={e => update('notifications', 'sound_enabled', e.target.checked)}
-              className="accent-cyan-500" />
-            <label htmlFor="sound_enabled" className="text-sm text-gray-400">{t('Sesli Bildirim')}</label>
-          </div>
-
-          <div className="pt-3 border-t border-gray-800">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">{t('Bildirim Kanallari')}</h4>
-            <div className="space-y-2">
+            ))}
+            <SettingRow label={t('Sesli Bildirim')}>
+              <Toggle checked={config.notifications?.sound_enabled ?? true} onChange={() => update('notifications', 'sound_enabled', !(config.notifications?.sound_enabled ?? true))} />
+            </SettingRow>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 10 }}>{t('Bildirim Kanalları')}</div>
               {[
-                { key: 'telegram', label: t('Telegram') },
+                { key: 'telegram', label: 'Telegram' },
                 { key: 'email', label: t('E-posta') },
-                { key: 'webhook', label: t('Webhook') },
+                { key: 'webhook', label: 'Webhook' },
               ].map(ch => (
-                <div key={ch.key} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">{ch.label}</span>
-              <Toggle checked={config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'}
-                onChange={() => update('notifications', 'channels', {
-                  ...(config.notifications?.channels || {}),
-                  [ch.key]: !(config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'),
-                })} />
-                </div>
+                <SettingRow key={ch.key} label={ch.label}>
+                  <Toggle checked={config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram'}
+                    onChange={() => update('notifications', 'channels', { ...(config.notifications?.channels || {}), [ch.key]: !(config.notifications?.channels?.[ch.key] ?? ch.key === 'telegram') })} />
+                </SettingRow>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div className="pt-3 border-t border-gray-800">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
-              <span>{t('Alarm Gecmisi')}</span>
-              {alerts.length > 0 && (
-                <button onClick={async () => {
-                  await api('/api/notifications/history', { method: 'DELETE' })
-                  setAlerts([])
-                }} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
-                  <Trash2 size={12} /> {t('Temizle')}
-                </button>
-              )}
-            </h4>
-            {alerts.length === 0 && (
-              <p className="text-xs text-gray-600">{t('Henuz alarm yok. Esik degerleri asildiginda burada gorunecek.')}</p>
-            )}
-            <div className="space-y-1.5 max-h-60 overflow-y-auto">
-              {alerts.slice(0, 50).map((a, i) => (
-                <div key={i} className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-3 py-2 text-xs">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${
-                    a.type === 'CPU' ? 'bg-cyan-400' :
-                    a.type === 'RAM' ? 'bg-violet-400' : 'bg-emerald-400'
-                  }`} />
-                  <span className="text-gray-300 font-medium shrink-0">{a.type}</span>
-                  <span className="text-gray-400">{a.value}</span>
-                  <span className="text-gray-600 ml-auto">{a.time?.slice(11, 19)}</span>
-                  <span className="text-gray-600 text-[10px]">{a.sent_to?.join(', ')}</span>
-                </div>
-              ))}
-            </div>
-            {alerts.length > 50 && (
-              <p className="text-xs text-gray-600 mt-1">{t('+{n} daha eski kayit').replace('{n}', alerts.length - 50)}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'ollama' && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Yapay Zeka Asistan')}</h3>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">{t('Model')}</label>
-            <select value={config.ollama?.model || 'gemma4:e4b'}
-              onChange={e => update('ollama', 'model', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-              {models.length === 0 && <option value="gemma4:e4b">gemma4:e4b</option>}
-              {models.map(m => <option key={m.name} value={m.name}>{m.name} ({m.size_gb}GB)</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">{t('Maksimum Tool Turu')}</label>
-            <input type="number" min={1} max={10}
-              value={config.ollama?.max_tool_rounds ?? 5}
-              onChange={e => update('ollama', 'max_tool_rounds', parseInt(e.target.value) || 1)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'emergency' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <div className="flex items-center gap-2 text-red-400 mb-2">
-              <AlertTriangle size={18} />
-              <h3 className="text-sm font-medium uppercase tracking-wider">{t('Acil Durum Modu')}</h3>
-            </div>
-            <p className="text-xs text-gray-500">
-              {t('Buyuk bir deprem aninda asistan hayatta kalma moduna gecer. KRITIK seviye deprem algilandiginda otomatik olarak aktiflesir. Bu modda asistan sadece kritik bilgi verir: ilk yardim, enkaz, su/yiyecek yonetimi, guvenli toplanma alanlari, iletisim.')}
-            </p>
-            <div className="flex flex-col items-center gap-3 pt-2">
-              <div className={`flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl border-2 transition-all ${
-                emergency
-                  ? 'bg-red-900/20 border-red-600 shadow-lg shadow-red-600/20'
-                  : 'bg-gray-800/50 border-gray-700'
-              }`}>
-                <Shield size={24} className={emergency ? 'text-red-400' : 'text-gray-500'} />
-                <div className="flex-1">
-                  <p className={`text-sm font-semibold ${emergency ? 'text-red-300' : 'text-gray-300'}`}>
-                    {emergency ? t('Acil Durum Modu AKTIF') : t('Acil Durum Modu')}
-                  </p>
-                  <p className={`text-xs ${emergency ? 'text-red-400/70' : 'text-gray-500'}`}>
-                    {emergency ? t('Asistan hayatta kalma modunda') : t('Su an devre disi')}
-                  </p>
-                </div>
-                <button onClick={toggleEmergency}
-                  className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${
-                    emergency
-                      ? 'bg-red-700 hover:bg-red-600 text-white'
-                      : 'bg-cyan-700 hover:bg-cyan-600 text-white'
-                  }`}>
-                  {emergency ? t('Devre Disi Birak') : t('Aktiflestir')}
-                </button>
-              </div>
-            </div>
-            <div className="pt-2 border-t border-gray-800">
-              <p className="text-xs text-gray-400 leading-relaxed">
-                <strong className="text-gray-300">{t('Otomatik aktivasyon:')}</strong> {t('KRITIK risk seviyesindeki bir deprem (&ge;5.0, 200km icin) algilandiginda Acil Durum Modu otomatik olarak devreye girer.')}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'email' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Mail size={14} className="text-cyan-400" />
-              {t('E-posta (SMTP)')}
-            </h3>
-            <p className="text-xs text-gray-500">
-              {t('CPU/RAM/Disk esik degerleri asildiginda e-posta ile bildirim gonder.')}
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">{t('Aktif')}</span>
-              <Toggle checked={config.email?.enabled}
-                onChange={() => update('email', 'enabled', !config.email?.enabled)} />
-            </div>
-            <div>
-            <label className="block text-sm text-gray-400 mb-1">{t('SMTP Sunucu')}</label>
-            <input type="text" placeholder={t('smtp.gmail.com')}
-                value={config.email?.smtp_server || ''}
-                onChange={e => update('email', 'smtp_server', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-            <label className="block text-sm text-gray-400 mb-1">{t('Port')}</label>
-            <input type="number" placeholder="587"
-                value={config.email?.smtp_port ?? 587}
-                onChange={e => update('email', 'smtp_port', parseInt(e.target.value) || 587)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="use_tls" checked={config.email?.use_tls ?? true}
-                onChange={e => update('email', 'use_tls', e.target.checked)}
-                className="accent-cyan-500" />
-              <label htmlFor="use_tls" className="text-sm text-gray-400">{t('TLS Kullan')}</label>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Kullanici Adi')}</label>
-              <input type="text" placeholder="ornek@gmail.com"
-                value={config.email?.smtp_user || ''}
-                onChange={e => update('email', 'smtp_user', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Sifre')}</label>
-              <input type="password" placeholder={t('App sifresi')}
-                value={config.email?.smtp_password || ''}
-                onChange={e => update('email', 'smtp_password', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Gonderen Adres')}</label>
-              <input type="email" placeholder="ornek@gmail.com"
-                value={config.email?.from_addr || ''}
-                onChange={e => update('email', 'from_addr', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Alici Adres')}</label>
-              <input type="email" placeholder="ornek@gmail.com"
-                value={config.email?.to_addr || ''}
-                onChange={e => update('email', 'to_addr', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'webhook' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Webhook size={14} className="text-cyan-400" />
-              {t('Webhook')}
-            </h3>
-            <p className="text-xs text-gray-500">
-              {t('Discord, Slack, Teams gibi servislere bildirim gonder. Webhook URL\'sini ilgili servisten al.')}
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">{t('Aktif')}</span>
-              <Toggle checked={config.webhook?.enabled}
-                onChange={() => update('webhook', 'enabled', !config.webhook?.enabled)} />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Webhook URL')}</label>
-              <input type="url" placeholder={t('https://discord.com/api/webhooks/...')}
-                value={config.webhook?.url || ''}
-                onChange={e => update('webhook', 'url', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'telegram' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Send size={14} className="text-cyan-400" />
-              {t('Telegram Bildirimleri')}
-            </h3>
-            <p className="text-xs text-gray-500">
-              {t('KRITIK ve YUKSEK seviye depremlerde telefona aninda bildirim gelmesi icin Telegram bot bilgilerini gir.')} {t('Bot\'u')} <code className="text-cyan-300">@BotFather</code>{t('\'dan olustur, mesaj at, sonra')} <code className="text-cyan-300">/getUpdates</code> {t('ile Chat ID\'ni bul.')}
-            </p>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Bot Token')}</label>
-              <input type="password" placeholder="123456:ABC-DEF1234..."
-                value={config.telegram?.bot_token || ''}
-                onChange={e => update('telegram', 'bot_token', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">{t('Chat ID')}</label>
-              <input type="text" placeholder="123456789"
-                value={config.telegram?.chat_id || ''}
-                onChange={e => update('telegram', 'chat_id', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono" />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button onClick={save}
-                className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg text-sm transition-colors">
-                {saving ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
-                {t('Kaydet')}
-              </button>
-              <button onClick={async () => {
-                await save()
-                try {
-                  const r = await api('/api/telegram/test', {method: 'POST'})
-                  alert(r.message)
-                } catch(e) { alert(t('Hata: ') + e.message) }
-              }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
-                <Send size={14} />
-                {t('Test Mesaji Gonder')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'debug' && (
-        <div className="space-y-4">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{t('Debug Modu')}</h3>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-300">{t('Debug Modu')}</p>
-                <p className="text-xs text-gray-500">{t('Acil kodu ayiklama araclari ve debug agent')}</p>
-              </div>
-              <Toggle checked={config.debug?.enabled}
-                onChange={() => update('debug', 'enabled', !config.debug?.enabled)} />
-            </div>
-            {config.debug?.enabled && (
+          {/* Alarm history */}
+          <Section title={t('Alarm Geçmişi')} icon={Bell}>
+            {alerts.length === 0 ? (
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('Henüz alarm yok.')}</p>
+            ) : (
               <>
-                <div className="flex items-center justify-between pt-2 border-t border-gray-800">
-                  <span className="text-sm text-gray-400">{t('API Cagrilarini Logla')}</span>
-                  <input type="checkbox" checked={config.debug?.log_api_calls ?? true}
-                    onChange={e => update('debug', 'log_api_calls', e.target.checked)}
-                    className="accent-cyan-500" />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                  <button onClick={async () => { await api('/api/notifications/history', { method: 'DELETE' }); setAlerts([]) }} className="btn btn-danger" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>
+                    <Trash2 size={12} /> {t('Temizle')}
+                  </button>
                 </div>
-                <div className="pt-2">
-                  <a href="/debug"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-cyan-300 transition-colors">
-                    <Bug size={14} />
-                    {t('Debug Paneline Git')}
-                  </a>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'windows' && (
-        <div className="space-y-4">
-          <div className="card p-4 space-y-4">
-            <h3 className="text-sm font-medium uppercase tracking-wider flex items-center gap-2" style={{color: 'var(--text-secondary)'}}>
-              <Monitor size={14} style={{color: 'var(--accent)'}} />
-              {t('Windows Entegrasyonu')}
-            </h3>
-            <p className="text-xs" style={{color: 'var(--text-muted)'}}>
-              {t('WSL üzerinden Windows sistem yönetimi. Etkinleştirildiğinde Windows servislerini, processlerini, disklerini, ağ bilgilerini ve event log\'larını PC Manager üzerinden yönetebilirsin.')}
-            </p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium" style={{color: 'var(--text)'}}>{t('Windows Entegrasyonu')}</p>
-                <p className="text-xs" style={{color: 'var(--text-muted)'}}>{t('Ana etkinleştirme')}</p>
-              </div>
-              <Toggle checked={config.windows?.enabled || false}
-                onChange={() => update('windows', 'enabled', !config.windows?.enabled)} />
-            </div>
-            {config.windows?.enabled && (
-              <>
-                <div className="border-t pt-4 space-y-3" style={{borderColor: 'var(--border)'}}>
-                  <p className="text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-muted)'}}>{t('Alt Özellikler')}</p>
-                  {[
-                    { key: 'services', label: t('Servis Yönetimi'), icon: Server },
-                    { key: 'processes', label: t('Process Listesi'), icon: Monitor },
-                    { key: 'disk_info', label: t('Disk Bilgisi'), icon: HardDrive },
-                    { key: 'network', label: t('Ağ Bilgisi'), icon: Wifi },
-                    { key: 'event_log', label: t('Event Log'), icon: ScrollText },
-                    { key: 'command_palette', label: t('Komut Çalıştırma'), icon: Terminal },
-                  ].map(f => (
-                    <div key={f.key} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <f.icon size={14} style={{color: 'var(--text-muted)'}} />
-                        <span className="text-sm" style={{color: 'var(--text-secondary)'}}>{f.label}</span>
-                      </div>
-                      <Toggle checked={config.windows?.[f.key] || false}
-                        onChange={() => update('windows', f.key, !config.windows?.[f.key])} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 280, overflowY: 'auto' }}>
+                  {alerts.slice(0, 50).map((a, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: '0.78rem' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: a.type === 'CPU' ? '#22d3ee' : a.type === 'RAM' ? '#a78bfa' : '#34d399', flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, color: 'var(--text)', width: 40 }}>{a.type}</span>
+                      <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{a.value}</span>
+                      <span style={{ color: 'var(--text-muted)', fontFamily: "'JetBrains Mono',monospace", fontSize: '0.7rem' }}>{a.time?.slice(11, 19)}</span>
                     </div>
                   ))}
                 </div>
-                <div className="pt-2">
-                  <a href="/windows"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
-                    style={{background: 'var(--accent-glow)', color: 'var(--accent)'}}>
-                    <ExternalLink size={14} />
-                    {t('Windows Yönetim Paneline Git')}
-                  </a>
-                </div>
               </>
             )}
-          </div>
+          </Section>
         </div>
+      )}
+
+      {/* Ollama */}
+      {activeTab === 'ollama' && (
+        <Section title={t('Yapay Zeka Asistan')} icon={Cpu}>
+          <SettingRow label={t('Model')}>
+            <select value={config.ollama?.model || 'gemma4:e4b'} onChange={e => update('ollama', 'model', e.target.value)} style={{ width: 200 }}>
+              {models.length === 0 && <option value="gemma4:e4b">gemma4:e4b</option>}
+              {models.map(m => <option key={m.name} value={m.name}>{m.name} ({m.size_gb}GB)</option>)}
+            </select>
+          </SettingRow>
+          <SettingRow label={t('Maksimum Tool Turu')}>
+            <input type="number" min={1} max={10} value={config.ollama?.max_tool_rounds ?? 5}
+              onChange={e => update('ollama', 'max_tool_rounds', parseInt(e.target.value) || 1)}
+              style={{ width: 80 }} />
+          </SettingRow>
+        </Section>
+      )}
+
+      {/* Emergency */}
+      {activeTab === 'emergency' && (
+        <Section title={t('Acil Durum Modu')} icon={AlertTriangle} iconColor="#ef4444"
+          desc={t('Büyük bir deprem anında asistan hayatta kalma moduna geçer. KRİTİK seviye deprem algılandığında otomatik olarak aktifleşir.')}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 18px', borderRadius: 12,
+            background: emergency ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${emergency ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
+            gap: 14, transition: 'all 0.2s',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Shield size={22} color={emergency ? '#ef4444' : 'var(--text-muted)'} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: emergency ? '#ef4444' : 'var(--text)' }}>
+                  {emergency ? t('Acil Durum Modu AKTİF') : t('Acil Durum Modu')}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: emergency ? 'rgba(239,68,68,0.7)' : 'var(--text-muted)' }}>
+                  {emergency ? t('Asistan hayatta kalma modunda') : t('Şu an devre dışı')}
+                </div>
+              </div>
+            </div>
+            <button onClick={toggleEmergency} className={`btn ${emergency ? 'btn-danger' : 'btn-primary'}`}>
+              {emergency ? t('Devre Dışı Bırak') : t('Aktifleştir')}
+            </button>
+          </div>
+        </Section>
+      )}
+
+      {/* Email */}
+      {activeTab === 'email' && (
+        <Section title={t('E-posta (SMTP)')} icon={Mail}
+          desc={t('CPU/RAM/Disk eşik değerleri aşıldığında e-posta ile bildirim gönder.')}>
+          <SettingRow label={t('Aktif')}><Toggle checked={config.email?.enabled} onChange={() => update('email', 'enabled', !config.email?.enabled)} /></SettingRow>
+          {[
+            { key: 'smtp_server', label: t('SMTP Sunucu'), placeholder: 'smtp.gmail.com' },
+            { key: 'smtp_port', label: t('Port'), placeholder: '587', type: 'number' },
+            { key: 'smtp_user', label: t('Kullanıcı Adı'), placeholder: 'ornek@gmail.com' },
+            { key: 'smtp_password', label: t('Şifre'), placeholder: t('App şifresi'), type: 'password' },
+            { key: 'from_addr', label: t('Gönderen Adres'), placeholder: 'ornek@gmail.com', type: 'email' },
+            { key: 'to_addr', label: t('Alıcı Adres'), placeholder: 'ornek@gmail.com', type: 'email' },
+          ].map(f => (
+            <SettingRow key={f.key} label={f.label}>
+              <input type={f.type || 'text'} placeholder={f.placeholder} value={config.email?.[f.key] || ''}
+                onChange={e => update('email', f.key, f.type === 'number' ? parseInt(e.target.value) || 587 : e.target.value)}
+                style={{ width: 220 }} />
+            </SettingRow>
+          ))}
+          <SettingRow label="TLS">
+            <Toggle checked={config.email?.use_tls ?? true} onChange={() => update('email', 'use_tls', !(config.email?.use_tls ?? true))} />
+          </SettingRow>
+        </Section>
+      )}
+
+      {/* Webhook */}
+      {activeTab === 'webhook' && (
+        <Section title="Webhook" icon={Webhook}
+          desc={t("Discord, Slack, Teams gibi servislere bildirim gönder.")}>
+          <SettingRow label={t('Aktif')}><Toggle checked={config.webhook?.enabled} onChange={() => update('webhook', 'enabled', !config.webhook?.enabled)} /></SettingRow>
+          <SettingRow label="URL">
+            <input type="url" placeholder="https://discord.com/api/webhooks/..."
+              value={config.webhook?.url || ''}
+              onChange={e => update('webhook', 'url', e.target.value)}
+              style={{ width: 280, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
+          </SettingRow>
+        </Section>
+      )}
+
+      {/* Telegram */}
+      {activeTab === 'telegram' && (
+        <Section title="Telegram" icon={Send}
+          desc={t("KRİTİK ve YÜKSEK seviye depremlerde telefona anında bildirim gelmesi için Telegram bot bilgilerini gir. @BotFather'dan bot oluştur.")}>
+          <SettingRow label="Bot Token">
+            <input type="password" placeholder="123456:ABC-DEF1234..."
+              value={config.telegram?.bot_token || ''}
+              onChange={e => update('telegram', 'bot_token', e.target.value)}
+              style={{ width: 240, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
+          </SettingRow>
+          <SettingRow label="Chat ID">
+            <input type="text" placeholder="123456789"
+              value={config.telegram?.chat_id || ''}
+              onChange={e => update('telegram', 'chat_id', e.target.value)}
+              style={{ width: 160, fontFamily: "'JetBrains Mono',monospace" }} />
+          </SettingRow>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button onClick={save} className="btn btn-primary"><Save size={14} /> {t('Kaydet')}</button>
+            <button onClick={async () => { await save(); try { const r = await api('/api/telegram/test', {method:'POST'}); alert(r.message) } catch(e) { alert(t('Hata: ') + e.message) }}} className="btn btn-secondary">
+              <Send size={14} /> {t('Test Mesajı Gönder')}
+            </button>
+          </div>
+        </Section>
+      )}
+
+      {/* Debug */}
+      {activeTab === 'debug' && (
+        <Section title="Debug" icon={Bug}>
+          <SettingRow label={t('Debug Modu')} desc={t('Acil kod ayıklama araçları ve debug agent')}>
+            <Toggle checked={config.debug?.enabled} onChange={() => update('debug', 'enabled', !config.debug?.enabled)} />
+          </SettingRow>
+          {config.debug?.enabled && (
+            <>
+              <SettingRow label={t('API Çağrılarını Logla')}>
+                <Toggle checked={config.debug?.log_api_calls ?? true} onChange={() => update('debug', 'log_api_calls', !(config.debug?.log_api_calls ?? true))} />
+              </SettingRow>
+              <a href="/debug" className="btn btn-secondary" style={{ width: 'fit-content', marginTop: 6 }}>
+                <Bug size={13} /> {t('Debug Paneline Git')}
+              </a>
+            </>
+          )}
+        </Section>
+      )}
+
+      {/* Windows */}
+      {activeTab === 'windows' && (
+        <Section title={t('Windows Entegrasyonu')} icon={Monitor}
+          desc={t('WSL üzerinden Windows sistem yönetimi. Etkinleştirildiğinde Windows servislerini, processlerini, disklerini yönetebilirsin.')}>
+          <SettingRow label={t('Windows Entegrasyonu')} desc={t('Ana etkinleştirme')}>
+            <Toggle checked={config.windows?.enabled || false} onChange={() => update('windows', 'enabled', !config.windows?.enabled)} />
+          </SettingRow>
+          {config.windows?.enabled && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 10 }}>{t('Alt Özellikler')}</div>
+              {[
+                { key: 'services', label: t('Servis Yönetimi'), icon: Server },
+                { key: 'processes', label: t('Process Listesi'), icon: Monitor },
+                { key: 'disk_info', label: t('Disk Bilgisi'), icon: HardDrive },
+                { key: 'network', label: t('Ağ Bilgisi'), icon: Wifi },
+                { key: 'event_log', label: t('Event Log'), icon: ScrollText },
+                { key: 'command_palette', label: t('Komut Çalıştırma'), icon: Terminal },
+              ].map(f => (
+                <SettingRow key={f.key} label={<span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><f.icon size={13} color="var(--text-muted)" />{f.label}</span>}>
+                  <Toggle checked={config.windows?.[f.key] || false} onChange={() => update('windows', f.key, !config.windows?.[f.key])} />
+                </SettingRow>
+              ))}
+              <a href="/windows" className="btn btn-secondary" style={{ marginTop: 10, width: 'fit-content' }}>
+                <ExternalLink size={13} /> {t('Windows Yönetim Paneline Git')}
+              </a>
+            </div>
+          )}
+        </Section>
       )}
     </div>
   )

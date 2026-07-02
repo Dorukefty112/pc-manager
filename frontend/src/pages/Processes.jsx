@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
-import { Search, XCircle, Skull } from 'lucide-react'
+import { Cpu, Search, XCircle, Skull, RefreshCw } from 'lucide-react'
 
 export default function Processes() {
   const { t } = useI18n()
@@ -9,12 +9,13 @@ export default function Processes() {
   const [sort, setSort] = useState('cpu')
   const [search, setSearch] = useState('')
 
+  const fetchProcs = async () => {
+    try { setProcs(await api(`/api/processes?sort=${sort}&limit=80&search=${encodeURIComponent(search)}`)) } catch {}
+  }
+
   useEffect(() => {
-    const fetch = async () => {
-      try { setProcs(await api(`/api/processes?sort=${sort}&limit=80&search=${encodeURIComponent(search)}`)) } catch {}
-    }
-    fetch()
-    const id = setInterval(fetch, 5000)
+    fetchProcs()
+    const id = setInterval(fetchProcs, 5000)
     return () => clearInterval(id)
   }, [sort, search])
 
@@ -27,61 +28,91 @@ export default function Processes() {
   }
 
   const formatMem = (bytes) => {
-    if (!bytes) return '0B'
+    if (!bytes) return '0 MB'
     const mb = bytes / 1024 / 1024
     return mb > 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`
   }
 
-  return (
-    <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4">{t("Process'ler")}</h2>
+  const cpuColor = (pct) => pct > 50 ? '#ef4444' : pct > 20 ? '#f59e0b' : 'var(--text)'
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("Process ara...")} className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-cyan-700" />
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }} className="animate-fade-in">
+      <div className="page-header">
+        <h2 className="page-title">
+          <span className="page-title-icon"><Cpu size={18} color="var(--accent)" /></span>
+          {t("Process'ler")}
+        </h2>
+        <button onClick={fetchProcs} className="btn btn-secondary">
+          <RefreshCw size={14} /> {t('Yenile')}
+        </button>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="search-wrap" style={{ flex: 1, minWidth: 180, maxWidth: 340 }}>
+          <Search size={14} className="search-icon" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Process ara...')} />
         </div>
-        <div className="flex gap-1 text-sm">
-          <button onClick={() => setSort('cpu')} className={`px-3 py-2 rounded-lg ${sort === 'cpu' ? 'bg-cyan-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>CPU</button>
-          <button onClick={() => setSort('memory')} className={`px-3 py-2 rounded-lg ${sort === 'memory' ? 'bg-cyan-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>RAM</button>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: 3 }}>
+          {['cpu','memory'].map(s => (
+            <button key={s} onClick={() => setSort(s)} style={{
+              padding: '5px 14px', borderRadius: 7, fontSize: '0.78rem', fontWeight: 600,
+              cursor: 'pointer', border: 'none', transition: 'all 0.15s ease',
+              background: sort === s ? 'var(--accent)' : 'transparent',
+              color: sort === s ? '#fff' : 'var(--text-muted)',
+              boxShadow: sort === s ? '0 0 12px rgba(6,182,212,0.3)' : 'none',
+            }}>
+              {s === 'cpu' ? 'CPU' : 'RAM'}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <div className="table-wrap" style={{ overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
             <thead>
-              <tr className="border-b border-gray-800 text-gray-500 text-xs uppercase">
-                <th className="text-left px-2 sm:px-4 py-3 font-medium">PID</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium">{t("İsim")}</th>
-                <th className="text-right px-2 sm:px-4 py-3 font-medium">CPU%</th>
-                <th className="text-right px-2 sm:px-4 py-3 font-medium">RAM%</th>
-                <th className="text-right px-2 sm:px-4 py-3 font-medium hidden md:table-cell">RAM</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden sm:table-cell">{t("Durum")}</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden lg:table-cell">{t("Kullanıcı")}</th>
-                <th className="text-right px-2 sm:px-4 py-3 font-medium">{t("İşlem")}</th>
+              <tr>
+                <th>PID</th>
+                <th>{t('İsim')}</th>
+                <th style={{ textAlign: 'right' }}>CPU%</th>
+                <th style={{ textAlign: 'right' }}>RAM%</th>
+                <th style={{ textAlign: 'right' }}>RAM</th>
+                <th>{t('Durum')}</th>
+                <th style={{ textAlign: 'right' }}>{t('İşlem')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody>
               {procs.map(p => (
-                <tr key={p.pid} className="hover:bg-gray-800/50">
-                  <td className="px-2 sm:px-4 py-2.5 font-mono text-xs text-gray-400">{p.pid}</td>
-                  <td className="px-2 sm:px-4 py-2.5 text-gray-200 max-w-[120px] sm:max-w-[200px] truncate">{p.name || '?'}</td>
-                  <td className="px-2 sm:px-4 py-2.5 text-right">
-                    <span className={`${(p.cpu_percent || 0) > 50 ? 'text-red-400' : (p.cpu_percent || 0) > 20 ? 'text-yellow-400' : 'text-gray-300'}`}>
-                      {p.cpu_percent?.toFixed(1) || '0'}
+                <tr key={p.pid}>
+                  <td className="mono">{p.pid}</td>
+                  <td className="primary" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.name || '?'}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span style={{ fontWeight: 700, color: cpuColor(p.cpu_percent || 0), fontFamily: "'JetBrains Mono',monospace", fontSize: '0.8rem' }}>
+                      {(p.cpu_percent || 0).toFixed(1)}
                     </span>
                   </td>
-                  <td className="px-2 sm:px-4 py-2.5 text-right text-gray-300">{p.memory_percent?.toFixed(1) || '0'}</td>
-                  <td className="px-2 sm:px-4 py-2.5 text-right text-gray-400 font-mono text-xs hidden md:table-cell">{formatMem(p.memory_info?.rss)}</td>
-                  <td className="px-2 sm:px-4 py-2.5 hidden sm:table-cell">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${p.status === 'running' ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'}`}>{p.status}</span>
+                  <td className="mono" style={{ textAlign: 'right' }}>
+                    {(p.memory_percent || 0).toFixed(1)}
                   </td>
-                  <td className="px-2 sm:px-4 py-2.5 text-xs text-gray-500 hidden lg:table-cell">{p.username || '?'}</td>
-                  <td className="px-2 sm:px-4 py-2.5 text-right">
-                    <div className="flex justify-end gap-1">
-                      <button onClick={() => kill(p.pid, false)} title="SIGTERM" className="p-1.5 rounded hover:bg-yellow-900/50 text-yellow-500"><XCircle size={14} /></button>
-                      <button onClick={() => kill(p.pid, true)} title="SIGKILL" className="p-1.5 rounded hover:bg-red-900/50 text-red-500"><Skull size={14} /></button>
+                  <td className="mono" style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                    {formatMem(p.memory_info?.rss)}
+                  </td>
+                  <td>
+                    <span className={`badge ${p.status === 'running' ? 'badge-green' : 'badge-gray'}`}>
+                      {p.status}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                      <button onClick={() => kill(p.pid, false)} className="btn-icon warning" title="SIGTERM">
+                        <XCircle size={14} />
+                      </button>
+                      <button onClick={() => kill(p.pid, true)} className="btn-icon danger" title="SIGKILL">
+                        <Skull size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -89,7 +120,7 @@ export default function Processes() {
             </tbody>
           </table>
         </div>
-        {procs.length === 0 && <div className="p-8 text-center text-gray-600">{t("Process bulunamadı")}</div>}
+        {procs.length === 0 && <div className="table-empty">{t('Process bulunamadı')}</div>}
       </div>
     </div>
   )

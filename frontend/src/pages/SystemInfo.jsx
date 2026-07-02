@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
-import { Monitor, Cpu, HardDrive, Users, Clock, CircuitBoard } from 'lucide-react'
+import { Monitor, Cpu, HardDrive, Users, Clock, CircuitBoard, Server } from 'lucide-react'
+
+const iconMap = { Monitor, Cpu, HardDrive, Users, Clock, CircuitBoard, Server }
 
 export default function SystemInfo() {
   const { t } = useI18n()
@@ -11,62 +13,109 @@ export default function SystemInfo() {
     api('/api/system/info').then(setInfo).catch(() => {})
   }, [])
 
-  if (!info) return <div className="text-center text-gray-500 mt-20">{t("Yükleniyor...")}</div>
-
   const fmtBytes = (b) => {
     if (!b) return '0'
     if (b > 1e12) return `${(b / 1e12).toFixed(2)} TB`
-    if (b > 1e9) return `${(b / 1e9).toFixed(2)} GB`
+    if (b > 1e9)  return `${(b / 1e9).toFixed(2)} GB`
     return `${(b / 1e6).toFixed(0)} MB`
   }
 
+  if (!info) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, flexDirection: 'column', gap: 12 }}>
+      <div className="spinner spinner-lg" />
+      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{t('Yükleniyor...')}</span>
+    </div>
+  )
+
   const rows = [
-    { label: 'Hostname', value: info.hostname, icon: Monitor },
-    { label: t('İşletim Sistemi'), value: info.os, icon: Monitor },
-    { label: 'Kernel', value: info.kernel, icon: CircuitBoard },
-    { label: t('Mimari'), value: info.arch, icon: CircuitBoard },
-    { label: t('Açık Kalma'), value: `${info.uptime_days} ${t('gün')}`, icon: Clock },
-    { label: t('Çekirdekler'), value: `${info.cpu.physical_cores} ${t('fiziksel')} / ${info.cpu.logical_cores} ${t('mantıksal')}`, icon: Cpu },
-    { label: t('CPU Modeli'), value: info.cpu.brand, icon: Cpu },
-    { label: t('Max Frekans'), value: info.cpu.max_freq ? `${info.cpu.max_freq.toFixed(0)} MHz` : '-', icon: Cpu },
-    { label: t('Toplam RAM'), value: fmtBytes(info.memory.total), icon: HardDrive },
-    { label: t('Swap'), value: fmtBytes(info.memory.swap_total), icon: HardDrive },
-    { label: t('Kullanıcılar'), value: info.users?.join(', ') || '-', icon: Users },
+    { label: 'Hostname',          value: info.hostname,   icon: Monitor,      color: '#06b6d4' },
+    { label: t('İşletim Sistemi'), value: info.os,         icon: Monitor,      color: '#06b6d4' },
+    { label: 'Kernel',            value: info.kernel,     icon: CircuitBoard, color: '#a78bfa' },
+    { label: t('Mimari'),          value: info.arch,       icon: CircuitBoard, color: '#a78bfa' },
+    { label: t('Açık Kalma'),      value: `${info.uptime_days} ${t('gün')}`, icon: Clock, color: '#fb923c' },
+    { label: t('Çekirdekler'),     value: `${info.cpu.physical_cores} ${t('fiziksel')} / ${info.cpu.logical_cores} ${t('mantıksal')}`, icon: Cpu, color: '#34d399' },
+    { label: t('CPU Modeli'),      value: info.cpu.brand,  icon: Cpu,          color: '#34d399' },
+    { label: t('Max Frekans'),     value: info.cpu.max_freq ? `${info.cpu.max_freq.toFixed(0)} MHz` : '-', icon: Cpu, color: '#34d399' },
+    { label: t('Toplam RAM'),      value: fmtBytes(info.memory.total),      icon: HardDrive, color: '#f59e0b' },
+    { label: t('Swap'),            value: fmtBytes(info.memory.swap_total), icon: HardDrive, color: '#f59e0b' },
+    { label: t('Kullanıcılar'),    value: info.users?.join(', ') || '-',    icon: Users,     color: '#ec4899' },
   ]
 
   return (
-    <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-6">{t("Sistem Bilgileri")}</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }} className="animate-fade-in">
+      <div className="page-header">
+        <h2 className="page-title">
+          <span className="page-title-icon"><Server size={18} color="var(--accent)" /></span>
+          {t('Sistem Bilgileri')}
+        </h2>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        {rows.map(r => (
-          <div key={r.label} className="bg-gray-900 rounded-xl border border-gray-800 p-4 flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-gray-800 text-cyan-400"><r.icon size={18} /></div>
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500">{r.label}</div>
-              <div className="text-sm text-gray-200 truncate">{r.value}</div>
+      {/* Info grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        {rows.map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="card card-glow" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+              background: `${color}18`, border: `1px solid ${color}30`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon size={18} color={color} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 3 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {value}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-        <h3 className="font-medium mb-4">{t("Disk Bölümleri")}</h3>
-        <div className="space-y-2">
-          {info.disks?.filter(Boolean).map((d, i) => (
-            <div key={i} className="bg-gray-800 rounded-lg p-3">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="font-mono text-cyan-400">{d.device}</span>
-                <span className="text-gray-400">{d.mount}</span>
-              </div>
-              <div className="text-xs text-gray-500">{d.fstype} &middot; {fmtBytes(d.used)} / {fmtBytes(d.total)} ({d.percent.toFixed(1)}%)</div>
-              <div className="w-full h-1.5 bg-gray-700 rounded-full mt-1">
-                <div className="h-full rounded-full bg-cyan-500" style={{ width: `${Math.min(d.percent, 100)}%` }} />
-              </div>
-            </div>
-          ))}
+      {/* Disk partitions */}
+      {info.disks?.length > 0 && (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <HardDrive size={15} color="var(--accent)" />
+            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)' }}>{t('Disk Bölümleri')}</span>
+          </div>
+          <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {info.disks.filter(Boolean).map((d, i) => {
+              const diskColor = d.percent > 80 ? '#ef4444' : d.percent > 60 ? '#f97316' : '#34d399'
+              return (
+                <div key={i} style={{
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 14px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 600 }}>
+                      {d.device}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{d.mount} · {d.fstype}</span>
+                      <span className="badge" style={{
+                        background: `${diskColor}15`, color: diskColor, border: `1px solid ${diskColor}30`,
+                        fontSize: '0.68rem',
+                      }}>{d.percent.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6 }}>
+                    {fmtBytes(d.used)} / {fmtBytes(d.total)}
+                  </div>
+                  <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 99, width: `${Math.min(d.percent, 100)}%`,
+                      background: diskColor, boxShadow: `0 0 8px ${diskColor}60`,
+                      transition: 'width 0.6s ease',
+                    }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

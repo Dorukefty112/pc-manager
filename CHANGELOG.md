@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] — 2026-07-02
+
+- **Premium Tasarım Sistemi (Arayüz Yenilemesi)**: Arayüz tamamen modernize edildi; cam efekti (glassmorphism), dinamik animasyonlar ve yeni HSL renk paleti (`--accent` vb.) entegre edildi.
+- **Canlı Gösterge ve Grafik Bileşenleri**: `CircleGauge` (dairesel SVG göstergeleri) ve `Sparkline` (HTML5 Canvas tabanlı canlı CPU/RAM grafik çizgileri) bileşenleri ile canlı sistem izleme ekranı geliştirildi.
+- **Sayfa Arayüz Güncellemeleri**: Dashboard, Updates, Settings, Chat ve diğer tüm sayfalar yeni bileşenleri kullanacak şekilde görsel olarak optimize edildi.
+
 ## [1.3.0] — 2026-06-19
 
 - **Çoklu Dağıtım Desteği**: install.sh artık Arch/Debian/Fedora/openSUSE ve türevlerini otomatik algılar, pacman/apt/dnf/zypper ile kurulum yapar.

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
-import { Play, Square, RotateCw, Search, RefreshCw } from 'lucide-react'
+import { Play, Square, RotateCw, Search, RefreshCw, Server } from 'lucide-react'
 
 export default function Services() {
   const { t } = useI18n()
@@ -23,68 +23,105 @@ export default function Services() {
   const action = async (name, cmd) => {
     try {
       await api(`/api/services/${cmd}?name=${encodeURIComponent(name)}`, { method: 'POST' })
-      setTimeout(fetchServices, 1000)
+      setTimeout(fetchServices, 1200)
     } catch (e) { alert(e.message) }
   }
 
-  const statusColor = (active, sub) => {
-    if (active === 'active' && sub === 'running') return 'bg-green-900/50 text-green-400'
-    if (active === 'active') return 'bg-green-900/30 text-green-500'
-    if (active === 'failed') return 'bg-red-900/50 text-red-400'
-    return 'bg-gray-800 text-gray-500'
+  const getStatusBadge = (active, sub) => {
+    if (active === 'active' && sub === 'running') return { cls: 'badge-green', label: sub }
+    if (active === 'active') return { cls: 'badge-cyan', label: active }
+    if (active === 'failed') return { cls: 'badge-red', label: 'failed' }
+    return { cls: 'badge-gray', label: sub || active }
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl sm:text-2xl font-semibold">{t("Servisler")}</h2>
-        <button onClick={fetchServices} disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 text-sm">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {t("Yenile")}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }} className="animate-fade-in">
+      <div className="page-header">
+        <h2 className="page-title">
+          <span className="page-title-icon"><Server size={18} color="var(--accent)" /></span>
+          {t('Servisler')}
+        </h2>
+        <button onClick={fetchServices} disabled={loading} className="btn btn-secondary">
+          <RefreshCw size={14} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
+          {t('Yenile')}
         </button>
       </div>
 
-      <div className="relative max-w-xs mb-4">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-        <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchServices()} placeholder={t("Servis ara...")} 
-          className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-cyan-700" />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', maxWidth: 400 }}>
+        <div className="search-wrap" style={{ flex: 1 }}>
+          <Search size={14} className="search-icon" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && fetchServices()}
+            placeholder={t('Servis ara...')}
+          />
+        </div>
+        <button onClick={fetchServices} className="btn btn-primary">{t('Ara')}</button>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <div className="table-wrap" style={{ overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
             <thead>
-              <tr className="border-b border-gray-800 text-gray-500 text-xs uppercase">
-                <th className="text-left px-2 sm:px-4 py-3 font-medium">{t("Servis")}</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium">{t("Durum")}</th>
-                <th className="text-left px-2 sm:px-4 py-3 font-medium hidden md:table-cell">{t("Açıklama")}</th>
-                <th className="text-right px-2 sm:px-4 py-3 font-medium">{t("İşlem")}</th>
+              <tr>
+                <th>{t('Servis')}</th>
+                <th>{t('Durum')}</th>
+                <th style={{ display: 'none' }}>{t('Açıklama')}</th>
+                <th style={{ textAlign: 'right' }}>{t('İşlem')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
-              {services.map(s => (
-                <tr key={s.name} className="hover:bg-gray-800/50">
-                  <td className="px-2 sm:px-4 py-2.5 font-mono text-xs text-gray-200 max-w-[150px] sm:max-w-[250px] truncate">{s.name}</td>
-                  <td className="px-2 sm:px-4 py-2.5">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${statusColor(s.active, s.sub)}`}>{s.sub || s.active}</span>
-                  </td>
-                  <td className="px-2 sm:px-4 py-2.5 text-xs text-gray-500 max-w-[300px] truncate hidden md:table-cell">{s.description}</td>
-                  <td className="px-2 sm:px-4 py-2.5 text-right">
-                    <div className="flex justify-end gap-1">
-                      <button onClick={() => action(s.name, 'start')} disabled={s.active === 'active'} title={t("Başlat")}
-                        className="p-1.5 rounded hover:bg-green-900/50 text-green-500 disabled:opacity-30 disabled:cursor-not-allowed"><Play size={14} /></button>
-                      <button onClick={() => action(s.name, 'stop')} disabled={s.active !== 'active'} title={t("Durdur")}
-                        className="p-1.5 rounded hover:bg-red-900/50 text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"><Square size={14} /></button>
-                      <button onClick={() => action(s.name, 'restart')} title={t("Yeniden Başlat")}
-                        className="p-1.5 rounded hover:bg-yellow-900/50 text-yellow-500"><RotateCw size={14} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            <tbody>
+              {services.map(s => {
+                const { cls, label } = getStatusBadge(s.active, s.sub)
+                return (
+                  <tr key={s.name}>
+                    <td className="primary mono" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                      {s.name}
+                    </td>
+                    <td>
+                      <span className={`badge ${cls}`}>
+                        <span className={`dot ${cls === 'badge-green' ? 'dot-green' : cls === 'badge-red' ? 'dot-red' : cls === 'badge-cyan' ? 'dot-cyan' : 'dot-gray'}`} />
+                        {label}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.description}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => action(s.name, 'start')}
+                          disabled={s.active === 'active'}
+                          className="btn-icon success"
+                          title={t('Başlat')}
+                        >
+                          <Play size={13} />
+                        </button>
+                        <button
+                          onClick={() => action(s.name, 'stop')}
+                          disabled={s.active !== 'active'}
+                          className="btn-icon danger"
+                          title={t('Durdur')}
+                        >
+                          <Square size={13} />
+                        </button>
+                        <button
+                          onClick={() => action(s.name, 'restart')}
+                          className="btn-icon warning"
+                          title={t('Yeniden Başlat')}
+                        >
+                          <RotateCw size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
-        {services.length === 0 && <div className="p-8 text-center text-gray-600">{t("Servis bulunamadı")}</div>}
+        {services.length === 0 && <div className="table-empty">{t('Servis bulunamadı')}</div>}
       </div>
     </div>
   )

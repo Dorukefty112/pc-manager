@@ -11,21 +11,17 @@ export default function Cron() {
   const [error, setError] = useState('')
 
   const PRESETS = [
-    { label: t('Her dakika'), value: '* * * * *' },
-    { label: t('Her 5 dk'), value: '*/5 * * * *' },
-    { label: t('Her 15 dk'), value: '*/15 * * * *' },
-    { label: t('Her saat'), value: '0 * * * *' },
+    { label: t('Her dakika'),    value: '* * * * *' },
+    { label: t('Her 5 dk'),     value: '*/5 * * * *' },
+    { label: t('Her 15 dk'),    value: '*/15 * * * *' },
+    { label: t('Her saat'),     value: '0 * * * *' },
     { label: t('Her gün (gece)'), value: '0 3 * * *' },
     { label: t('Her Pazartesi'), value: '0 0 * * 1' },
   ]
 
   const load = async () => {
-    try {
-      const res = await api('/api/cron/jobs')
-      setJobs(res.jobs || [])
-    } catch {}
+    try { const res = await api('/api/cron/jobs'); setJobs(res.jobs || []) } catch {}
   }
-
   useEffect(() => { load() }, [])
 
   const add = async () => {
@@ -37,85 +33,126 @@ export default function Cron() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schedule: schedule.trim(), command: command.trim() }),
       })
-      setCommand('')
-      load()
+      setCommand(''); load()
     } catch (e) { setError(e.message) }
   }
 
   const remove = async (cmd) => {
-    try {
-      await api(`/api/cron/jobs?command=${encodeURIComponent(cmd)}`, { method: 'DELETE' })
-      load()
-    } catch (e) { setError(e.message) }
+    try { await api(`/api/cron/jobs?command=${encodeURIComponent(cmd)}`, { method: 'DELETE' }); load() }
+    catch (e) { setError(e.message) }
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock size={20} className="text-cyan-400" />
-          <h2 className="text-xl sm:text-2xl font-semibold">{t('Cron Zamanlayıcı')}</h2>
-        </div>
-        <button onClick={load} className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700">
-          <RefreshCw size={16} />
-        </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }} className="animate-fade-in">
+      <div className="page-header">
+        <h2 className="page-title">
+          <span className="page-title-icon"><Clock size={18} color="var(--accent)" /></span>
+          {t('Cron Zamanlayıcı')}
+        </h2>
+        <button onClick={load} className="btn btn-secondary"><RefreshCw size={14} /> {t('Yenile')}</button>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 mb-4">
-        <h3 className="text-sm font-medium mb-3">{t('Yeni Zamanlanmış Görev')}</h3>
+      {/* Add form */}
+      <div className="card card-glow" style={{ padding: 22 }}>
+        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)', marginBottom: 16 }}>
+          {t('Yeni Zamanlanmış Görev')}
+        </div>
 
-        <div className="flex flex-wrap gap-2 mb-3">
+        {/* Preset pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
           {PRESETS.map(p => (
-            <button key={p.value} onClick={() => setSchedule(p.value)}
-              className={`px-2.5 py-1 text-xs rounded-lg border ${schedule === p.value ? 'border-cyan-700 bg-cyan-900/30 text-cyan-300' : 'border-gray-700 text-gray-500 hover:border-gray-600'}`}>
+            <button key={p.value} onClick={() => setSchedule(p.value)} style={{
+              padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 600,
+              cursor: 'pointer', transition: 'all 0.15s ease', border: '1px solid',
+              background: schedule === p.value ? 'var(--accent-glow)' : 'var(--bg-elevated)',
+              color: schedule === p.value ? 'var(--accent)' : 'var(--text-muted)',
+              borderColor: schedule === p.value ? 'rgba(6,182,212,0.3)' : 'var(--border)',
+            }}>
               {p.label}
             </button>
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 mb-2">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
           <input value={schedule} onChange={e => setSchedule(e.target.value)}
-            placeholder={t('Zaman (örn: * * * * *)')}
-            className="w-full sm:w-44 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-cyan-700" />
+            placeholder="* * * * *"
+            style={{ width: 160, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.82rem' }}
+          />
           <input value={command} onChange={e => setCommand(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && add()}
             placeholder={t('Komut (örn: /usr/bin/backup.sh)')}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-700" />
-          <button onClick={add} disabled={!command.trim()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-cyan-700 rounded-lg hover:bg-cyan-600 disabled:opacity-40 text-sm font-medium whitespace-nowrap">
+            style={{ flex: 1, minWidth: 200, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.82rem' }}
+          />
+          <button onClick={add} disabled={!command.trim()} className="btn btn-primary">
             <Plus size={14} /> {t('Ekle')}
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 text-xs text-red-400 mt-1">
-            <AlertCircle size={12} /> {error}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7, marginTop: 8,
+            background: 'var(--red-glow)', border: '1px solid rgba(239,68,68,0.25)',
+            borderRadius: 9, padding: '8px 12px',
+            color: 'var(--red)', fontSize: '0.78rem',
+          }}>
+            <AlertCircle size={13} /> {error}
           </div>
         )}
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
-        <div className="px-4 py-2.5 border-b border-gray-800 text-xs text-gray-500 font-medium uppercase tracking-wider flex items-center justify-between">
-          <span>{t('Zamanlanmış Görevler')} ({jobs.length})</span>
+      {/* Jobs list */}
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <div style={{
+          padding: '11px 18px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={14} color="var(--text-muted)" />
+            <span style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              {t('Zamanlanmış Görevler')}
+            </span>
+          </div>
+          <span className="badge badge-cyan">{jobs.length}</span>
         </div>
+
         {jobs.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">
-            <Clock size={32} className="mx-auto mb-2 opacity-30" />
-            <p>{t('Hiç cron job yok')}</p>
-            <p className="text-xs mt-1">{t('Yukarıdan yeni bir görev ekleyin')}</p>
+          <div className="empty-state">
+            <Clock size={32} color="var(--text-muted)" style={{ opacity: 0.4 }} />
+            <span>{t('Hiç cron job yok')}</span>
+            <span style={{ fontSize: '0.75rem' }}>{t('Yukarıdan yeni bir görev ekleyin')}</span>
           </div>
         ) : (
-          <div className="divide-y divide-gray-800 max-h-[500px] overflow-y-auto">
+          <div style={{ maxHeight: 500, overflowY: 'auto' }}>
             {jobs.map((job, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <code className="text-xs font-mono text-cyan-400 bg-cyan-950/50 px-1.5 py-0.5 rounded">{job.schedule}</code>
-                    <span className="text-[10px] text-gray-600">{job.schedule_desc}</span>
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '11px 18px', borderBottom: '1px solid var(--border)',
+                transition: 'background 0.12s', gap: 12,
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 5 }}>
+                    <code style={{
+                      fontFamily: "'JetBrains Mono',monospace", fontSize: '0.75rem',
+                      background: 'var(--accent-glow2)', color: 'var(--accent)',
+                      padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(6,182,212,0.2)',
+                    }}>
+                      {job.schedule}
+                    </code>
+                    {job.schedule_desc && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{job.schedule_desc}</span>
+                    )}
                   </div>
-                  <div className="text-sm mt-1 font-mono text-gray-300 truncate">{job.command}</div>
+                  <div style={{
+                    fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem',
+                    color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {job.command}
+                  </div>
                 </div>
-                <button onClick={() => remove(job.command)} className="p-1.5 text-gray-600 hover:text-red-400 shrink-0 ml-2">
+                <button onClick={() => remove(job.command)} className="btn-icon danger" style={{ flexShrink: 0 }}>
                   <Trash2 size={14} />
                 </button>
               </div>

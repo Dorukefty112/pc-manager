@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
-import { HardDrive, ArrowLeft, Folder, File } from 'lucide-react'
+import { HardDrive, ArrowLeft, Folder, FileText } from 'lucide-react'
 
 export default function DiskUsage() {
   const { t } = useI18n()
@@ -12,80 +12,125 @@ export default function DiskUsage() {
   const [disks, setDisks] = useState([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    api('/api/disks/list').then(setDisks).catch(() => {})
-  }, [])
+  useEffect(() => { api('/api/disks/list').then(setDisks).catch(() => {}) }, [])
 
   useEffect(() => {
     setLoading(true)
     api(`/api/disks/usage?path=${encodeURIComponent(path)}`)
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
+      .then(setData).catch(() => setData(null)).finally(() => setLoading(false))
   }, [path])
 
   const fmt = (bytes) => {
     if (bytes > 1e12) return `${(bytes / 1e12).toFixed(2)} TB`
-    if (bytes > 1e9) return `${(bytes / 1e9).toFixed(2)} GB`
-    if (bytes > 1e6) return `${(bytes / 1e6).toFixed(2)} MB`
-    if (bytes > 1e3) return `${(bytes / 1e3).toFixed(1)} KB`
+    if (bytes > 1e9)  return `${(bytes / 1e9).toFixed(2)} GB`
+    if (bytes > 1e6)  return `${(bytes / 1e6).toFixed(2)} MB`
+    if (bytes > 1e3)  return `${(bytes / 1e3).toFixed(1)} KB`
     return `${bytes} B`
   }
 
   return (
-    <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4">{t("Disk Analizi")}</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        {disks.map((d, i) => (
-          <button key={i} onClick={() => setSearchParams({ path: d.mount })}
-            className={`bg-gray-900 rounded-xl border p-4 text-left hover:bg-gray-800 ${path === d.mount ? 'border-cyan-700' : 'border-gray-800'}`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <HardDrive size={14} className="text-cyan-400" />
-              <span className="text-sm font-mono text-cyan-400">{d.device.replace('/dev/', '')}</span>
-            </div>
-            <div className="text-xs text-gray-500 mb-1">{d.mount} ({d.fstype})</div>
-            <div className="text-sm font-semibold">{fmt(d.used)} / {fmt(d.total)}</div>
-            <div className="w-full h-1.5 bg-gray-700 rounded-full mt-1">
-              <div className={`h-full rounded-full ${d.percent > 80 ? 'bg-red-500' : d.percent > 60 ? 'bg-yellow-500' : 'bg-cyan-500'}`}
-                style={{ width: `${Math.min(d.percent, 100)}%` }} />
-            </div>
-          </button>
-        ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }} className="animate-fade-in">
+      <div className="page-header">
+        <h2 className="page-title">
+          <span className="page-title-icon"><HardDrive size={18} color="var(--accent)" /></span>
+          {t('Disk Analizi')}
+        </h2>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800 text-sm text-gray-400">
-          {data?.parent && (
-            <button onClick={() => setSearchParams({ path: data.parent })} className="hover:text-white"><ArrowLeft size={16} /></button>
-          )}
-          <span className="font-mono text-xs">{path}</span>
-        </div>
-        {loading ? (
-          <div className="p-8 text-center text-gray-600">{t("Taranıyor...")}</div>
-        ) : (
-          <div className="divide-y divide-gray-800 max-h-[600px] overflow-y-auto">
-            {data?.items?.map(item => (
-              <div key={item.path} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-800/50">
-                <button
-                  onClick={() => item.is_dir ? setSearchParams({ path: item.path }) : null}
-                  className="flex items-center gap-3 min-w-0 flex-1 text-left"
-                >
-                  {item.is_dir ? <Folder size={16} className="text-yellow-500 shrink-0" /> : <File size={16} className="text-blue-500 shrink-0" />}
-                  <span className="text-sm truncate">{item.name}</span>
-                </button>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
-                    {data?.items?.[0]?.size > 0 && (
-                      <div className="h-full rounded-full bg-cyan-500" style={{ width: `${(item.size / data.items[0].size) * 100}%` }} />
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-400 w-20 text-right font-mono">{fmt(item.size)}</span>
-                </div>
+      {/* Disk buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+        {disks.map((d, i) => {
+          const diskColor = d.percent > 80 ? '#ef4444' : d.percent > 60 ? '#f97316' : '#34d399'
+          const isActive = path === d.mount
+          return (
+            <button key={i} onClick={() => setSearchParams({ path: d.mount })} style={{
+              background: isActive ? 'var(--accent-glow2)' : 'var(--bg-card)',
+              border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: 12, padding: 16, textAlign: 'left', cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: isActive ? 'var(--shadow-glow)' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <HardDrive size={14} color={isActive ? 'var(--accent)' : 'var(--text-muted)'} />
+                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.8rem', color: isActive ? 'var(--accent)' : 'var(--text)', fontWeight: 600 }}>
+                  {d.device.replace('/dev/', '')}
+                </span>
               </div>
-            ))}
-            {data?.items?.length === 0 && <div className="p-8 text-center text-gray-600">{t("Boş dizin")}</div>}
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: 6 }}>{d.mount} ({d.fstype})</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                {fmt(d.used)} / {fmt(d.total)}
+              </div>
+              <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: 99,
+                  width: `${Math.min(d.percent, 100)}%`,
+                  background: diskColor, boxShadow: `0 0 6px ${diskColor}60`,
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* File browser */}
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <div style={{
+          padding: '12px 16px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.02)',
+        }}>
+          {data?.parent && (
+            <button onClick={() => setSearchParams({ path: data.parent })} className="btn-icon" style={{ flexShrink: 0 }}>
+              <ArrowLeft size={15} />
+            </button>
+          )}
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem', color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {path}
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="empty-state">
+            <div className="spinner" />
+            {t('Taranıyor...')}
+          </div>
+        ) : (
+          <div style={{ maxHeight: 600, overflowY: 'auto' }}>
+            {data?.items?.map(item => {
+              const maxSize = data.items[0]?.size || 1
+              const barPct = item.size > 0 ? (item.size / maxSize) * 100 : 0
+              return (
+                <div key={item.path} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '9px 16px', borderBottom: '1px solid var(--border)',
+                  transition: 'background 0.12s',
+                  cursor: item.is_dir ? 'pointer' : 'default',
+                }}
+                  onClick={() => item.is_dir && setSearchParams({ path: item.path })}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                    {item.is_dir
+                      ? <Folder size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
+                      : <FileText size={15} color="#60a5fa" style={{ flexShrink: 0 }} />
+                    }
+                    <span style={{ fontSize: '0.82rem', color: item.is_dir ? 'var(--text)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, marginLeft: 12 }}>
+                    <div style={{ width: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 99, width: `${barPct}%`, transition: 'width 0.4s ease' }} />
+                    </div>
+                    <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.72rem', color: 'var(--text-muted)', width: 70, textAlign: 'right' }}>
+                      {fmt(item.size)}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+            {(!data?.items || data.items.length === 0) && <div className="empty-state">{t('Boş dizin')}</div>}
           </div>
         )}
       </div>
