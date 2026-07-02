@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.2] — 2026-07-02
+
+- **Mobil Cihaz Eşleştirme Sistemi (Pairing)**: Companion mobil uygulamanın PC Manager backend'i ile kolay el sıkışması için `/api/pairing` API uçları eklendi.
+- **mDNS (ZeroConf) Otomatik Keşif**: Mobil uygulamanın yerel ağda PC Manager servisini otomatik bulabilmesi için backend tarafında ZeroConf mDNS yayını başlatıldı.
+- **Mobil Yetki & Revoke Yönetimi**: Eşleşen cihazlara 10 yıllık özel JWT token'ları üretilip `config.json` üzerinde kayıt altında tutulması ve istenildiğinde admin paneli üzerinden anında yetkisinin geri alınabilmesi (revoke) sağlandı.
+
 ## [1.4.1] — 2026-07-02
 
 - **Pentest Araçları Temizliği**: PC Manager üzerinde kararlı çalışmayan veya işlevini yitirmiş araçlar (Metasploit, IG Check, SocialScan, WhatBreach) kaldırıldı.

@@ -14,7 +14,7 @@ from routers import (
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
     notifications, windows, speedtest, firewall, firewall_native, temperature,
-    playbooks,
+    playbooks, pairing,
 )
 from dependencies import require_auth
 from routers.search_engine import _rewrite_html, _fetch_page
@@ -24,6 +24,16 @@ from urllib.parse import urlparse
 import httpx
 
 app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi ve OSINT platformu")
+
+@app.on_event("startup")
+def startup_event():
+    # Start mDNS announcer on port 8081
+    pairing.start_mdns(port=8081)
+
+@app.on_event("shutdown")
+def shutdown_event():
+    # Stop mDNS announcer
+    pairing.stop_mdns()
 
 notifications.start_checker()
 
@@ -93,6 +103,7 @@ app.include_router(cron.router, prefix="/api", dependencies=[Depends(require_aut
 app.include_router(deprem.router, prefix="/api")
 app.include_router(ollama.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
+app.include_router(pairing.router, prefix="/api")
 app.include_router(debug.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(debug_agent.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(search_engine.router, prefix="/api", dependencies=[Depends(require_auth)])

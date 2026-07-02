@@ -94,6 +94,23 @@ def create_access_token(data: dict) -> str:
 def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Mobil cihazlar için yetki doğrulama ve revoke kontrolü
+        if payload.get("sub") == "mobile_client":
+            device_id = payload.get("device_id")
+            if not device_id:
+                raise JWTError("Cihaz kimliği bulunamadı")
+                
+            # config.json dosyasından cihazın hala kayıtlı olup olmadığını kontrol et
+            if CONFIG_PATH.exists():
+                try:
+                    cfg = json.loads(CONFIG_PATH.read_text())
+                except (json.JSONDecodeError, OSError):
+                    cfg = {}
+                paired_devices = cfg.get("paired_devices", [])
+                if not any(d.get("device_id") == device_id for d in paired_devices):
+                    raise JWTError("Cihaz yetkisi kaldırılmış")
+                    
         return payload
     except JWTError:
         raise HTTPException(
