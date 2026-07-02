@@ -1,11 +1,11 @@
 # PC Manager
 
-
+> _Not: Yapay zekâ araçlarında yaşadığım sorunlar nedeniyle güncellemeler bir süre daha yavaş ilerleyecek._
 
 **Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için genel kullanıma açılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 

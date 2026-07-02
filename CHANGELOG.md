@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.1] — 2026-07-02
+
+- **Pentest Araçları Temizliği**: PC Manager üzerinde kararlı çalışmayan veya işlevini yitirmiş araçlar (Metasploit, IG Check, SocialScan, WhatBreach) kaldırıldı.
+- **Otomatik Kurulum Scripti Geliştirmesi**: `install.sh` içerisine kullanıcıların istedikleri pentest ve OSINT araçlarını seçerek (hepsi, seçmeli veya hiçbiri) kurabilmesini sağlayan etkileşimli bir menü eklendi.
+
 ## [1.4.0] — 2026-07-02
 
 - **Premium Tasarım Sistemi (Arayüz Yenilemesi)**: Arayüz tamamen modernize edildi; cam efekti (glassmorphism), dinamik animasyonlar ve yeni HSL renk paleti (`--accent` vb.) entegre edildi.

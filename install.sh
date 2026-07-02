@@ -44,6 +44,120 @@ _install_pkgs() {
     esac
 }
 
+# Pentest araclari kurulumu
+_install_pentest_tools() {
+    if [ ! -t 0 ]; then
+        info "Etkilesimli terminal algilanmadi, pentest araclari kurulumu atlandi."
+        return
+    fi
+
+    echo -e "\n${CYAN}==================================================${NC}"
+    echo -e "${CYAN}   Pen-Test Araçları Kurulum Seçenekleri${NC}"
+    echo -e "${CYAN}==================================================${NC}"
+    echo -e "PC Manager tarafından desteklenen pentest/OSINT araçlarını yüklemek ister misiniz?"
+    echo -e "1) Hepsini Yükle (Önerilen)"
+    echo -e "2) Seçmeli Yükle"
+    echo -e "3) Hiçbirini Yükleme (Varsayılan)"
+    read -rp "Seçiminiz [1-3]: " choice
+
+    local distro
+    distro="$(_detect_distro)"
+
+    case "$choice" in
+        1)
+            info "Tüm pentest araçları kuruluyor..."
+            if [ "$distro" = "arch" ] || [ "$distro" = "manjaro" ] || [ "$distro" = "endeavouros" ]; then
+                _install_pkgs nmap masscan dnsrecon enum4linux gobuster nikto whatweb sqlmap wfuzz dirb exploitdb hydra john tcpdump gnu-netcat net-tools theharvester wireshark-cli amass subfinder dnstwist perl-image-exiftool
+            elif [ "$distro" = "debian" ] || [ "$distro" = "ubuntu" ] || [ "$distro" = "kali" ]; then
+                _install_pkgs nmap masscan dnsrecon enum4linux gobuster nikto whatweb sqlmap wfuzz dirb exploitdb hydra john tcpdump netcat-openbsd net-tools theharvester tshark amass subfinder dnstwist exiftool
+            else
+                _install_pkgs nmap sqlmap hydra john tcpdump net-tools exiftool
+            fi
+
+            info "Python tabanlı OSINT araçları kuruluyor..."
+            source "$VENV_DIR/bin/activate"
+            pip install -q holehe h8mail maigret sherlock-project
+            ;;
+        2)
+            echo -e "\nYüklenecek araçların numarasını aralarında boşluk bırakarak yazın (Örn: 1 5 8):"
+            echo -e "1) Nmap (Port Tarama)"
+            echo -e "2) Masscan (Kitle Tarama)"
+            echo -e "3) DNS Recon (DNS Keşif)"
+            echo -e "4) Enum4Linux (Samba/CIFS)"
+            echo -e "5) Gobuster (Web Dizin/DNS)"
+            echo -e "6) Nikto (Web Tarayıcı)"
+            echo -e "7) WhatWeb (Web Fingerprint)"
+            echo -e "8) SQLMap (SQLi Testi)"
+            echo -e "9) WFuzz (Web Fuzzer)"
+            echo -e "10) Dirb (Dizin Tarayıcı)"
+            echo -e "11) SearchSploit (Exploit Arama)"
+            echo -e "12) Hydra (Parola Brute-Force)"
+            echo -e "13) John the Ripper (Parola Kırıcı)"
+            echo -e "14) TCPDump (Paket Analiz)"
+            echo -e "15) Netcat (Bağlantı Aracı)"
+            echo -e "16) Netstat (Ağ Bağlantıları)"
+            echo -e "17) Sherlock (Kullanıcı Adı OSINT)"
+            echo -e "18) theHarvester (E-posta/Subdomain)"
+            echo -e "19) TShark/Wireshark (Ağ Analiz)"
+            echo -e "20) Holehe (E-posta OSINT)"
+            echo -e "21) H8Mail (Sızıntı Tarama)"
+            echo -e "22) Maigret (Kullanıcı Adı OSINT)"
+            echo -e "23) Amass (Subdomain Keşfi)"
+            echo -e "24) Subfinder (Hızlı Subdomain)"
+            echo -e "25) DNSTwist (Phishing Tespiti)"
+            echo -e "26) Exiftool (Metadata Okuyucu)"
+            read -rp "Seçimleriniz: " selections
+
+            local pkgs=()
+            local py_pkgs=()
+
+            for sel in $selections; do
+                case "$sel" in
+                    1) pkgs+=("nmap") ;;
+                    2) pkgs+=("masscan") ;;
+                    3) pkgs+=("dnsrecon") ;;
+                    4) pkgs+=("enum4linux") ;;
+                    5) pkgs+=("gobuster") ;;
+                    6) pkgs+=("nikto") ;;
+                    7) pkgs+=("whatweb") ;;
+                    8) pkgs+=("sqlmap") ;;
+                    9) pkgs+=("wfuzz") ;;
+                    10) pkgs+=("dirb") ;;
+                    11) if [ "$distro" = "arch" ] || [ "$distro" = "manjaro" ] || [ "$distro" = "endeavouros" ] || [ "$distro" = "debian" ] || [ "$distro" = "ubuntu" ]; then pkgs+=("exploitdb"); fi ;;
+                    12) pkgs+=("hydra") ;;
+                    13) pkgs+=("john") ;;
+                    14) pkgs+=("tcpdump") ;;
+                    15) if [ "$distro" = "arch" ] || [ "$distro" = "manjaro" ] || [ "$distro" = "endeavouros" ]; then pkgs+=("gnu-netcat"); else pkgs+=("netcat-openbsd"); fi ;;
+                    16) pkgs+=("net-tools") ;;
+                    17) py_pkgs+=("sherlock-project") ;;
+                    18) pkgs+=("theharvester") ;;
+                    19) if [ "$distro" = "arch" ] || [ "$distro" = "manjaro" ] || [ "$distro" = "endeavouros" ]; then pkgs+=("wireshark-cli"); else pkgs+=("tshark"); fi ;;
+                    20) py_pkgs+=("holehe") ;;
+                    21) py_pkgs+=("h8mail") ;;
+                    22) py_pkgs+=("maigret") ;;
+                    23) pkgs+=("amass") ;;
+                    24) pkgs+=("subfinder") ;;
+                    25) pkgs+=("dnstwist") ;;
+                    26) if [ "$distro" = "arch" ] || [ "$distro" = "manjaro" ] || [ "$distro" = "endeavouros" ]; then pkgs+=("perl-image-exiftool"); else pkgs+=("exiftool"); fi ;;
+                esac
+            done
+
+            if [ ${#pkgs[@]} -gt 0 ]; then
+                info "Seçilen paketler yükleniyor: ${pkgs[*]}"
+                _install_pkgs "${pkgs[@]}"
+            fi
+            if [ ${#py_pkgs[@]} -gt 0 ]; then
+                info "Seçilen Python araçları yükleniyor: ${py_pkgs[*]}"
+                source "$VENV_DIR/bin/activate"
+                pip install -q "${py_pkgs[@]}"
+            fi
+            ;;
+        *)
+            info "Pentest araçları kurulumu atlandı."
+            ;;
+    esac
+}
+
 if [ "$EUID" -ne 0 ]; then err "Bu script root olarak calistirilmalidir: sudo bash install.sh"; fi
 
 # Temel bagimliliklari kontrol et
@@ -111,6 +225,9 @@ if ! command -v node &>/dev/null; then
 fi
 npm install -q
 npm run build
+
+# Pentest araclarini kullanici istegine gore yukle
+_install_pentest_tools
 
 info "Systemd servisi kuruluyor..."
 cat > /etc/systemd/system/$SERVICE_NAME.service <<EOF
