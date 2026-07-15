@@ -1,9 +1,10 @@
 # Changelog
 
-## [1.4.3] — 2026-07-15
+## [1.5.0] — 2026-07-15
 
 - **Sismik Harita API Entegrasyonu**: Deprem izleme sistemi, Evrim Ağacı'nın geliştirdiği Sismik Harita API'sine (`sismikharita.com`) entegre edildi. AFAD ve Kandilli verileri birincil sismik veri sağlayıcısı olarak Sismik Harita üzerinden toplanacak, eski sistemler yedek olarak korunacak şekilde backend güncellendi.
 - **Yenilenen Deprem İzleme Arayüzü**: Deprem sayfası tamamen yeniden tasarlanarak üst istatistik barı, dinamik filtreleme paneli (kaynak seçici, minimum büyüklük slider'ı, tsunami uyarısı filtreleme), karanlık harita katmanı ve zenginleştirilmiş deprem bilgi kartları (hisseden sayısı, pager alert, tsunami bildirimleri, kaynak karşılaştırma tablosu) eklendi.
+- **Özel Teşekkür**: Bu harika deprem veri platformunu ve API hizmetini biz geliştiricilerle paylaşan **Evrim Ağacı** ekibine ve **Çağrı Mert Bakırcı**'ya yürekten teşekkür ederiz! Bilimi ve teknolojiyi herkes için erişilebilir kılma çabalarınız çok kıymetli.
 
 ## [1.4.2] — 2026-07-02
 
