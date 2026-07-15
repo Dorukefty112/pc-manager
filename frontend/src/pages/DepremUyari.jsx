@@ -230,6 +230,14 @@ function IstanbulMarker() {
 export default function DepremUyari() {
   const { t } = useI18n()
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   // Veri
   const [depremler, setDepremler]   = useState([])
   const [stats, setStats]           = useState(null)
@@ -433,7 +441,7 @@ export default function DepremUyari() {
           </div>
 
           {/* Min Büyüklük */}
-          <div style={{ minWidth: 180 }}>
+          <div style={{ minWidth: isMobile ? '100%' : 180 }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Min Büyüklük: <span style={{ color: 'var(--accent)' }}>M{minMag.toFixed(1)}</span>
             </div>
@@ -534,7 +542,7 @@ export default function DepremUyari() {
       ) : (
         <>
           {/* ── Harita ── */}
-          <div className="card" style={{ overflow: 'hidden', height: 430, padding: 0 }}>
+          <div className="card" style={{ overflow: 'hidden', height: isMobile ? 280 : 430, padding: 0 }}>
             <MapContainer
               center={[39.0, 35.0]}
               zoom={6}
@@ -561,7 +569,7 @@ export default function DepremUyari() {
           </div>
 
           {/* ── Liste + Yan Panel ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 290px', gap: 16, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 290px', gap: 16, alignItems: 'start' }}>
 
             {/* Deprem Listesi */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -739,7 +747,7 @@ export default function DepremUyari() {
             </div>
 
             {/* ── Sağ Yan Panel ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: isMobile ? 'static' : 'sticky', top: 16 }}>
 
               {/* İstanbul Analizi */}
               <div className="card card-glow" style={{ padding: 18 }}>
