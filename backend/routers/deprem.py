@@ -3,8 +3,8 @@ import time
 import json
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-from fastapi import APIRouter
+from typing import Optional, List
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 import httpx
 
@@ -14,6 +14,10 @@ ISTANBUL_LAT = 41.0082
 ISTANBUL_LON = 28.9784
 KANDILLI_URL = "http://www.koeri.boun.edu.tr/scripts/lst0.asp"
 AFAD_URL = "https://servisnet.afad.gov.tr/apigateway/deprem/apiv2/event/filter"
+SISMIK_API_URL = "https://sismikharita.com/api.php"
+SISMIK_STATS_URL = "https://sismikharita.com/stats_api.php"
+SISMIK_STATION_URL = "https://sismikharita.com/station_api.php"
+SISMIK_DETAIL_URL = "https://sismikharita.com/deprem_api.php"
 
 MAG_WARNING = 3.0
 MAG_ALERT = 4.0
@@ -181,6 +185,174 @@ def fetch_afad(dakika=120):
     return depremler
 
 
+# ─── Sismik Harita API ────────────────────────────────────────────────────────
+
+def _safe_float(val, default=-1.0):
+    """Virgüllü veya noktalı float değerlerini güvenli şekilde dönüştürür."""
+    if val is None or val == "" or val == "-":
+        return default
+    try:
+        return float(str(val).replace(",", "."))
+    except (ValueError, TypeError):
+        return default
+
+
+def _normalize_sismik_record(item: dict) -> dict:
+    """Sismik Harita API kaydını normalize eder ve zenginleştirir."""
+    occurred_at = item.get("occurred_at", "")
+    try:
+        dt = datetime.strptime(occurred_at[:19], "%Y-%m-%d %H:%M:%S")
+        tarih = dt.strftime("%Y.%m.%d")
+        saat = dt.strftime("%H:%M:%S")
+    except Exception:
+        tarih = occurred_at[:10]
+        saat = occurred_at[11:19] if len(occurred_at) > 10 else "00:00:00"
+
+    enlem = _safe_float(item.get("latitude"), 0.0)
+    boylam = _safe_float(item.get("longitude"), 0.0)
+    derinlik = _safe_float(item.get("depth_km"), 0.0)
+
+    mag = _safe_float(item.get("magnitude"))
+    mag_ml = _safe_float(item.get("magnitude_ml"))
+    mag_md = _safe_float(item.get("magnitude_md"))
+    mag_mw = _safe_float(item.get("magnitude_mw"))
+
+    # En büyük geçerli büyüklük değerini bul
+    mags = {k: v for k, v in {"M": mag, "Ml": mag_ml, "Md": mag_md, "Mw": mag_mw}.items() if v > 0}
+    best_mag = max(mags.values()) if mags else -1.0
+    best_mag_type = max(mags, key=mags.get) if mags else "M"
+
+    uzaklik = haversine(enlem, boylam, ISTANBUL_LAT, ISTANBUL_LON)
+    seviye = risk_seviyesi(best_mag, uzaklik, enlem, boylam)
+
+    # Kaynak listesi
+    sources_raw = item.get("sources", [])
+    sources_normalized = []
+    if isinstance(sources_raw, list):
+        for s in sources_raw:
+            sources_normalized.append({
+                "name": s.get("name", ""),
+                "magnitude": _safe_float(s.get("magnitude")),
+                "quality": s.get("quality", ""),
+                "depth_km": _safe_float(s.get("depth_km")),
+                "location": s.get("location", ""),
+                "time_diff": s.get("time_diff", 0),
+            })
+
+    return {
+        # Temel bilgiler
+        "id": item.get("id"),
+        "sismik_id": item.get("sismik_id", ""),
+        "event_id": item.get("event_id", ""),
+        "occurred_at": occurred_at,
+        "tarih": tarih,
+        "saat": saat,
+        "enlem": round(enlem, 6),
+        "boylam": round(boylam, 6),
+        "derinlik": round(derinlik, 1),
+
+        # Büyüklük
+        "magnitude": round(best_mag, 2) if best_mag > 0 else -1,
+        "magnitude_type": best_mag_type,
+        "magnitude_ml": round(mag_ml, 2) if mag_ml > 0 else None,
+        "magnitude_md": round(mag_md, 2) if mag_md > 0 else None,
+        "magnitude_mw": round(mag_mw, 2) if mag_mw > 0 else None,
+
+        # Konum
+        "yer": item.get("display_location") or item.get("location") or "",
+        "geo_location": item.get("geo_location", ""),
+        "location_raw": item.get("location", ""),
+
+        # Kalite & Kaynak
+        "quality": item.get("quality", "automatic"),
+        "source": item.get("source", ""),
+        "is_primary": item.get("is_primary", True),
+        "sources": sources_normalized,
+
+        # Uyarı & Etki
+        "tsunami": bool(item.get("tsunami", 0)),
+        "felt_count": item.get("felt_count") or item.get("emsc_testimony_count") or 0,
+        "pager_alert": item.get("pager_alert") or "",
+        "mmi": item.get("mmi") or None,
+
+        # Hesaplanan
+        "istanbula_uzaklik": round(uzaklik, 1),
+        "risk_seviyesi": seviye,
+    }
+
+
+def fetch_sismikharita(
+    limit: int = 100,
+    min_magnitude: float = 0.0,
+    sources: str = "",
+    date_from: str = "",
+    date_to: str = "",
+) -> List[dict]:
+    """Sismik Harita API'sinden deprem listesi çeker ve normalize eder."""
+    params = {"limit": min(limit, 1000)}
+    if min_magnitude > 0:
+        params["min_magnitude"] = min_magnitude
+    if sources:
+        params["sources"] = sources
+    if date_from:
+        params["date_from"] = date_from
+    if date_to:
+        params["date_to"] = date_to
+
+    try:
+        resp = httpx.get(SISMIK_API_URL, params=params, timeout=15, headers={
+            "User-Agent": "PC-Manager/1.0 (https://github.com/Dorukefty112/pc-manager)"
+        })
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return []
+
+    if data.get("status") != "success":
+        return []
+
+    earthquakes = data.get("earthquakes", [])
+    if not isinstance(earthquakes, list):
+        return []
+
+    return [_normalize_sismik_record(item) for item in earthquakes]
+
+
+def fetch_sismikharita_stats() -> dict:
+    """Sismik Harita istatistiklerini döner."""
+    try:
+        resp = httpx.get(SISMIK_STATS_URL, timeout=10, headers={
+            "User-Agent": "PC-Manager/1.0"
+        })
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("status") == "success":
+            return {
+                "total": data.get("total", 0),
+                "today": data.get("today", 0),
+                "avg_magnitude": _safe_float(data.get("avg_magnitude"), 0.0),
+                "max_magnitude": _safe_float(data.get("max_magnitude"), 0.0),
+            }
+    except Exception:
+        pass
+    return {"total": 0, "today": 0, "avg_magnitude": 0.0, "max_magnitude": 0.0}
+
+
+def fetch_sismikharita_stations(source: str = "afad") -> list:
+    """Sismik Harita'dan sismik istasyon konumlarını döner."""
+    try:
+        resp = httpx.get(SISMIK_STATION_URL, params={"source": source}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("status") == "success":
+            return data.get("stations", [])
+    except Exception:
+        pass
+    return []
+
+
+# ─── Eski yardımcılar ────────────────────────────────────────────────────────
+
 def _son_dk(deprem, dakika=3):
     now = datetime.now(timezone.utc)
     if deprem.datetime.tzinfo is None:
@@ -188,13 +360,68 @@ def _son_dk(deprem, dakika=3):
     return (now - deprem.datetime) < timedelta(minutes=dakika)
 
 
+# ─── Endpoint'ler ─────────────────────────────────────────────────────────────
+
 @router.get("/deprem/son")
 def son_depremler():
+    """Geriye uyumluluk için korunmuş Kandilli/AFAD endpoint'i."""
     depremler = fetch_kandilli()
     if not depremler:
         depremler = fetch_afad()
     depremler.sort(key=lambda d: d.datetime, reverse=True)
     return [d.to_dict() for d in depremler[:30]]
+
+
+@router.get("/deprem/sismik")
+def sismik_depremler(
+    limit: int = Query(default=100, ge=1, le=1000),
+    min_magnitude: float = Query(default=0.0, ge=0.0),
+    sources: str = Query(default=""),
+    date_from: str = Query(default=""),
+    date_to: str = Query(default=""),
+):
+    """
+    Sismik Harita API'sinden zenginleştirilmiş deprem listesi döner.
+    - limit: Sonuç sayısı (maks 1000)
+    - min_magnitude: Minimum büyüklük filtresi
+    - sources: Virgülle ayrılmış kaynak filtreleri (kandilli, afad, usgs, noa, vb.)
+    - date_from / date_to: Tarih aralığı (YYYY-MM-DD)
+    """
+    depremler = fetch_sismikharita(
+        limit=limit,
+        min_magnitude=min_magnitude,
+        sources=sources,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    if not depremler:
+        # Yedek: eski Kandilli/AFAD
+        kandilli = fetch_kandilli() or fetch_afad()
+        return [d.to_dict() for d in sorted(kandilli, key=lambda x: x.datetime, reverse=True)[:limit]]
+    return depremler
+
+
+@router.get("/deprem/sismik/stats")
+def sismik_stats():
+    """Sismik Harita platformunun genel istatistiklerini döner."""
+    return fetch_sismikharita_stats()
+
+
+@router.get("/deprem/sismik/stations")
+def sismik_stations(source: str = Query(default="afad")):
+    """Sismik istasyon konumlarını döner. source: 'afad' veya 'kandilli'"""
+    return fetch_sismikharita_stations(source=source)
+
+
+@router.get("/deprem/sismik/detail/{deprem_id}")
+def sismik_detail(deprem_id: int):
+    """Belirli bir depremin detaylı bilgilerini döner."""
+    try:
+        resp = httpx.get(SISMIK_DETAIL_URL, params={"id": deprem_id}, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return {"error": "Detay bilgisi alınamadı"}
 
 
 @router.get("/deprem/uyari")
@@ -251,7 +478,7 @@ def _telegram_alert(depremler):
         gruplar.append(
             f"{emoji} <b>M{d.magnitude:.1f}</b> | {risk}"
             f"\n\U0001f4cd {d.yer}"
-            f"\n\U0001f4cf \u0130stanbul\u2019a {uzaklik:.1f} km, Derinlik {d.derinlik} km"
+            f"\n\U0001f4cf İstanbul'a {uzaklik:.1f} km, Derinlik {d.derinlik} km"
             f"\n\U0001f550 {d.tarih} {d.saat}"
         )
 

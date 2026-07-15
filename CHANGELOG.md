@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.3] — 2026-07-15
+
+- **Sismik Harita API Entegrasyonu**: Deprem izleme sistemi, Evrim Ağacı'nın geliştirdiği Sismik Harita API'sine (`sismikharita.com`) entegre edildi. AFAD ve Kandilli verileri birincil sismik veri sağlayıcısı olarak Sismik Harita üzerinden toplanacak, eski sistemler yedek olarak korunacak şekilde backend güncellendi.
+- **Yenilenen Deprem İzleme Arayüzü**: Deprem sayfası tamamen yeniden tasarlanarak üst istatistik barı, dinamik filtreleme paneli (kaynak seçici, minimum büyüklük slider'ı, tsunami uyarısı filtreleme), karanlık harita katmanı ve zenginleştirilmiş deprem bilgi kartları (hisseden sayısı, pager alert, tsunami bildirimleri, kaynak karşılaştırma tablosu) eklendi.
+
 ## [1.4.2] — 2026-07-02
 
 - **Mobil Cihaz Eşleştirme Sistemi (Pairing)**: Companion mobil uygulamanın PC Manager backend'i ile kolay el sıkışması için `/api/pairing` API uçları eklendi.
