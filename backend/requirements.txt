@@ -11,3 +11,4 @@ pytest
 httpx
 ddgs
 zeroconf
+beautifulsoup4
