@@ -161,8 +161,9 @@ def _search_packages(query: str) -> list:
 def search(
     q: str = Query("", description="Arama sorgusu"),
     type: str = Query("web", description="web, local, system"),
-    page: int = Query(1, ge=1),
+    page: int = 1,
 ):
+    page = max(1, page)
     if not q.strip():
         return {"error": "Arama sorgusu gerekli", "results": [], "query": q}
     if type == "web":

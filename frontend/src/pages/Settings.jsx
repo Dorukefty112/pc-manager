@@ -193,8 +193,8 @@ export default function SettingsPage() {
       {activeTab === 'ollama' && (
         <Section title={t('Yapay Zeka Asistan')} icon={Cpu}>
           <SettingRow label={t('Model')}>
-            <select value={config.ollama?.model || 'gemma4:e4b'} onChange={e => update('ollama', 'model', e.target.value)} style={{ width: 200 }}>
-              {models.length === 0 && <option value="gemma4:e4b">gemma4:e4b</option>}
+            <select value={config.ollama?.model || 'ssfdre38/gemma4-turbo:e4b'} onChange={e => update('ollama', 'model', e.target.value)} style={{ width: 200 }}>
+              {models.length === 0 && <option value="ssfdre38/gemma4-turbo:e4b">ssfdre38/gemma4-turbo:e4b</option>}
               {models.map(m => <option key={m.name} value={m.name}>{m.name} ({m.size_gb}GB)</option>)}
             </select>
           </SettingRow>

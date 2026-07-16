@@ -47,7 +47,7 @@ DEFAULT_CONFIG = {
         "url": "",
     },
     "ollama": {
-        "model": "gemma4:e4b",
+        "model": "ssfdre38/gemma4-turbo:e4b",
         "max_tool_rounds": 5,
     },
     "telegram": {

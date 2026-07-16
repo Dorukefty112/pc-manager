@@ -62,7 +62,7 @@ async def list_models(_auth: dict = Depends(require_auth)):
 
 @router.post("/ollama/unload")
 async def unload_model(body: dict = {}, _auth: dict = Depends(require_auth)):
-    model = body.get("model", "gemma4:e4b")
+    model = body.get("model", "ssfdre38/gemma4-turbo:e4b")
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(OLLAMA_GENERATE_URL, json={
@@ -86,7 +86,7 @@ async def set_emergency(body: dict, _auth: dict = Depends(require_auth)):
 
 @router.post("/ollama/chat/stream")
 async def chat_stream(body: dict, _auth: dict = Depends(require_auth)):
-    model = body.get("model", "gemma4:e4b")
+    model = body.get("model", "ssfdre38/gemma4-turbo:e4b")
     messages = body.get("messages", [])
     max_tool_rounds = min(body.get("max_tool_rounds", 5), 10)
     show_tool_calls = body.get("show_tool_calls", True)

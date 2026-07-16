@@ -735,6 +735,192 @@ def tool_playbook_run(params: dict) -> str:
 
 
 TOOLS: dict[str, dict] = {
+    "get_deprem": {
+        "fn": tool_get_deprem,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "get_deprem",
+                "description": "Son depremleri izle ve bilgileri getir",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "web_search": {
+        "fn": tool_web_search,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "Web uzerinde arama yap ve sonuclari getir",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "aranacak kelime veya cumle"},
+                    },
+                    "required": ["query"],
+                },
+            },
+        },
+    },
+    "web_fetch": {
+        "fn": tool_web_fetch,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "web_fetch",
+                "description": "Belirtilen URL adresinin icerigini oku",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string", "description": "icerigi okunacak web adresi"},
+                    },
+                    "required": ["url"],
+                },
+            },
+        },
+    },
+    "system_summary": {
+        "fn": tool_system_summary,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "system_summary",
+                "description": "Sistem genel ozeti: hostname, kernel, cpu, memory, disk durumunu tek seferde getirir",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        },
+    },
+    "firewall": {
+        "fn": tool_firewall,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "firewall",
+                "description": "UFW guvenlik duvari yönetimi. action: status, enable, disable, reload, reset, rules, add, delete",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["status", "enable", "disable", "reload", "reset", "rules", "add", "delete"], "description": "islem turu"},
+                        "type": {"type": "string", "enum": ["allow", "deny", "reject", "limit"], "description": "kural turu (add icin)"},
+                        "direction": {"type": "string", "enum": ["in", "out"], "description": "yon (add icin)"},
+                        "port": {"type": "string", "description": "port numarasi (add icin)"},
+                        "protocol": {"type": "string", "enum": ["tcp", "udp"], "description": "protokol (add icin)"},
+                        "ip": {"type": "string", "description": "IP adresi (add icin)"},
+                        "rule_num": {"type": "integer", "description": "silinecek kural numarasi (delete icin)"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "speedtest": {
+        "fn": tool_speedtest,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "speedtest",
+                "description": "Internet hiz testi durumunu veya gecmisini goruntule",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["status", "history"], "description": "islem turu"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "windows": {
+        "fn": tool_windows,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "windows",
+                "description": "Windows host entegrasyon araci. what: services, processes, disks, command",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "what": {"type": "string", "enum": ["services", "processes", "disks", "command"], "description": "sorgulanacak kategori"},
+                        "command": {"type": "string", "description": "calistirilacak powershell komutu (what='command' ise)"},
+                    },
+                    "required": ["what"],
+                },
+            },
+        },
+    },
+    "power": {
+        "fn": tool_power,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "power",
+                "description": "Bilgisayari kapat veya yeniden baslat",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["shutdown", "reboot"], "description": "kapat veya yeniden baslat"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "updates": {
+        "fn": tool_updates,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "updates",
+                "description": "Paket guncellemelerini kontrol et",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["check", "upgrade"], "description": "guncelleme islemi"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "cron": {
+        "fn": tool_cron,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "cron",
+                "description": "Cron zamanlanmis gorevlerini listele, ekle veya sil",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["list", "add", "delete"], "description": "yapilacak islem"},
+                        "schedule": {"type": "string", "description": "cron zamani orn: '0 0 * * *' (add icin)"},
+                        "command": {"type": "string", "description": "calisacak komut (add icin)"},
+                        "keyword": {"type": "string", "description": "silinecek komutu eslestirecek anahtar kelime (delete icin)"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
+    "settings": {
+        "fn": tool_settings,
+        "spec": {
+            "type": "function",
+            "function": {
+                "name": "settings",
+                "description": "Sistem ayarlarini goruntule veya guncelle",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["get", "update"], "description": "islem"},
+                        "values": {"type": "object", "description": "yeni ayar degerleri (update icin)"},
+                    },
+                    "required": ["action"],
+                },
+            },
+        },
+    },
     "get_cpu": {
         "fn": tool_get_cpu,
         "spec": {

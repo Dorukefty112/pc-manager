@@ -73,7 +73,7 @@ function BotIcon() {
 export default function OllamaChat() {
   const { t } = useI18n()
   const [models, setModels] = useState([])
-  const [selectedModel, setSelectedModel] = useState('gemma4:e4b')
+  const [selectedModel, setSelectedModel] = useState('ssfdre38/gemma4-turbo:e4b')
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)

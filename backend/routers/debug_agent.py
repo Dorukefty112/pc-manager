@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).parent.parent.parent
 GIT_DIR = BASE_DIR / ".git"
 CHECKPOINT_DIR = Path("/tmp/pcmanager_debug_checkpoints")
 OLLAMA_URL = "http://localhost:11434/api/chat"
-DEFAULT_MODEL = "gemma4:e4b"
+DEFAULT_MODEL = "ssfdre38/gemma4-turbo:e4b"
 
 CODE_TOOLS = [
     {
