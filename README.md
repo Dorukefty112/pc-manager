@@ -3,7 +3,7 @@
 **Sistem yönetimi platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+![Version](https://img.shields.io/badge/version-1.8.0-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için genel kullanıma açılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode un servis ettiği big pickle,google gemini antigravity deki çeşitli modeller ve claude sonnet 5 ve opus 5) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 
@@ -115,6 +115,22 @@ KRITIK ve YUKSEK seviye depremlerde telefonunuza aninda bildirim almak icin:
 4. `https://api.telegram.org/bot<TOKEN>/getUpdates` adresine gidin, `"chat":{"id":123456789}` kismindaki **chat ID**'yi bulun
 5. PC Manager'da **Ayarlar → Telegram** sekmesine token ve chat ID'yi girip kaydedin
 6. "Test Mesaji Gonder" butonuyla dogrulayin
+
+## Mobil Uygulama (Android)
+
+PC Manager'ın Android uygulaması, `frontend/` içindeki React arayüzünü [Capacitor](https://capacitorjs.com) ile native bir kabuğa sararak aynı kod tabanından üretilir. Uygulama, telefonun Tailscale üzerinden eve bağlanmasını kullanarak uzaktan çalışır.
+
+**Eşleştirme:** PC Manager'da **Ayarlar → Mobil Cihazlar**'dan bir QR kod/6 haneli kod üretin, uygulamada "Kodu Tara" ile okutun (veya IP/port/kodu elle girin). Cihaz eşleştikten sonra uzun ömürlü bir token alır; **Ayarlar → Mobil Cihazlar**'dan istediğiniz an yetkisini geri alabilirsiniz.
+
+**Build (kendi makinenizde, Android Studio ile):**
+```bash
+cd frontend
+npm install
+npm run build
+npx cap sync android
+npx cap open android
+```
+Android Studio açıldığında normal şekilde Run/Build APK yapabilirsiniz. Bu adım Android SDK gerektirir.
 
 ## Güvenlik
 

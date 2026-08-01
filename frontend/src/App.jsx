@@ -29,10 +29,12 @@ import Temperature from './pages/Temperature'
 import Playbooks from './pages/Playbooks'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
+import MobilePairing from './pages/MobilePairing'
 import { useI18n } from './context/I18nContext'
-import { isAuthenticated } from './api'
+import { isAuthenticated, getServerBase } from './api'
 import { useState, useEffect } from 'react'
 import { api } from './api'
+import { Capacitor } from '@capacitor/core'
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />
@@ -51,6 +53,10 @@ function SetupGuard({ children }) {
 }
 
 export default function App() {
+  if (Capacitor.isNativePlatform() && !getServerBase()) {
+    return <MobilePairing />
+  }
+
   return (
     <>
       <DepremAlert />

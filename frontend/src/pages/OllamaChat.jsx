@@ -215,7 +215,7 @@ export default function OllamaChat() {
 
   useEffect(() => {
     return () => {
-      fetch('/api/ollama/unload', {
+      fetch(`${API}/api/ollama/unload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),

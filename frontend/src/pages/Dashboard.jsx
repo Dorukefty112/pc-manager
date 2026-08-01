@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api } from '../api'
+import { api, wsUrl } from '../api'
 import { useWebSocket } from '../useWebSocket'
 import { useI18n } from '../context/I18nContext'
 import {
@@ -117,12 +117,9 @@ export default function Dashboard() {
     return () => clearInterval(id)
   }, [])
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.host
-  const token = localStorage.getItem('pcmanager_token') || ''
-  const wsUrl = `${protocol}//${host}/api/system/ws?token=${encodeURIComponent(token)}`
+  const socketUrl = wsUrl('/api/system/ws')
 
-  useWebSocket(wsUrl, {
+  useWebSocket(socketUrl, {
     onMessage: (e) => { try { setWsData(JSON.parse(e.data)) } catch {} },
     onOpen: () => setWsConnected(true),
     onClose: () => setWsConnected(false),

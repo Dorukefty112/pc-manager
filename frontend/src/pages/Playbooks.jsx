@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api } from '../api'
+import { api, wsUrl as buildWsUrl } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { useWebSocket } from '../useWebSocket'
 import {
@@ -252,7 +252,7 @@ export default function Playbooks() {
 
   const viewRun = (executionId) => {
     setRunningId(executionId)
-    setWsUrl(`ws://${window.location.host}/api/playbooks/runs/${executionId}/ws`)
+    setWsUrl(buildWsUrl(`/api/playbooks/runs/${executionId}/ws`))
   }
 
   const closeRun = () => {

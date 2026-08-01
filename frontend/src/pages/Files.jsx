@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { api } from '../api'
+import { api, API } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Folder, FileText, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X, HardDrive } from 'lucide-react'
 
@@ -38,7 +38,7 @@ export default function Files() {
     for (const file of files) {
       const form = new FormData(); form.append('file', file)
       const token = localStorage.getItem('pcmanager_token')
-      await fetch(`/api/files/upload?dest=${encodeURIComponent(path)}`, { method: 'POST', body: form, headers: token ? { 'Authorization': `Bearer ${token}` } : {} })
+      await fetch(`${API}/api/files/upload?dest=${encodeURIComponent(path)}`, { method: 'POST', body: form, headers: token ? { 'Authorization': `Bearer ${token}` } : {} })
     }
     load()
   }

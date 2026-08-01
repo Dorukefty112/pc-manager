@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.0] — 2026-08-01
+
+- **Android Uygulaması (Capacitor)**: `frontend/` kod tabanı Capacitor ile native bir Android kabuğuna sarıldı (`frontend/android/`). Uygulama, Ayarlar → Mobil Cihazlar'daki QR kodu tarayarak (veya IP/port/kod elle girerek) eşleşiyor ve Tailscale üzerinden eve uzaktan bağlanıyor.
+- **Paylaşılan Ağ Katmanı Sunucu-Farkında Oldu**: `api.js`'e `getServerBase`/`setServerBase`/`wsUrl` eklendi; Dashboard, Terminal, Temperature, PenTest ve Playbooks sayfalarındaki birbirinden bağımsız WebSocket URL kurma kodları tek bir merkezi helper'a taşındı (Playbooks'taki eksik `wss:`/token desteği de bu sırada düzeldi).
+- **Auth'suz İstek Düzeltmeleri**: `I18nContext`, `Files` ve `OllamaChat`'taki `api.js`'i atlayan çıplak `fetch()` çağrıları düzeltildi — dil ayarı isteklerine artık Authorization header'ı da ekleniyor.
+
 ## [1.7.0] — 2026-08-01
 
 - **Mobil Cihaz Eşleştirme Arayüzü**: Ayarlar sayfasına "Mobil Cihazlar" sekmesi eklendi — artık QR kod üretme, eşleştirilmiş cihazları listeleme ve tek tıkla yetki kaldırma admin panelinden yapılabiliyor (önceden sadece API üzerinden mümkündü).

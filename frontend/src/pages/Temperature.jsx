@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api } from '../api'
+import { api, wsUrl } from '../api'
 import { useWebSocket } from '../useWebSocket'
 import { useI18n } from '../context/I18nContext'
 import { Thermometer, Cpu, Monitor, Activity, Gauge, Timer, HardDrive, MemoryStick, RefreshCw, Zap } from 'lucide-react'
@@ -74,11 +74,8 @@ export default function Temperature() {
   const [wsData, setWsData] = useState(null)
   const canvasRef = useRef(null)
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.host
-  const token = localStorage.getItem('pcmanager_token') || ''
-  const wsUrl = `${protocol}//${host}/api/system/ws?token=${encodeURIComponent(token)}`
-  useWebSocket(wsUrl, { onMessage: (e) => { try { setWsData(JSON.parse(e.data)) } catch {} } })
+  const socketUrl = wsUrl('/api/system/ws')
+  useWebSocket(socketUrl, { onMessage: (e) => { try { setWsData(JSON.parse(e.data)) } catch {} } })
 
   const fetchAll = useCallback(async () => {
     try {

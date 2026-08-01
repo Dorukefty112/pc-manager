@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useI18n } from '../context/I18nContext'
+import { wsUrl, getServerBase } from '../api'
 import { Terminal as TerminalIcon, Wifi, WifiOff, Maximize2 } from 'lucide-react'
-
-function getToken() {
-  return localStorage.getItem('pcmanager_token')
-}
 
 export default function Terminal() {
   const { t } = useI18n()
@@ -16,16 +13,15 @@ export default function Terminal() {
   const retryRef = useRef(null)
   const [connected, setConnected] = useState(false)
 
-  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const token = getToken()
-  const wsUrl = `${protocol}//${location.host}/api/terminal?token=${encodeURIComponent(token || '')}`
+  const socketUrl = wsUrl('/api/terminal')
+  const hostLabel = getServerBase().replace(/^https?:\/\//, '') || location.host
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return
     if (wsRef.current) { try { wsRef.current.close() } catch {} }
     const term = xtermRef.current
     if (!term) return
-    const ws = new WebSocket(wsUrl)
+    const ws = new WebSocket(socketUrl)
     wsRef.current = ws
     ws.onopen = () => {
       if (!mountedRef.current) return
@@ -42,7 +38,7 @@ export default function Terminal() {
     }
     ws.onerror = () => { if (!mountedRef.current) return; setConnected(false) }
     ws.onmessage = (e) => { if (term) term.write(e.data) }
-  }, [wsUrl])
+  }, [socketUrl])
 
   useEffect(() => {
     mountedRef.current = true
@@ -141,7 +137,7 @@ export default function Terminal() {
           <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#f59e0b', opacity: 0.7 }} />
           <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#22c55e', opacity: 0.7 }} />
           <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>
-            bash — {location.host}
+            bash — {hostLabel}
           </span>
         </div>
         <div ref={termRef} style={{ flex: 1, height: 'calc(100% - 37px)' }} />
