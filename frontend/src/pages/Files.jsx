@@ -143,8 +143,8 @@ export default function Files() {
               padding: '9px 16px', borderBottom: '1px solid var(--border)',
               transition: 'background 0.12s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.querySelectorAll('.file-action').forEach(b => b.style.opacity = '1') }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.querySelectorAll('.file-action').forEach(b => b.style.opacity = '0') }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                 {item.is_dir
@@ -183,10 +183,10 @@ export default function Files() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 12 }}>
                 {!item.is_dir && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono',monospace", minWidth: 56, textAlign: 'right' }}>{fmt(item.size)}</span>}
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'none', minWidth: 100 }} className="file-date">{fmtDate(item.mtime || item.modified)}</span>
-                <button onClick={() => startRename(item)} className="file-action btn-icon" style={{ opacity: 0, transition: 'opacity 0.12s' }}>
+                <button onClick={() => startRename(item)} className="file-action btn-icon">
                   <Edit3 size={13} />
                 </button>
-                <button onClick={() => del(item.path)} className="file-action btn-icon danger" style={{ opacity: 0, transition: 'opacity 0.12s' }}>
+                <button onClick={() => del(item.path)} className="file-action btn-icon danger">
                   <Trash2 size={13} />
                 </button>
               </div>

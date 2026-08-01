@@ -5,7 +5,7 @@ import {
   Package, ScrollText, Server, Info, MessageSquare, Shield,
   Menu, X, Container, Clock, LogOut, Activity, Brain, Search,
   AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug, Gauge,
-  ChevronRight,
+  ChevronRight, MoreHorizontal,
 } from 'lucide-react'
 import { setToken, api } from '../api'
 import { useTheme } from '../context/ThemeContext'
@@ -65,6 +65,13 @@ const navGroups = [
       { to: '/windows', label: 'Windows',      icon: Monitor },
     ],
   },
+]
+
+const bottomTabs = [
+  { to: '/',         label: 'Ana Sayfa', icon: Monitor },
+  { to: '/terminal', label: 'Terminal',  icon: Terminal },
+  { to: '/files',    label: 'Dosyalar',  icon: Folder },
+  { to: '/settings', label: 'Ayarlar',   icon: Settings },
 ]
 
 const accentColors = {
@@ -150,6 +157,30 @@ export default function Layout({ children }) {
         .nav-link.accent-orange:hover { background: rgba(249,115,22,0.08); color: #fb923c; border-color: rgba(249,115,22,0.15); }
         .nav-link.accent-orange.active { background: rgba(249,115,22,0.1); color: #fb923c; border-color: rgba(249,115,22,0.25); }
         .nav-link.accent-orange.active::before { background: #f97316; box-shadow: 0 0 8px #f97316; }
+
+        .bottom-tab-bar { display: none; }
+        .top-menu-btn { display: flex; }
+        @media (max-width: 767px) {
+          .bottom-tab-bar {
+            display: flex;
+            position: fixed; left: 0; right: 0; bottom: 0;
+            z-index: 998;
+            background: color-mix(in srgb, var(--bg-secondary) 94%, transparent);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border);
+            padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+          }
+          .top-menu-btn { display: none; }
+          .main-pad { padding-bottom: calc(20px + 60px + env(safe-area-inset-bottom)) !important; }
+        }
+        .bottom-tab-link {
+          flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+          padding: 6px 4px; border-radius: 10px;
+          font-size: 0.62rem; font-weight: 600;
+          color: var(--text-muted);
+          text-decoration: none;
+        }
+        .bottom-tab-link.active { color: var(--accent); }
       `}</style>
 
       {/* Emergency Banner */}
@@ -321,7 +352,7 @@ export default function Layout({ children }) {
             display: 'flex', alignItems: 'center', gap: 12,
           }} className="mobile-header">
             <style>{`@media (min-width: 1024px) { .mobile-header { display: none !important; } }`}</style>
-            <button onClick={() => setOpen(true)} className="btn-ghost" style={{ padding: 6 }}>
+            <button onClick={() => setOpen(true)} className="btn-ghost top-menu-btn" style={{ padding: 6 }}>
               <Menu size={20} />
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -341,6 +372,29 @@ export default function Layout({ children }) {
             {children}
           </main>
         </div>
+
+        {/* Bottom tab bar (phone only) */}
+        <nav className="bottom-tab-bar">
+          {bottomTabs.map(tab => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.to === '/'}
+              className={({ isActive }) => `bottom-tab-link${isActive ? ' active' : ''}`}
+            >
+              <tab.icon size={19} />
+              <span>{t(tab.label)}</span>
+            </NavLink>
+          ))}
+          <button
+            onClick={() => setOpen(true)}
+            className={`bottom-tab-link${!bottomTabs.some(tab => tab.to === location.pathname) ? ' active' : ''}`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <MoreHorizontal size={19} />
+            <span>{t('Daha Fazla')}</span>
+          </button>
+        </nav>
       </div>
     </div>
   )

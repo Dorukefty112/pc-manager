@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { Cpu, Search, XCircle, Skull, RefreshCw } from 'lucide-react'
 
 export default function Processes() {
   const { t } = useI18n()
+  const isMobile = useIsMobile()
   const [procs, setProcs] = useState([])
   const [sort, setSort] = useState('cpu')
   const [search, setSearch] = useState('')
@@ -68,60 +70,105 @@ export default function Processes() {
         </div>
       </div>
 
-      <div className="table-wrap" style={{ overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>PID</th>
-                <th>{t('İsim')}</th>
-                <th style={{ textAlign: 'right' }}>CPU%</th>
-                <th style={{ textAlign: 'right' }}>RAM%</th>
-                <th style={{ textAlign: 'right' }}>RAM</th>
-                <th>{t('Durum')}</th>
-                <th style={{ textAlign: 'right' }}>{t('İşlem')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {procs.map(p => (
-                <tr key={p.pid}>
-                  <td className="mono">{p.pid}</td>
-                  <td className="primary" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {procs.map(p => (
+            <div key={p.pid} className="card" style={{ padding: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="primary" style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.name || '?'}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span style={{ fontWeight: 700, color: cpuColor(p.cpu_percent || 0), fontFamily: "'JetBrains Mono',monospace", fontSize: '0.8rem' }}>
-                      {(p.cpu_percent || 0).toFixed(1)}
-                    </span>
-                  </td>
-                  <td className="mono" style={{ textAlign: 'right' }}>
-                    {(p.memory_percent || 0).toFixed(1)}
-                  </td>
-                  <td className="mono" style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
-                    {formatMem(p.memory_info?.rss)}
-                  </td>
-                  <td>
-                    <span className={`badge ${p.status === 'running' ? 'badge-green' : 'badge-gray'}`}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button onClick={() => kill(p.pid, false)} className="btn-icon warning" title="SIGTERM">
-                        <XCircle size={14} />
-                      </button>
-                      <button onClick={() => kill(p.pid, true)} className="btn-icon danger" title="SIGKILL">
-                        <Skull size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PID {p.pid}</div>
+                </div>
+                <span className={`badge ${p.status === 'running' ? 'badge-green' : 'badge-gray'}`}>
+                  {p.status}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>CPU%</div>
+                  <div style={{ fontWeight: 700, color: cpuColor(p.cpu_percent || 0), fontFamily: "'JetBrains Mono',monospace", fontSize: '0.85rem' }}>
+                    {(p.cpu_percent || 0).toFixed(1)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>RAM%</div>
+                  <div className="mono" style={{ fontSize: '0.85rem' }}>{(p.memory_percent || 0).toFixed(1)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>RAM</div>
+                  <div className="mono" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatMem(p.memory_info?.rss)}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => kill(p.pid, false)} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
+                  <XCircle size={14} /> SIGTERM
+                </button>
+                <button onClick={() => kill(p.pid, true)} className="btn btn-danger" style={{ flex: 1, justifyContent: 'center' }}>
+                  <Skull size={14} /> SIGKILL
+                </button>
+              </div>
+            </div>
+          ))}
+          {procs.length === 0 && <div className="table-empty">{t('Process bulunamadı')}</div>}
         </div>
-        {procs.length === 0 && <div className="table-empty">{t('Process bulunamadı')}</div>}
-      </div>
+      ) : (
+        <div className="table-wrap" style={{ overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>PID</th>
+                  <th>{t('İsim')}</th>
+                  <th style={{ textAlign: 'right' }}>CPU%</th>
+                  <th style={{ textAlign: 'right' }}>RAM%</th>
+                  <th style={{ textAlign: 'right' }}>RAM</th>
+                  <th>{t('Durum')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('İşlem')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {procs.map(p => (
+                  <tr key={p.pid}>
+                    <td className="mono">{p.pid}</td>
+                    <td className="primary" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name || '?'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span style={{ fontWeight: 700, color: cpuColor(p.cpu_percent || 0), fontFamily: "'JetBrains Mono',monospace", fontSize: '0.8rem' }}>
+                        {(p.cpu_percent || 0).toFixed(1)}
+                      </span>
+                    </td>
+                    <td className="mono" style={{ textAlign: 'right' }}>
+                      {(p.memory_percent || 0).toFixed(1)}
+                    </td>
+                    <td className="mono" style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                      {formatMem(p.memory_info?.rss)}
+                    </td>
+                    <td>
+                      <span className={`badge ${p.status === 'running' ? 'badge-green' : 'badge-gray'}`}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        <button onClick={() => kill(p.pid, false)} className="btn-icon warning" title="SIGTERM">
+                          <XCircle size={14} />
+                        </button>
+                        <button onClick={() => kill(p.pid, true)} className="btn-icon danger" title="SIGKILL">
+                          <Skull size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {procs.length === 0 && <div className="table-empty">{t('Process bulunamadı')}</div>}
+        </div>
+      )}
     </div>
   )
 }

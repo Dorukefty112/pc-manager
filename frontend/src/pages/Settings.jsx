@@ -7,12 +7,18 @@ import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, S
 
 function SettingRow({ label, desc, children }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 0' }}>
+    <div className="setting-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 0' }}>
+      <style>{`
+        @media (max-width: 480px) {
+          .setting-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .setting-row-value { width: 100%; }
+        }
+      `}</style>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text)' }}>{label}</div>
         {desc && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>{desc}</div>}
       </div>
-      {children}
+      <div className="setting-row-value">{children}</div>
     </div>
   )
 }
@@ -195,7 +201,7 @@ export default function SettingsPage() {
       {activeTab === 'ollama' && (
         <Section title={t('Yapay Zeka Asistan')} icon={Cpu}>
           <SettingRow label={t('Model')}>
-            <select value={config.ollama?.model || 'ssfdre38/gemma4-turbo:e4b'} onChange={e => update('ollama', 'model', e.target.value)} style={{ width: 200 }}>
+            <select value={config.ollama?.model || 'ssfdre38/gemma4-turbo:e4b'} onChange={e => update('ollama', 'model', e.target.value)} style={{ width: 200, maxWidth: '100%' }}>
               {models.length === 0 && <option value="ssfdre38/gemma4-turbo:e4b">ssfdre38/gemma4-turbo:e4b</option>}
               {models.map(m => <option key={m.name} value={m.name}>{m.name} ({m.size_gb}GB)</option>)}
             </select>
@@ -253,7 +259,7 @@ export default function SettingsPage() {
             <SettingRow key={f.key} label={f.label}>
               <input type={f.type || 'text'} placeholder={f.placeholder} value={config.email?.[f.key] || ''}
                 onChange={e => update('email', f.key, f.type === 'number' ? parseInt(e.target.value) || 587 : e.target.value)}
-                style={{ width: 220 }} />
+                style={{ width: 220, maxWidth: '100%' }} />
             </SettingRow>
           ))}
           <SettingRow label="TLS">
@@ -271,7 +277,7 @@ export default function SettingsPage() {
             <input type="url" placeholder="https://discord.com/api/webhooks/..."
               value={config.webhook?.url || ''}
               onChange={e => update('webhook', 'url', e.target.value)}
-              style={{ width: 280, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
+              style={{ width: 280, maxWidth: '100%', fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
           </SettingRow>
         </Section>
       )}
@@ -284,13 +290,13 @@ export default function SettingsPage() {
             <input type="password" placeholder="123456:ABC-DEF1234..."
               value={config.telegram?.bot_token || ''}
               onChange={e => update('telegram', 'bot_token', e.target.value)}
-              style={{ width: 240, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
+              style={{ width: 240, maxWidth: '100%', fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
           </SettingRow>
           <SettingRow label="Chat ID">
             <input type="text" placeholder="123456789"
               value={config.telegram?.chat_id || ''}
               onChange={e => update('telegram', 'chat_id', e.target.value)}
-              style={{ width: 160, fontFamily: "'JetBrains Mono',monospace" }} />
+              style={{ width: 160, maxWidth: '100%', fontFamily: "'JetBrains Mono',monospace" }} />
           </SettingRow>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button onClick={save} className="btn btn-primary"><Save size={14} /> {t('Kaydet')}</button>

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0] — 2026-08-01
+
+- **Telefon İçin Yeniden Tasarlanan Arayüz**: Uygulama artık masaüstüyle aynı görünmüyor. `Layout.jsx`'e telefon genişliklerinde (≤767px) beliren, native app'lerdeki gibi alt sabit bir tab bar eklendi (Ana Sayfa, Terminal, Dosyalar, Ayarlar, Daha Fazla — mevcut menü "Daha Fazla" altında kalıyor).
+- **Dokunmatik Bug Düzeltmesi**: Dosyalar sayfasındaki yeniden adlandır/sil butonları sadece mouse hover'da görünüyordu, dokunmatik ekranda tamamen erişilemezdi — artık her zaman görünür.
+- **Process'ler Sayfası Telefon Görünümü**: 7 kolonlu tablo yerine telefonda dikey kart listesine dönüşüyor (yatay kaydırma gerekmiyor).
+- **Ayarlar Sayfası Responsive**: `SettingRow` bileşeni dar ekranda etiketi üstte, girdi alanını altta tam genişlikte gösterecek şekilde düzenlendi; sabit genişlikli input'lara taşma koruması eklendi.
+- Paylaşılan bir `useIsMobile()` hook'u eklendi (`frontend/src/hooks/`), gelecekteki mobil-özel sayfa uyarlamaları için.
+
 ## [1.8.1] — 2026-08-01
 
 - **Android'de Cleartext HTTP Düzeltmesi**: Gerçek cihazda eşleştirme denendiğinde "Cleartext HTTP traffic ... not permitted" hatası alınıyordu — Android 9+ varsayılan olarak şifrelenmemiş HTTP trafiğini engelliyor. PC Manager backend'i bilerek TLS'siz çalıştığı için (Tailscale zaten kendi şifrelemesini sağlıyor), `AndroidManifest.xml`'e bir network security config eklenerek cleartext trafiğe izin verildi.

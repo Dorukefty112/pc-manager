@@ -208,7 +208,8 @@ export default function Temperature() {
                       {cpuWin?.freq_mhz > 1000 ? `${(cpuWin.freq_mhz / 1000).toFixed(1)} GHz` : `${cpuWin?.freq_mhz || ''} MHz`}
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  <div className="cpu-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                    <style>{`@media (max-width: 480px) { .cpu-detail-grid { grid-template-columns: 1fr 1fr !important; } }`}</style>
                     {[
                       { label: t('Kullanım'), val: `${Math.round(cpu.percent)}%` },
                       { label: t('Çekirdek'), val: `${cpuWin?.cores || cpu?.count}/${cpuWin?.threads || cpu?.count}` },
