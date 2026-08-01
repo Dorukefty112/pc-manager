@@ -9,6 +9,8 @@ from dependencies import require_auth
 from auth import create_access_token
 import psutil
 
+MOBILE_TOKEN_EXPIRE_MINUTES = 10 * 365 * 24 * 60
+
 router = APIRouter(tags=["pairing"])
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
@@ -59,6 +61,19 @@ def get_ip_addresses():
     return ips
 
 
+def get_tailscale_ip(ips: list) -> str | None:
+    try:
+        addrs = psutil.net_if_addrs()
+        for iface_name, iface_addrs in addrs.items():
+            if iface_name.startswith("tailscale"):
+                for addr in iface_addrs:
+                    if addr.family == socket.AF_INET:
+                        return addr.address
+    except Exception:
+        pass
+    return next((ip for ip in ips if ip.startswith("100.")), None)
+
+
 def start_mdns(port: int = 8081):
     global _zeroconf, _zeroconf_info
     try:
@@ -96,7 +111,7 @@ def stop_mdns():
 
 
 @router.get("/pairing/qr")
-def get_pairing_info(request: Request):
+def get_pairing_info(request: Request, _: dict = Depends(require_auth)):
     global _active_pairing_token
     now = time.time()
     
@@ -117,7 +132,7 @@ def get_pairing_info(request: Request):
     
     return {
         "local_ips": ips,
-        "tailscale_ip": next((ip for ip in ips if ip.startswith("100.")), None),
+        "tailscale_ip": get_tailscale_ip(ips),
         "port": port,
         "pairing_token": _active_pairing_token["token"],
         "expires_in": int(_active_pairing_token["expires_at"] - now),
@@ -161,7 +176,7 @@ def pair_device(body: dict):
     access_token = create_access_token({
         "sub": "mobile_client",
         "device_id": device_id
-    })
+    }, expire_minutes=MOBILE_TOKEN_EXPIRE_MINUTES)
     
     return {
         "success": True,

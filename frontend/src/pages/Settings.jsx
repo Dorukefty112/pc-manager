@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
 import Toggle from '../components/Toggle'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink } from 'lucide-react'
+import PairingPanel from '../components/PairingPanel'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink, Smartphone } from 'lucide-react'
 
 function SettingRow({ label, desc, children }) {
   return (
@@ -41,6 +42,7 @@ export default function SettingsPage() {
     { id: 'email',         label: t('E-posta'),      icon: Mail },
     { id: 'webhook',       label: 'Webhook',         icon: Webhook },
     { id: 'telegram',      label: 'Telegram',        icon: Send },
+    { id: 'pairing',       label: t('Mobil Cihazlar'), icon: Smartphone },
     { id: 'debug',         label: 'Debug',           icon: Bug },
     { id: 'windows',       label: 'Windows',         icon: Monitor },
   ]
@@ -296,6 +298,14 @@ export default function SettingsPage() {
               <Send size={14} /> {t('Test Mesajı Gönder')}
             </button>
           </div>
+        </Section>
+      )}
+
+      {/* Mobil Cihazlar (Pairing) */}
+      {activeTab === 'pairing' && (
+        <Section title={t('Mobil Cihazlar')} icon={Smartphone}
+          desc={t('PC Manager\'a Tailscale üzerinden bağlanan mobil uygulamaları buradan eşleştir ve yönet.')}>
+          <PairingPanel />
         </Section>
       )}
 

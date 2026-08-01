@@ -202,6 +202,14 @@ npm run build
 _install_pentest_tools
 
 info "Systemd servisi kuruluyor..."
+TAILSCALE_ENV_LINE=""
+if command -v tailscale &>/dev/null; then
+    TAILSCALE_IP=$(tailscale ip -4 2>/dev/null | head -1 || true)
+    if [ -n "$TAILSCALE_IP" ]; then
+        info "Tailscale IP tespit edildi: $TAILSCALE_IP"
+        TAILSCALE_ENV_LINE="Environment=TAILSCALE_IP=$TAILSCALE_IP"
+    fi
+fi
 cat > /etc/systemd/system/$SERVICE_NAME.service <<EOF
 [Unit]
 Description=PC Manager Backend
@@ -215,6 +223,7 @@ ExecStart=$VENV_DIR/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8081 -
 Restart=always
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1
+$TAILSCALE_ENV_LINE
 
 [Install]
 WantedBy=multi-user.target

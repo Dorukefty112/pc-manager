@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0] — 2026-08-01
+
+- **Mobil Cihaz Eşleştirme Arayüzü**: Ayarlar sayfasına "Mobil Cihazlar" sekmesi eklendi — artık QR kod üretme, eşleştirilmiş cihazları listeleme ve tek tıkla yetki kaldırma admin panelinden yapılabiliyor (önceden sadece API üzerinden mümkündü).
+- **Mobil Token Süresi Düzeltildi**: Eşleştirilen mobil cihazların token'ı artık gerçekten uzun ömürlü (10 yıl) — önceden dokümantasyon böyle iddia etse de kodda admin oturumuyla aynı 8 saatlik süreyi kullanıyordu. Cihaz yetkisi kaldırıldığında token yine anında geçersiz oluyor.
+- **Eşleştirme Kodu Üretimi Güvenlik Sıkılaştırması**: `GET /api/pairing/qr` artık admin oturumu gerektiriyor; böylece ağdaki (yarın Tailscale tailnet'indeki) kimse admin bilerek bir cihaz eşleştirmeye başlamadan aktif bir eşleştirme kodu göremiyor.
+- **Tailscale IP Tespiti İyileştirildi**: Eşleştirme ekranındaki Tailscale IP'si artık `tailscale0` arayüzünden isim bazlı okunuyor (önceki `100.x` ile başlayan ilk IP sezgisi yerine); `install.sh` artık kurulum sırasında Tailscale kuruluysa IP'sini gerçekten tespit edip systemd servisine `TAILSCALE_IP` olarak ekliyor.
+
 ## [1.6.0] — 2026-08-01
 
 - **Mobil Deprem İzleme Arayüzü**: Deprem Monitoring sayfasına özel, sekmeli (tabbed) mobil layout eklendi; sayfa genel olarak mobil uyumlu hale getirildi.
