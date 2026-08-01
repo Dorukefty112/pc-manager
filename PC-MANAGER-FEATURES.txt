@@ -176,10 +176,10 @@
 
 ---
 
-## 🛡️ GÜVENLİK & OSINT
+## 🛡️ GÜVENLİK
 
-### Pen-Test (27 Araç)
-- `GET /api/pentest/tools` — 27 aracı kategorileriyle listele
+### Pen-Test (17 Araç)
+- `GET /api/pentest/tools` — 17 aracı kategorileriyle listele
 - `GET /api/pentest/tools/{tool_id}` — Araç detayı
 - `POST /api/pentest/run` — Araç çalıştır (session_id döner)
 - `GET /api/pentest/sessions` — Oturum listesi
@@ -193,15 +193,13 @@
 - `GET /api/pentest/presets` — Kullanıcı presetlerini listele
 - `POST /api/pentest/presets` — Preset kaydet
 - `DELETE /api/pentest/presets/{tool_id}/{label}` — Preset sil
-- `POST /api/pentest/osint-scan` — OSINT taraması (email/username/domain/phone/auto-detect)
 - `WS /api/pentest/ws/{session_id}` — WebSocket canlı çıktı akışı
 
 **Kategoriler:**
-- Ağ Tarama: nmap, masscan, dnsrecon, enum4linux, metasploit
-- Web: gobuster, nikto, whatweb, sqlmap, wfuzz, dirb, searchsploit, sherlock, igcheck, theharvester
+- Ağ Tarama: nmap, masscan, dnsrecon, enum4linux
+- Web: gobuster, nikto, whatweb, sqlmap, wfuzz, dirb, searchsploit
 - Parola: hydra, john
 - Ağ İzleme: tcpdump, nc, netstat, wireshark (tshark)
-- OSINT: holehe, h8mail, maigret, whatsmyname, socialscan, amass, subfinder, dnstwist, phoneinfoga, whatbreach, exiftool
 
 ---
 

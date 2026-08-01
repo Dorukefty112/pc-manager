@@ -1,9 +1,9 @@
 # PC Manager
 
-**Sistem yönetimi ve OSINT platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
+**Sistem yönetimi platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.5.0-blue)
+![Version](https://img.shields.io/badge/version-1.6.0-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için genel kullanıma açılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode un servis ettiği big pickle ve google gemini antigravity deki çeşitli modeller) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 
@@ -36,8 +36,7 @@
 | 🐳 **Docker** | Container ve image yönetimi |
 | ⏰ **Cron** | Cron job görüntüleme ve düzenleme |
 | 💬 **Sohbet** | Ollama ile yerel AI sohbet asistanı |
-| 🔍 **OSINT** | Email, kullanıcı adı, domain, telefon sorgulama araçları (11+ araç) |
-| 🛡️ **Pentest** | Nmap, SQLMap, Hydra, John, Gobuster ve 20+ güvenlik aracı |
+| 🛡️ **Pentest** | Nmap, SQLMap, Hydra, John, Gobuster ve 12+ diğer güvenlik aracı |
 | 🌍 **Deprem İzleme** | Sismik Harita (Kandilli, AFAD, USGS, EMSC, GFZ, NOA, IRIS) API entegrasyonlu gelişmiş canlı deprem takibi, istatistikler, filtreler ve sesli uyarı |
 | 🔎 **Pc_Search_Engine** | Web (DuckDuckGo), yerel dosya ve sistem arama motoru |
 | ⚙️ **Kurulum Sihirbazı** | İlk açılışta site adı, yönetici adı ve şifre belirleme |
@@ -100,8 +99,7 @@ sudo systemctl enable pc-manager    # Otomatik başlatma
 | **Terminal** | xterm.js |
 | **Auth** | JWT (python-jose) |
 | **AI** | Ollama (gemma4) |
-| **OSINT** | Holehe, Maigret, Amass, PhoneInfoga, Subfinder, H8Mail, WhatsMyName, DNSTwist, ExifTool, Sherlock |
-| **Pentest** | Nmap, Masscan, SQLMap, Hydra, John, Gobuster, Nikto, Wfuzz, Dirb, SearchSploit, theHarvester |
+| **Pentest** | Nmap, Masscan, SQLMap, Hydra, John, Gobuster, Nikto, Wfuzz, Dirb, SearchSploit |
 
 ## API Dokümantasyonu
 
@@ -123,7 +121,6 @@ KRITIK ve YUKSEK seviye depremlerde telefonunuza aninda bildirim almak icin:
 - JWT tabanlı kimlik doğrulama
 - Tüm hassas işlemler auth gerektirir
 - Şifre hash ile saklanır (bcrypt)
-- OSINT araçları rate-limit korumalı
 - Şifre ortam değişkeni ile özelleştirilebilir (`PCMANAGER_PASSWORD`)
 
 ## Lisans

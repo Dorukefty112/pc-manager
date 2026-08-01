@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0] — 2026-08-01
+
+- **Mobil Deprem İzleme Arayüzü**: Deprem Monitoring sayfasına özel, sekmeli (tabbed) mobil layout eklendi; sayfa genel olarak mobil uyumlu hale getirildi.
+- **AI Arama Düzeltmeleri**: Ollama agent tool'larında varsayılan model ve arama motoru sayfa parametresi tip uyuşmazlığı giderildi.
+- **Bağımlılık Düzeltmesi**: Eksik `beautifulsoup4` bağımlılığı `requirements.txt`'e eklendi.
+- **OSINT Kaldırıldı**: Artan bakım yükü nedeniyle OSINT araçları (Holehe, H8Mail, Maigret, WhatsMyName, Amass, Subfinder, DNSTwist, PhoneInfoga, ExifTool, Sherlock, theHarvester) ve kullanılmayan `/api/pentest/osint-scan` uç noktası kaldırıldı. Pentest sayfası artık ağ/web/parola/izleme araçlarına odaklanıyor.
+- **Ölü Kod Temizliği**: v1.4.1'de araç listesinden çıkarılmış ama unutulmuş `socialscan`/`whatbreach` preset ve parser artıkları silindi.
+
 ## [1.5.0] — 2026-07-15
 
 - **Sismik Harita API Entegrasyonu**: Deprem izleme sistemi, Evrim Ağacı'nın geliştirdiği Sismik Harita API'sine (`sismikharita.com`) entegre edildi. AFAD ve Kandilli verileri birincil sismik veri sağlayıcısı olarak Sismik Harita üzerinden toplanacak, eski sistemler yedek olarak korunacak şekilde backend güncellendi.

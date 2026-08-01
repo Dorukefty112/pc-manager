@@ -23,7 +23,7 @@ from fastapi import Query
 from urllib.parse import urlparse
 import httpx
 
-app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi ve OSINT platformu")
+app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi platformu")
 
 @app.on_event("startup")
 def startup_event():
