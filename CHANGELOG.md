@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.1] — 2026-08-01
+
+- **Android'de Cleartext HTTP Düzeltmesi**: Gerçek cihazda eşleştirme denendiğinde "Cleartext HTTP traffic ... not permitted" hatası alınıyordu — Android 9+ varsayılan olarak şifrelenmemiş HTTP trafiğini engelliyor. PC Manager backend'i bilerek TLS'siz çalıştığı için (Tailscale zaten kendi şifrelemesini sağlıyor), `AndroidManifest.xml`'e bir network security config eklenerek cleartext trafiğe izin verildi.
+
 ## [1.8.0] — 2026-08-01
 
 - **Android Uygulaması (Capacitor)**: `frontend/` kod tabanı Capacitor ile native bir Android kabuğuna sarıldı (`frontend/android/`). Uygulama, Ayarlar → Mobil Cihazlar'daki QR kodu tarayarak (veya IP/port/kod elle girerek) eşleşiyor ve Tailscale üzerinden eve uzaktan bağlanıyor.
