@@ -76,11 +76,16 @@ const accentColors = {
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false)
   const [emergency, setEmergency] = useState(false)
+  const [version, setVersion] = useState('')
   const location = useLocation()
   const { theme, toggle } = useTheme()
   const { t } = useI18n()
 
   useEffect(() => { setOpen(false) }, [location.pathname])
+
+  useEffect(() => {
+    api('/api/version').then(d => setVersion(d.version)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const check = async () => {
@@ -227,7 +232,7 @@ export default function Layout({ children }) {
                   PC Manager
                 </div>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 1 }}>
-                  v1.3.0
+                  {version && `v${version}`}
                 </div>
               </div>
             </div>

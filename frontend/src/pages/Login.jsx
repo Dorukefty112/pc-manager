@@ -11,10 +11,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [show, setShow] = useState(false)
   const [siteName, setSiteName] = useState('PC Manager')
+  const [version, setVersion] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
     api('/api/setup').then(d => setSiteName(d.site_name || 'PC Manager')).catch(() => {})
+    api('/api/version').then(d => setVersion(d.version)).catch(() => {})
   }, [])
 
   const handleSubmit = async (e) => {
@@ -204,7 +206,7 @@ export default function Login() {
             textAlign: 'center',
             fontSize: '0.72rem', color: 'var(--text-muted)',
           }}>
-            PC Manager v1.3.0 — MIT License
+            PC Manager {version && `v${version} `}— MIT License
           </div>
         </div>
       </div>
