@@ -103,6 +103,11 @@ export default function Layout({ children }) {
     return () => clearInterval(id)
   }, [])
 
+  const handleLogout = () => {
+    setToken(null)
+    window.location.href = '/login'
+  }
+
   const toggleEmergency = async () => {
     try {
       const d = await api('/api/ollama/emergency', {
@@ -320,7 +325,7 @@ export default function Layout({ children }) {
                 <span>{theme === 'dark' ? t('Aydınlık') : t('Karanlık')}</span>
               </button>
               <button
-                onClick={() => { setToken(null); window.location.href = '/login' }}
+                onClick={handleLogout}
                 className="btn-ghost"
                 data-tooltip="Çıkış Yap"
                 style={{ color: 'var(--text-muted)' }}
@@ -475,7 +480,7 @@ export default function Layout({ children }) {
                     {theme === 'dark' ? <><Sun size={15} /> Açık Tema</> : <><Moon size={15} /> Koyu Tema</>}
                   </button>
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="btn btn-secondary touch-active"
                     style={{ flex: 1, justifyContent: 'center', borderRadius: 12, fontSize: '0.8rem', color: 'var(--red)' }}
                   >
