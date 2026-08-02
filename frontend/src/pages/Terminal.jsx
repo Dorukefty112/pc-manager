@@ -142,6 +142,67 @@ export default function Terminal() {
         </div>
         <div ref={termRef} style={{ flex: 1, height: 'calc(100% - 37px)' }} />
       </div>
+
+      {/* Mobile Quick Keys Toolbar */}
+      <div className="mobile-quick-toolbar" style={{
+        display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto',
+        padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: 12, scrollbarWidth: 'none', flexShrink: 0,
+      }}>
+        <style>{`
+          .mobile-quick-btn {
+            display: flex; align-items: center; justify-content: center;
+            padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace; background: var(--bg-hover);
+            color: var(--text-secondary); border: 1px solid var(--border-light);
+            white-space: nowrap; cursor: pointer;
+          }
+          .mobile-quick-btn:active { background: var(--accent-glow); color: var(--accent); }
+        `}</style>
+        
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\x03') }}
+        >
+          Ctrl+C
+        </button>
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\t') }}
+        >
+          Tab
+        </button>
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\x1b[A') }}
+        >
+          ▲ Üst
+        </button>
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\x1b[B') }}
+        >
+          ▼ Alt
+        </button>
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('ls -la\r') }}
+        >
+          ls -la
+        </button>
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('clear\r') }}
+        >
+          clear
+        </button>
+        <button
+          className="mobile-quick-btn touch-active"
+          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('htop\r') }}
+        >
+          htop
+        </button>
+      </div>
     </div>
   )
 }

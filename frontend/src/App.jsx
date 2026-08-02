@@ -31,7 +31,7 @@ import Login from './pages/Login'
 import Setup from './pages/Setup'
 import MobilePairing from './pages/MobilePairing'
 import { useI18n } from './context/I18nContext'
-import { isAuthenticated, getServerBase } from './api'
+import { isAuthenticated, getServerBase, setServerBase, setToken } from './api'
 import { useState, useEffect } from 'react'
 import { api } from './api'
 import { Capacitor } from '@capacitor/core'
@@ -44,10 +44,69 @@ function ProtectedRoute({ children }) {
 function SetupGuard({ children }) {
   const { t } = useI18n()
   const [status, setStatus] = useState('loading')
+  const [error, setError] = useState(null)
+
+  const checkSetup = () => {
+    setStatus('loading')
+    setError(null)
+    api('/api/setup', { timeout: 6000 })
+      .then(d => setStatus(d.completed ? 'done' : 'setup'))
+      .catch((err) => {
+        if (Capacitor.isNativePlatform()) {
+          setError(err.message || 'Sunucuya bağlanılamadı')
+          setStatus('error')
+        } else {
+          setStatus('done')
+        }
+      })
+  }
+
   useEffect(() => {
-    api('/api/setup').then(d => setStatus(d.completed ? 'done' : 'setup')).catch(() => setStatus('done'))
+    checkSetup()
   }, [])
-  if (status === 'loading') return <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4"><div className="text-gray-500">{t("Yükleniyor...")}</div></div>
+
+  if (status === 'loading') {
+    return (
+      <div style={{
+        minHeight: '100vh', background: 'var(--bg-primary)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}>
+        <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3, marginBottom: 16 }} />
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t("Sunucuya bağlanılıyor...")}</div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div style={{
+        minHeight: '100vh', background: 'var(--bg-primary)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}>
+        <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 360, padding: 28, textAlign: 'center' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--red)', margin: '0 0 8px' }}>Bağlantı Hatası</h2>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 20px', wordBreak: 'break-word' }}>{error}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button onClick={checkSetup} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+              Yeniden Dene
+            </button>
+            <button
+              onClick={() => {
+                setServerBase(null)
+                setToken(null)
+                window.location.reload()
+              }}
+              className="btn btn-secondary"
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              Yeniden Eşleştir
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (status === 'setup') return <Setup />
   return children
 }

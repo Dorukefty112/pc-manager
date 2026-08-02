@@ -69,6 +69,15 @@ export default function Files() {
     return d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
   }
 
+  const [selectedItem, setSelectedItem] = useState(null)
+
+  const downloadFile = (item) => {
+    api(`/api/files/download?path=${encodeURIComponent(item.path)}`, { raw: true })
+      .then(r => r.blob()).then(b => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = item.name; a.click()
+      })
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className="animate-fade-in">
       <div className="page-header">
@@ -77,15 +86,15 @@ export default function Files() {
           {t('Dosyalar')}
         </h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div className="search-wrap" style={{ width: 180 }}>
+          <div className="search-wrap" style={{ width: 160 }}>
             <Search size={13} className="search-icon" />
             <input value={searchQ} onChange={e => setSearchQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()} placeholder={t('Ara...')} />
           </div>
-          <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+          <label className="btn btn-secondary touch-active" style={{ cursor: 'pointer' }}>
             <Upload size={14} /> {t('Yükle')}
             <input type="file" style={{ display: 'none' }} ref={uploadRef} onChange={upload} multiple />
           </label>
-          <button onClick={mkdir} className="btn btn-secondary">
+          <button onClick={mkdir} className="btn btn-secondary touch-active">
             <Plus size={14} /> {t('Dizin')}
           </button>
         </div>
@@ -94,7 +103,7 @@ export default function Files() {
       {/* Quick nav */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {[['/', t('Kök')], ['/mnt/c', 'Windows (C:)'], ['/mnt', '/mnt']].map(([p, label]) => (
-          <button key={p} onClick={() => navigate(p)} style={{
+          <button key={p} onClick={() => navigate(p)} className="touch-active" style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
             borderRadius: 8, fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer',
             background: path === p ? 'var(--accent-glow)' : 'var(--bg-elevated)',
@@ -121,7 +130,7 @@ export default function Files() {
           display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.02)',
         }}>
           {data?.parent && !searchResults && (
-            <button onClick={() => navigate(data.parent)} className="btn-icon" style={{ flexShrink: 0 }}>
+            <button onClick={() => navigate(data.parent)} className="btn-icon touch-active" style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
           )}
@@ -129,7 +138,7 @@ export default function Files() {
             {searchResults ? `${t('Arama:')} "${searchQ}"` : path}
           </span>
           {searchResults && (
-            <button onClick={() => { setSearchResults(null); setSearchQ('') }} className="btn-icon">
+            <button onClick={() => { setSearchResults(null); setSearchQ('') }} className="btn-icon touch-active">
               <X size={13} />
             </button>
           )}
@@ -140,54 +149,48 @@ export default function Files() {
           {(searchResults || data?.items)?.map(item => (
             <div key={item.path} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '9px 16px', borderBottom: '1px solid var(--border)',
+              padding: '10px 16px', borderBottom: '1px solid var(--border)',
               transition: 'background 0.12s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              className="touch-active"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                 {item.is_dir
-                  ? <Folder size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
-                  : <FileText size={16} color="#60a5fa" style={{ flexShrink: 0 }} />
+                  ? <Folder size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
+                  : <FileText size={18} color="#60a5fa" style={{ flexShrink: 0 }} />
                 }
                 {renaming === item.path ? (
                   <input autoFocus value={renameVal}
                     onChange={e => setRenameVal(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') doRename(); if (e.key === 'Escape') setRenaming(null) }}
                     onBlur={doRename}
-                    style={{ flex: 1, borderRadius: 7, padding: '3px 10px', fontSize: '0.82rem' }}
+                    style={{ flex: 1, borderRadius: 7, padding: '4px 10px', fontSize: '0.85rem' }}
                   />
                 ) : (
                   <button
                     onClick={() => {
                       if (item.is_dir && !searchResults) { navigate(item.path) }
-                      else if (!item.is_dir) {
-                        api(`/api/files/download?path=${encodeURIComponent(item.path)}`, { raw: true })
-                          .then(r => r.blob()).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = item.name; a.click() })
-                      }
+                      else if (!item.is_dir) { setSelectedItem(item) }
                     }}
                     style={{
                       flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: '0.82rem', color: item.is_dir ? 'var(--text)' : 'var(--text-secondary)',
+                      fontSize: '0.85rem', fontWeight: item.is_dir ? 600 : 400,
+                      color: item.is_dir ? 'var(--text)' : 'var(--text-secondary)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       padding: '2px 0',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
-                    onMouseLeave={e => e.currentTarget.style.color = item.is_dir ? 'var(--text)' : 'var(--text-secondary)'}
                   >
                     {item.name}
                   </button>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 12 }}>
-                {!item.is_dir && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono',monospace", minWidth: 56, textAlign: 'right' }}>{fmt(item.size)}</span>}
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'none', minWidth: 100 }} className="file-date">{fmtDate(item.mtime || item.modified)}</span>
-                <button onClick={() => startRename(item)} className="file-action btn-icon">
-                  <Edit3 size={13} />
+                {!item.is_dir && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono',monospace" }}>{fmt(item.size)}</span>}
+                <button onClick={() => startRename(item)} className="btn-icon touch-active">
+                  <Edit3 size={14} />
                 </button>
-                <button onClick={() => del(item.path)} className="file-action btn-icon danger">
-                  <Trash2 size={13} />
+                <button onClick={() => del(item.path)} className="btn-icon danger touch-active">
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
@@ -197,6 +200,52 @@ export default function Files() {
           )}
         </div>
       </div>
+
+      {/* Mobile File Action Sheet */}
+      {selectedItem && (
+        <div className="sheet-backdrop" style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        }} onClick={() => setSelectedItem(null)}>
+          <div className="sheet-container pb-safe" style={{ padding: '0 20px 24px' }} onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <FileText size={20} color="#60a5fa" />
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }} className="truncate">{selectedItem.name}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{fmt(selectedItem.size)}</div>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="btn-ghost touch-active" style={{ padding: 6, borderRadius: '50%' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => { downloadFile(selectedItem); setSelectedItem(null) }}
+                className="btn btn-primary touch-active"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
+              >
+                <Upload size={16} style={{ transform: 'rotate(180deg)' }} /> İndir
+              </button>
+              <button
+                onClick={() => { startRename(selectedItem); setSelectedItem(null) }}
+                className="btn btn-secondary touch-active"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
+              >
+                <Edit3 size={16} /> Yeniden Adlandır
+              </button>
+              <button
+                onClick={() => { del(selectedItem.path); setSelectedItem(null) }}
+                className="btn btn-secondary touch-active"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px 16px', color: 'var(--red)' }}
+              >
+                <Trash2 size={16} /> Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

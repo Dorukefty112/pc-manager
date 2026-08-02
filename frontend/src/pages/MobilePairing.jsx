@@ -3,12 +3,20 @@ import { api, setToken, setServerBase } from '../api'
 import { Monitor, QrCode, Wifi, ArrowRight, AlertCircle, Keyboard } from 'lucide-react'
 
 function getDeviceId() {
-  let id = localStorage.getItem('pcmanager_device_id')
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem('pcmanager_device_id', id)
+  try {
+    let id = localStorage.getItem('pcmanager_device_id')
+    if (!id) {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        id = crypto.randomUUID()
+      } else {
+        id = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36)
+      }
+      localStorage.setItem('pcmanager_device_id', id)
+    }
+    return id
+  } catch {
+    return 'dev_' + Math.random().toString(36).substring(2, 15)
   }
-  return id
 }
 
 async function getDeviceName() {

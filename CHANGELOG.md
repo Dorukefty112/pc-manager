@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0] — 2026-08-02
+
+- 📱 **Tam Mobil Deneyim (Mobile UX & UI Transformation)**: Mobil port baştan aşağı yenilendi. Glassmorphism cam katmanlar, dinamik mikro-animasyonlar ve safe-area inset (çentik / alt çubuk) desteği eklendi.
+- 🪄 **Yüzen Cam Alt Tab Bar & Yaylı Dokunma Efekti**: Telefonda (`<768px`) alt tarafta yüzen, `backdrop-filter` cam görünümlü navigation bar eklendi. Dokunulan tüm kart ve butonlarda yaylı (`scale: 0.96`) dokunma geri bildirimi aktifleşti.
+- 📜 **Slide-up Bottom Sheet (Çekmece Menü)**: "Daha Fazla" ve mobil detay sayfaları için iOS/Android native tarzı alttan yukarı kayan yumuşak animasyonlu Bottom Sheet çekmecesi eklendi.
+- 💻 **Terminal Mobil Hızlı Tuşlar Barı**: Mobil klavyenin üstünde dokunmatik olarak tek tıkla `Ctrl+C`, `Tab`, `▲ Üst`, `▼ Alt`, `ls -la`, `clear` ve `htop` gönderebilen kaydırılabilir hızlı tuş çubuğu eklendi.
+- 📁 **Dosya Yöneticisi Mobil Eylem Sayfası**: Mobil cihazlarda dosyalara dokunulduğunda doğrudan İndir, Yeniden Adlandır ve Sil seçeneklerini sunan mobil eylem paneli entegre edildi.
+- 🌐 **WebSocket & WebView Çökme Koruması**: Android WebView üzerinde `crypto.randomUUID` uyumsuzluğu için safe fallback eklendi; `capacitor.config.ts` cleartext http scheme yapılandırılarak Android WebSocket Mixed Content hataları tamamen çözüldü.
+
 ## [1.9.0] — 2026-08-01
 
 - **Telefon İçin Yeniden Tasarlanan Arayüz**: Uygulama artık masaüstüyle aynı görünmüyor. `Layout.jsx`'e telefon genişliklerinde (≤767px) beliren, native app'lerdeki gibi alt sabit bir tab bar eklendi (Ana Sayfa, Terminal, Dosyalar, Ayarlar, Daha Fazla — mevcut menü "Daha Fazla" altında kalıyor).

@@ -349,50 +349,194 @@ export default function Layout({ children }) {
             borderBottom: '1px solid var(--border)',
             padding: '0 16px',
             height: 52,
-            display: 'flex', alignItems: 'center', gap: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }} className="mobile-header">
             <style>{`@media (min-width: 1024px) { .mobile-header { display: none !important; } }`}</style>
-            <button onClick={() => setOpen(true)} className="btn-ghost top-menu-btn" style={{ padding: 6 }}>
-              <Menu size={20} />
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 26, height: 26, borderRadius: 7,
+                width: 28, height: 28, borderRadius: 8,
                 background: 'linear-gradient(135deg, var(--accent), #0e7490)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px var(--accent-glow)',
               }}>
-                <Monitor size={13} color="#fff" />
+                <Monitor size={15} color="#fff" />
               </div>
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>PC Manager</span>
+              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>PC Manager</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={toggleEmergency}
+                className="touch-active"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '5px 9px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+                  background: emergency ? 'rgba(239,68,68,0.2)' : 'var(--bg-card)',
+                  color: emergency ? '#ef4444' : 'var(--text-secondary)',
+                  border: `1px solid ${emergency ? 'rgba(239,68,68,0.4)' : 'var(--border)'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <AlertTriangle size={12} />
+                <span>{emergency ? 'ACİL' : 'Normal'}</span>
+              </button>
+              
+              <button onClick={() => setOpen(true)} className="btn-ghost top-menu-btn touch-active" style={{ padding: 6 }}>
+                <MoreHorizontal size={20} />
+              </button>
             </div>
           </header>
 
-          <main style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }} className="main-pad">
-            <style>{`@media (min-width: 768px) { .main-pad { padding: 28px 28px !important; } }`}</style>
+          <main style={{ flex: 1, overflowY: 'auto', padding: '16px 14px 90px' }} className="main-pad">
+            <style>{`@media (min-width: 768px) { .main-pad { padding: 28px 28px 28px !important; } }`}</style>
             {children}
           </main>
         </div>
 
-        {/* Bottom tab bar (phone only) */}
-        <nav className="bottom-tab-bar">
-          {bottomTabs.map(tab => (
-            <NavLink
-              key={tab.to}
-              to={tab.to}
-              end={tab.to === '/'}
-              className={({ isActive }) => `bottom-tab-link${isActive ? ' active' : ''}`}
+        {/* Mobile Slide-up Sheet Modal (Daha Fazla Drawer) */}
+        {open && (
+          <div
+            className="sheet-backdrop"
+            style={{
+              position: 'fixed', inset: 0, zIndex: 90,
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+            }}
+            onClick={() => setOpen(false)}
+          >
+            <div
+              className="sheet-container pb-safe"
+              style={{ padding: '0 20px 24px', width: '100%' }}
+              onClick={e => e.stopPropagation()}
             >
-              <tab.icon size={19} />
-              <span>{t(tab.label)}</span>
-            </NavLink>
-          ))}
+              <div className="sheet-handle" />
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: 6,
+                    background: 'var(--accent-glow)', border: '1px solid rgba(6,182,212,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Monitor size={13} color="var(--accent)" />
+                  </div>
+                  <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)' }}>Tüm Sayfalar</span>
+                </div>
+                
+                <button onClick={() => setOpen(false)} className="btn-ghost touch-active" style={{ padding: 6, borderRadius: '50%' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Grouped navigation cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {navGroups.map(group => (
+                  <div key={group.label}>
+                    <div className="section-label" style={{ marginBottom: 8, fontSize: '0.65rem' }}>{group.label}</div>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8,
+                    }}>
+                      {group.links.map(link => {
+                        const Icon = link.icon
+                        return (
+                          <NavLink
+                            key={link.to}
+                            to={link.to}
+                            end={link.to === '/'}
+                            onClick={() => setOpen(false)}
+                            className="touch-active"
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              padding: '10px 12px', borderRadius: 12,
+                              background: location.pathname === link.to ? 'var(--accent-glow)' : 'var(--bg-card)',
+                              border: `1px solid ${location.pathname === link.to ? 'rgba(6,182,212,0.3)' : 'var(--border)'}`,
+                              color: location.pathname === link.to ? 'var(--accent)' : 'var(--text)',
+                              fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none',
+                            }}
+                          >
+                            <Icon size={16} style={{ flexShrink: 0, opacity: 0.9 }} />
+                            <span className="truncate">{t(link.label)}</span>
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Bottom Quick Controls in Sheet */}
+                <div style={{
+                  display: 'flex', gap: 10, marginTop: 8, paddingTop: 14,
+                  borderTop: '1px solid var(--border)',
+                }}>
+                  <button
+                    onClick={toggle}
+                    className="btn btn-secondary touch-active"
+                    style={{ flex: 1, justifyContent: 'center', borderRadius: 12, fontSize: '0.8rem' }}
+                  >
+                    {theme === 'dark' ? <><Sun size={15} /> Açık Tema</> : <><Moon size={15} /> Koyu Tema</>}
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="btn btn-secondary touch-active"
+                    style={{ flex: 1, justifyContent: 'center', borderRadius: 12, fontSize: '0.8rem', color: 'var(--red)' }}
+                  >
+                    <LogOut size={15} /> Çıkış Yap
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Glassmorphic Bottom Tab Bar (phone only) */}
+        <nav className="mobile-glass-nav pb-safe" style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+          height: 'calc(60px + var(--safe-bottom))', padding: '4px 10px 0',
+        }}>
+          <style>{`@media (min-width: 768px) { .mobile-glass-nav { display: none !important; } }`}</style>
+          {bottomTabs.map(tab => {
+            const isActive = location.pathname === tab.to || (tab.to !== '/' && location.pathname.startsWith(tab.to))
+            const Icon = tab.icon
+            return (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.to === '/'}
+                className="touch-active"
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 3, flex: 1, height: '100%', textDecoration: 'none',
+                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                  position: 'relative',
+                }}
+              >
+                {isActive && (
+                  <div style={{
+                    position: 'absolute', top: 0, width: 20, height: 3,
+                    background: 'var(--accent)', borderRadius: '0 0 4px 4px',
+                    boxShadow: '0 0 10px var(--accent)',
+                  }} />
+                )}
+                <Icon size={20} style={{
+                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                  transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }} />
+                <span style={{ fontSize: '0.68rem', fontWeight: isActive ? 700 : 500 }}>{t(tab.label)}</span>
+              </NavLink>
+            )
+          })}
+          
           <button
             onClick={() => setOpen(true)}
-            className={`bottom-tab-link${!bottomTabs.some(tab => tab.to === location.pathname) ? ' active' : ''}`}
-            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            className="touch-active"
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 3, flex: 1, height: '100%', background: 'none', border: 'none', cursor: 'pointer',
+              color: open ? 'var(--accent)' : 'var(--text-secondary)',
+            }}
           >
-            <MoreHorizontal size={19} />
-            <span>{t('Daha Fazla')}</span>
+            <MoreHorizontal size={20} />
+            <span style={{ fontSize: '0.68rem', fontWeight: open ? 700 : 500 }}>{t('Daha Fazla')}</span>
           </button>
         </nav>
       </div>

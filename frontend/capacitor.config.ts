@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.dorukefty.pcmanager',
   appName: 'PC Manager',
   webDir: 'dist',
+  server: {
+    androidScheme: 'http',
+    cleartext: true,
+  },
   plugins: {
     CapacitorHttp: {
       enabled: true,
