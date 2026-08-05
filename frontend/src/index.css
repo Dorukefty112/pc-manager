@@ -548,6 +548,28 @@ input:focus, select:focus, textarea:focus {
 .pb-safe { padding-bottom: max(16px, var(--safe-bottom)); }
 .pt-safe { padding-top: max(12px, var(--safe-top)); }
 
+/* Auto-Scaling & Responsiveness across all mobile screen sizes */
+@media (max-width: 767px) {
+  html, body {
+    overflow-x: hidden !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .card {
+    max-width: 100%;
+  }
+
+  .page-title {
+    font-size: clamp(1.1rem, 4.5vw, 1.4rem) !important;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on focus across mobile devices */
+  }
+}
+
 /* Tap highlight & touch optimization */
 .touch-active {
   -webkit-tap-highlight-color: transparent;

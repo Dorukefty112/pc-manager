@@ -349,45 +349,48 @@ export default function Layout({ children }) {
           {/* Mobile topbar */}
           <header style={{
             position: 'sticky', top: 0, zIndex: 10,
-            background: 'color-mix(in srgb, var(--bg-secondary) 90%, transparent)',
-            backdropFilter: 'blur(12px)',
+            background: 'color-mix(in srgb, var(--bg-secondary) 92%, transparent)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             borderBottom: '1px solid var(--border)',
-            padding: '0 16px',
-            height: 52,
+            paddingTop: 'calc(max(14px, env(safe-area-inset-top, 0px)) + 6px)',
+            paddingBottom: '10px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }} className="mobile-header">
             <style>{`@media (min-width: 1024px) { .mobile-header { display: none !important; } }`}</style>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 28, height: 28, borderRadius: 8,
+                width: 30, height: 30, borderRadius: 9,
                 background: 'linear-gradient(135deg, var(--accent), #0e7490)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 2px 8px var(--accent-glow)',
               }}>
-                <Monitor size={15} color="#fff" />
+                <Monitor size={16} color="#fff" />
               </div>
-              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>PC Manager</span>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>PC Manager</span>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button
                 onClick={toggleEmergency}
                 className="touch-active"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '5px 9px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+                  padding: '6px 11px', borderRadius: 20, fontSize: '0.74rem', fontWeight: 700,
                   background: emergency ? 'rgba(239,68,68,0.2)' : 'var(--bg-card)',
                   color: emergency ? '#ef4444' : 'var(--text-secondary)',
                   border: `1px solid ${emergency ? 'rgba(239,68,68,0.4)' : 'var(--border)'}`,
                   cursor: 'pointer',
                 }}
               >
-                <AlertTriangle size={12} />
+                <AlertTriangle size={13} />
                 <span>{emergency ? 'ACİL' : 'Normal'}</span>
               </button>
               
-              <button onClick={() => setOpen(true)} className="btn-ghost top-menu-btn touch-active" style={{ padding: 6 }}>
-                <MoreHorizontal size={20} />
+              <button onClick={() => setOpen(true)} className="btn-ghost top-menu-btn touch-active" style={{ padding: 7 }}>
+                <MoreHorizontal size={22} />
               </button>
             </div>
           </header>
