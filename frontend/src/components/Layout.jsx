@@ -5,7 +5,7 @@ import {
   Package, ScrollText, Server, Info, MessageSquare, Shield,
   Menu, X, Container, Clock, LogOut, Activity, Brain, Search,
   AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug, Gauge,
-  ChevronRight, MoreHorizontal,
+  ChevronRight, MoreHorizontal, Flame, Waves, CloudLightning,
 } from 'lucide-react'
 import { setToken, api } from '../api'
 import { useTheme } from '../context/ThemeContext'
@@ -47,8 +47,11 @@ const navGroups = [
   {
     label: 'İstihbarat',
     links: [
-      { to: '/search', label: 'Arama',         icon: Search,   accent: 'purple' },
-      { to: '/deprem', label: 'Deprem İzleme', icon: Activity, accent: 'orange' },
+      { to: '/search',      label: 'Arama',          icon: Search,         accent: 'purple' },
+      { to: '/deprem',      label: 'Deprem İzleme',  icon: Activity,       accent: 'orange' },
+      { to: '/yangin',      label: 'Orman Yangını',  icon: Flame,          accent: 'red' },
+      { to: '/sel',         label: 'Sel/Taşkın',     icon: Waves,          accent: 'blue' },
+      { to: '/hava-uyari',  label: 'Aşırı Hava',     icon: CloudLightning, accent: 'teal' },
     ],
   },
   {
@@ -78,6 +81,8 @@ const accentColors = {
   red:    { color: '#f87171', bg: 'rgba(239,68,68,0.08)',    border: 'rgba(239,68,68,0.2)' },
   purple: { color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.2)' },
   orange: { color: '#fb923c', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.2)' },
+  blue:   { color: '#60a5fa', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.2)' },
+  teal:   { color: '#2dd4bf', bg: 'rgba(20,184,166,0.08)',  border: 'rgba(20,184,166,0.2)' },
 }
 
 export default function Layout({ children }) {
@@ -162,6 +167,14 @@ export default function Layout({ children }) {
         .nav-link.accent-orange:hover { background: rgba(249,115,22,0.08); color: #fb923c; border-color: rgba(249,115,22,0.15); }
         .nav-link.accent-orange.active { background: rgba(249,115,22,0.1); color: #fb923c; border-color: rgba(249,115,22,0.25); }
         .nav-link.accent-orange.active::before { background: #f97316; box-shadow: 0 0 8px #f97316; }
+        .nav-link.accent-blue { color: rgba(96,165,250,0.7); }
+        .nav-link.accent-blue:hover { background: rgba(59,130,246,0.08); color: #60a5fa; border-color: rgba(59,130,246,0.15); }
+        .nav-link.accent-blue.active { background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+        .nav-link.accent-blue.active::before { background: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
+        .nav-link.accent-teal { color: rgba(45,212,191,0.7); }
+        .nav-link.accent-teal:hover { background: rgba(20,184,166,0.08); color: #2dd4bf; border-color: rgba(20,184,166,0.15); }
+        .nav-link.accent-teal.active { background: rgba(20,184,166,0.1); color: #2dd4bf; border-color: rgba(20,184,166,0.25); }
+        .nav-link.accent-teal.active::before { background: #14b8a6; box-shadow: 0 0 8px #14b8a6; }
 
         .bottom-tab-bar { display: none; }
         .top-menu-btn { display: flex; }
