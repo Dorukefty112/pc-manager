@@ -20,6 +20,9 @@ import Windows from './pages/Windows'
 import Settings from './pages/Settings'
 import Debug from './pages/Debug'
 import DepremUyari from './pages/DepremUyari'
+import OrmanYanginIzleme from './pages/OrmanYanginIzleme'
+import SelIzleme from './pages/SelIzleme'
+import HavaUyari from './pages/HavaUyari'
 import DepremAlert from './components/DepremAlert'
 import OllamaChat from './pages/OllamaChat'
 import SearchEngine from './pages/SearchEngine'
@@ -145,6 +148,9 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="/deprem" element={<DepremUyari />} />
+                <Route path="/yangin" element={<OrmanYanginIzleme />} />
+                <Route path="/sel" element={<SelIzleme />} />
+                <Route path="/hava-uyari" element={<HavaUyari />} />
                 <Route path="/windows" element={<Windows />} />
                 <Route path="/search" element={<SearchEngine />} />
                 <Route path="/speedtest" element={<Speedtest />} />

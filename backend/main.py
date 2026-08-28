@@ -14,7 +14,7 @@ from routers import (
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
     notifications, windows, speedtest, firewall, firewall_native, temperature,
-    playbooks, pairing,
+    playbooks, pairing, yangin, sel, hava_uyari,
 )
 from dependencies import require_auth
 from routers.search_engine import _rewrite_html, _fetch_page
@@ -36,6 +36,9 @@ def shutdown_event():
     pairing.stop_mdns()
 
 notifications.start_checker()
+yangin.start_fire_checker()
+sel.start_flood_checker()
+hava_uyari.start_weather_checker()
 
 static_dir = Path(__file__).parent.parent / "frontend" / "dist"
 if not static_dir.exists():
@@ -101,6 +104,9 @@ app.include_router(pentest.router, prefix="/api")
 app.include_router(docker.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(cron.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(deprem.router, prefix="/api")
+app.include_router(yangin.router, prefix="/api")
+app.include_router(sel.router, prefix="/api")
+app.include_router(hava_uyari.router, prefix="/api")
 app.include_router(ollama.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(pairing.router, prefix="/api")

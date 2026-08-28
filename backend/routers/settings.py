@@ -25,12 +25,18 @@ DEFAULT_CONFIG = {
         "disk_threshold": 90,
         "earthquake_magnitude": 4.0,
         "earthquake_distance": 100,
+        "fire_distance_km": 50,
+        "flood_discharge_percentile": 90,
+        "weather_province": "",
         "sound_enabled": True,
         "channels": {
             "telegram": True,
             "email": False,
             "webhook": False,
         },
+    },
+    "firms": {
+        "api_key": "",
     },
     "email": {
         "enabled": False,

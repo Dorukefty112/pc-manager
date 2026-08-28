@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
 import Toggle from '../components/Toggle'
 import PairingPanel from '../components/PairingPanel'
-import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink, Smartphone } from 'lucide-react'
+import { Settings, Bell, Cpu, Bug, Save, Check, Loader, AlertTriangle, Shield, Send, Mail, Webhook, Trash2, Monitor, Server, HardDrive, Wifi, ScrollText, Terminal, ExternalLink, Smartphone, Globe } from 'lucide-react'
 
 function SettingRow({ label, desc, children }) {
   return (
@@ -120,14 +120,24 @@ export default function SettingsPage() {
 
       {/* General */}
       {activeTab === 'general' && (
-        <Section title={t('Genel Ayarlar')} icon={Settings}>
-          <SettingRow label={t('Dil / Language')}>
-            <select value={config.general?.language || 'tr'} onChange={e => update('general', 'language', e.target.value)} style={{ width: 140 }}>
-              <option value="tr">Türkçe</option>
-              <option value="en">English</option>
-            </select>
-          </SettingRow>
-        </Section>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Section title={t('Genel Ayarlar')} icon={Settings}>
+            <SettingRow label={t('Dil / Language')}>
+              <select value={config.general?.language || 'tr'} onChange={e => update('general', 'language', e.target.value)} style={{ width: 140 }}>
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </SettingRow>
+          </Section>
+          <Section title={t('Dış Servis Anahtarları')} icon={Globe}
+            desc={t('Orman yangını izleme için ücretsiz bir NASA FIRMS MAP_KEY gerekir.')}>
+            <SettingRow label="FIRMS MAP_KEY" desc={t('firms.modaps.eosdis.nasa.gov/api/map_key adresinden e-posta ile alın')}>
+              <input type="password" placeholder={t('API anahtarınız')} value={config.firms?.api_key || ''}
+                onChange={e => update('firms', 'api_key', e.target.value)}
+                style={{ width: 240, maxWidth: '100%', fontFamily: "'JetBrains Mono',monospace", fontSize: '0.78rem' }} />
+            </SettingRow>
+          </Section>
+        </div>
       )}
 
       {/* Notifications */}
@@ -140,6 +150,8 @@ export default function SettingsPage() {
               { key: 'disk_threshold', label: 'Disk Doluluk Uyarı (%)', min: 50, max: 100 },
               { key: 'earthquake_magnitude', label: 'Deprem Büyüklük Eşiği', min: 2, max: 8, step: 0.5 },
               { key: 'earthquake_distance', label: 'Deprem Mesafe Eşiği (km)', min: 10, max: 500, step: 10 },
+              { key: 'fire_distance_km', label: 'Yangın Mesafe Eşiği (km)', min: 5, max: 200, step: 5 },
+              { key: 'flood_discharge_percentile', label: 'Taşkın Debi Persentili (p)', min: 75, max: 99, step: 1 },
             ].map(item => (
               <div key={item.key} style={{ padding: '8px 0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
@@ -152,6 +164,11 @@ export default function SettingsPage() {
                   style={{ width: '100%', accentColor: 'var(--accent)' }} />
               </div>
             ))}
+            <SettingRow label={t('İliniz')} desc={t('Aşırı hava uyarılarının filtreleneceği il')}>
+              <input type="text" placeholder="Örn: Ankara" value={config.notifications?.weather_province || ''}
+                onChange={e => update('notifications', 'weather_province', e.target.value)}
+                style={{ width: 160, maxWidth: '100%' }} />
+            </SettingRow>
             <SettingRow label={t('Sesli Bildirim')}>
               <Toggle checked={config.notifications?.sound_enabled ?? true} onChange={() => update('notifications', 'sound_enabled', !(config.notifications?.sound_enabled ?? true))} />
             </SettingRow>
