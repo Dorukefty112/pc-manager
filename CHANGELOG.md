@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0] — 2026-08-28
+
+- **Yeni Afet İzleme Türleri**: Deprem İzleme'nin yanına aynı derinlikte üç yeni sayfa eklendi — **Orman Yangını** (NASA FIRMS uydu verisi), **Sel/Taşkın** (Open-Meteo Flood API, nehir debisi tabanlı deneysel risk hesaplaması) ve **Aşırı Hava** (MGM meteoroloji uyarıları). Her biri kendi harita + istatistik + liste görünümüne, masaüstü/mobil ayrı düzenine ve arka planda periyodik kontrol edip Telegram'a uyarı gönderen izleyicisine sahip.
+- **MGM Entegrasyonu Gerçek Uç Noktaya Göre Yazıldı**: MGM'nin resmi bir açık API'si olmadığı için, meteouyari haritasının kullandığı gayri-resmi servis (`servis.mgm.gov.tr`) canlı olarak analiz edildi — doğru `Origin`/`Referer` başlıkları ve gerçek JSON şeması (uyarı başına `towns`/`weather`/`text` alanlarının `{sarı, turuncu, kırmızı}` alt-yapısı) koda işlendi. MGM'nin sayısal ilçe kimlikleri (`towns`), plaka koduna dayalı bir formülle (`9 + plaka kodu + sıra no`) doğrudan il ismine çevriliyor. MGM'ye erişilemezse veya şeması beklenmedik şekilde değişirse sistem otomatik olarak Open-Meteo tahmin verisinden türetilen kendi eşik tabanlı uyarısına düşüyor, hiçbir zaman hata vermiyor.
+- **Yeni Ayarlar**: Ayarlar sayfasına NASA FIRMS API anahtarı girişi, yangın mesafe eşiği, sel debi persentili ve hava durumu uyarısı için il filtresi eklendi.
+- **VERSION Dosyası Düzeltmesi**: `VERSION` dosyası bir önceki sürümde (Mobil UX 2.0.0 dönüşümü) güncellenmemiş kalmıştı; `package.json` ve `CHANGELOG.md` ile senkronize edildi.
+
 ## [2.0.0] — 2026-08-02
 
 - 📱 **Tam Mobil Deneyim (Mobile UX & UI Transformation)**: Mobil port baştan aşağı yenilendi. Glassmorphism cam katmanlar, dinamik mikro-animasyonlar ve safe-area inset (çentik / alt çubuk) desteği eklendi.
