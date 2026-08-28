@@ -19,19 +19,34 @@ CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 # fonksiyonunda izole, sadece orası düzeltilmesi yeterli olacak.
 MGM_TODAY_URL = "https://servis.mgm.gov.tr/web/meteoalarm/today"
 MGM_TOMORROW_URL = "https://servis.mgm.gov.tr/web/meteoalarm/tomorrow"
+MGM_ORIGIN = "https://www.mgm.gov.tr"
 MGM_REFERER = "https://www.mgm.gov.tr/meteouyari/turkiye.aspx"
 MGM_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+    "Origin": MGM_ORIGIN,
     "Referer": MGM_REFERER,
     "Accept": "application/json, text/plain, */*",
 }
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
-SEVIYE_MAP = {
-    "sarı": "DIKKAT", "sari": "DIKKAT", "yellow": "DIKKAT",
-    "turuncu": "YUKSEK", "orange": "YUKSEK",
-    "kırmızı": "KRITIK", "kirmizi": "KRITIK", "red": "KRITIK",
+# MGM her uyarı öğesinde üç seviyeyi de ayrı ayrı taşıyor (towns/weather/text
+# hep {"yellow":..., "orange":..., "red":...} biçiminde alt-nesneler), tek bir
+# "seviye" alanı yok - canlı veriyle doğrulandı.
+LEVEL_SEVIYE = {"yellow": "DIKKAT", "orange": "YUKSEK", "red": "KRITIK"}
+
+# MGM'nin weather.<seviye> dizisindeki İngilizce tehlike anahtar kelimeleri.
+# Canlı veride görülenler: "thunderstorm", "wind". Bilinmeyen bir anahtar
+# gelirse olduğu gibi (baş harfi büyük) gösterilir, hata vermez.
+HAZARD_TR = {
+    "thunderstorm": "Gök Gürültülü Sağanak Yağış",
+    "wind": "Kuvvetli Rüzgar/Fırtına",
+    "frost": "Don",
+    "heat": "Aşırı Sıcak",
+    "cold": "Aşırı Soğuk",
+    "snow": "Kar",
+    "fog": "Sis",
+    "flood": "Sel/Taşkın",
 }
 
 # MGM'nin "towns" dizisindeki sayısal merkez kimlikleri PPDD formatında:
@@ -78,49 +93,37 @@ def _fetch_mgm_raw(url: str) -> str:
 
 
 def _parse_mgm_response(raw_text: str, zaman: str = "bugün") -> list:
-    """MGM JSON'unu normalize eder. Şema resmi olarak dokümante edilmediği için
-    beklenen yapı bulunamazsa MgmParseError fırlatır (çağıran taraf bunu
-    Open-Meteo fallback'ine düşer)."""
+    """MGM JSON'unu normalize eder. Gerçek uç noktadan canlı doğrulanmış şema:
+    kök bir liste, her öğe tek bir uyarı kaydı olup towns/weather/text alanları
+    kendi içinde {"yellow": ..., "orange": ..., "red": ...} alt-yapısı taşıyor
+    (aynı kayıt birden fazla seviyeyi aynı anda içerebilir). Beklenmeyen bir kök
+    tip veya hiçbir kayıtta tanınabilir "towns" alt-yapısı yoksa MgmParseError
+    fırlatır (çağıran taraf bunu Open-Meteo fallback'ine düşer)."""
     try:
         data = json.loads(raw_text)
     except (json.JSONDecodeError, TypeError) as e:
         raise MgmParseError(f"JSON ayrıştırılamadı: {e}")
 
-    color_groups: dict[str, list] = {}
-    if isinstance(data, dict):
-        for key in ("yellow", "orange", "red", "sari", "sarı", "turuncu", "kirmizi", "kırmızı"):
-            value = data.get(key)
-            if isinstance(value, list):
-                color_groups[key.lower()] = value
-        if not color_groups:
-            raise MgmParseError("Beklenen renk anahtarları (yellow/orange/red) bulunamadı")
-    elif isinstance(data, list):
-        for item in data:
-            if not isinstance(item, dict):
-                continue
-            level = str(item.get("level") or item.get("color") or item.get("renk") or item.get("seviye") or "").lower()
-            if not level:
-                continue
-            color_groups.setdefault(level, []).append(item)
-        if not color_groups:
-            raise MgmParseError("Liste ögelerinde renk/level alanı bulunamadı")
-    else:
-        raise MgmParseError("Beklenmeyen JSON kök tipi")
+    if not isinstance(data, list):
+        raise MgmParseError("Beklenmeyen JSON kök tipi (liste bekleniyordu)")
 
     warnings = []
-    for color_key, items in color_groups.items():
-        seviye = SEVIYE_MAP.get(color_key)
-        if not seviye:
+    well_formed_seen = False
+    for item in data:
+        if not isinstance(item, dict) or not isinstance(item.get("towns"), dict):
             continue
-        for item in items:
-            if not isinstance(item, dict):
+        well_formed_seen = True
+        begin = item.get("begin")
+        end = item.get("end")
+        weather_by_level = item.get("weather") or {}
+        for level, seviye in LEVEL_SEVIYE.items():
+            town_ids = item["towns"].get(level) or []
+            if not town_ids:
                 continue
-            tur = item.get("text") or item.get("weather") or item.get("type") or "Bilinmiyor"
-            begin = item.get("begin") or item.get("start")
-            end = item.get("end") or item.get("bitis")
-            towns = item.get("towns") or []
+            hazards = weather_by_level.get(level) or []
+            tur = ", ".join(HAZARD_TR.get(h, str(h).capitalize()) for h in hazards) if hazards else "Bilinmiyor"
             iller = set()
-            for tid in towns:
+            for tid in town_ids:
                 il = _il_from_town_id(tid)
                 if il:
                     iller.add(il)
@@ -134,6 +137,9 @@ def _parse_mgm_response(raw_text: str, zaman: str = "bugün") -> list:
                     "kaynak": "MGM",
                     "zaman": zaman,
                 })
+
+    if data and not well_formed_seen:
+        raise MgmParseError("Beklenen alan yapısı (towns) bulunamadı")
     return warnings
 
 
