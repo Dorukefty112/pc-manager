@@ -1,7 +1,6 @@
 import json
 import time
 import threading
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from fastapi import APIRouter, Query
 import httpx
@@ -13,11 +12,20 @@ router = APIRouter()
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 
-# NOT: MGM'nin resmi/dokümante edilmiş bir açık API'si yok. Bu, sitenin kendi
-# istemci tarafı JS'inin çağırdığı gayri-resmi bir uç nokta - şema DOĞRULANMADI,
-# canlıda MGM tarafı değişirse sadece _parse_mgm_response() düzeltilmesi yeterli
-# olacak şekilde tüm varsayımlar bu tek fonksiyonda izole edildi.
-MGM_UYARI_URL = "https://www.mgm.gov.tr/tahminler-meteouyari.xml"
+# NOT: MGM'nin resmi/dokümante edilmiş bir açık API'si yok. Bu, meteouyari
+# haritasının kendi AngularJS istemcisinin çağırdığı gayri-resmi uç nokta -
+# Referer başlığı olmadan "Not allowed by MGM" hatası dönüyor. Şema MGM
+# tarafından değiştirilirse tüm varsayımlar tek bir _parse_mgm_response()
+# fonksiyonunda izole, sadece orası düzeltilmesi yeterli olacak.
+MGM_TODAY_URL = "https://servis.mgm.gov.tr/web/meteoalarm/today"
+MGM_TOMORROW_URL = "https://servis.mgm.gov.tr/web/meteoalarm/tomorrow"
+MGM_REFERER = "https://www.mgm.gov.tr/meteouyari/turkiye.aspx"
+MGM_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+    "Referer": MGM_REFERER,
+    "Accept": "application/json, text/plain, */*",
+}
+
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 SEVIYE_MAP = {
@@ -25,6 +33,13 @@ SEVIYE_MAP = {
     "turuncu": "YUKSEK", "orange": "YUKSEK",
     "kırmızı": "KRITIK", "kirmizi": "KRITIK", "red": "KRITIK",
 }
+
+# MGM'nin "towns" dizisindeki sayısal merkez kimlikleri PPDD formatında:
+# 9 + il plaka kodu (2 hane) + ilçe içi sıra no (2 hane), örn. 90101 -> plaka 01
+# (Adana), 91401 -> plaka 14 (Bolu). IL_MERKEZLERI sözlüğü de tam olarak resmi
+# plaka kodu sırasında tanımlı (Adana=1 ... Düzce=81), bu yüzden plaka kodunu
+# doğrudan bu listenin indeksine çevirebiliyoruz.
+_IL_PLAKA_SIRASI = list(IL_MERKEZLERI.keys())
 
 _seen_alerts = set()
 _checker_running = False
@@ -44,47 +59,81 @@ def _load_config() -> dict:
     return {}
 
 
-def _fetch_mgm_raw() -> str:
-    resp = httpx.get(MGM_UYARI_URL, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+def _il_from_town_id(town_id) -> str | None:
+    try:
+        tid = int(town_id)
+    except (TypeError, ValueError):
+        return None
+    plaka = (tid // 100) % 100
+    if 1 <= plaka <= len(_IL_PLAKA_SIRASI):
+        return _IL_PLAKA_SIRASI[plaka - 1]
+    return None
+
+
+def _fetch_mgm_raw(url: str) -> str:
+    resp = httpx.get(url, timeout=15, headers=MGM_HEADERS)
     if resp.status_code != 200 or not resp.text.strip():
         raise MgmParseError(f"MGM yanıt vermedi (status={resp.status_code})")
     return resp.text
 
 
-def _parse_mgm_response(raw_text: str) -> list:
-    """MGM XML'ini normalize eder. Şema doğrulanmadı - beklenmeyen yapı bulursa
-    MgmParseError fırlatır (çağıran taraf bunu Open-Meteo fallback'ine düşer)."""
+def _parse_mgm_response(raw_text: str, zaman: str = "bugün") -> list:
+    """MGM JSON'unu normalize eder. Şema resmi olarak dokümante edilmediği için
+    beklenen yapı bulunamazsa MgmParseError fırlatır (çağıran taraf bunu
+    Open-Meteo fallback'ine düşer)."""
     try:
-        root = ET.fromstring(raw_text)
-    except ET.ParseError as e:
-        raise MgmParseError(f"XML ayrıştırılamadı: {e}")
+        data = json.loads(raw_text)
+    except (json.JSONDecodeError, TypeError) as e:
+        raise MgmParseError(f"JSON ayrıştırılamadı: {e}")
+
+    color_groups: dict[str, list] = {}
+    if isinstance(data, dict):
+        for key in ("yellow", "orange", "red", "sari", "sarı", "turuncu", "kirmizi", "kırmızı"):
+            value = data.get(key)
+            if isinstance(value, list):
+                color_groups[key.lower()] = value
+        if not color_groups:
+            raise MgmParseError("Beklenen renk anahtarları (yellow/orange/red) bulunamadı")
+    elif isinstance(data, list):
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            level = str(item.get("level") or item.get("color") or item.get("renk") or item.get("seviye") or "").lower()
+            if not level:
+                continue
+            color_groups.setdefault(level, []).append(item)
+        if not color_groups:
+            raise MgmParseError("Liste ögelerinde renk/level alanı bulunamadı")
+    else:
+        raise MgmParseError("Beklenmeyen JSON kök tipi")
 
     warnings = []
-    # Olası eleman adlarını dene (il/kod/seviye/tur alan adları MGM'de farklı olabilir)
-    candidates = list(root.iter())
-    found_any_item = False
-    for el in candidates:
-        tag = el.tag.lower().split("}")[-1]
-        if tag not in ("item", "uyari", "warning", "record", "row"):
+    for color_key, items in color_groups.items():
+        seviye = SEVIYE_MAP.get(color_key)
+        if not seviye:
             continue
-        found_any_item = True
-        data = {child.tag.lower().split("}")[-1]: (child.text or "").strip() for child in el}
-        il = data.get("il") or data.get("sehir") or data.get("city") or data.get("name")
-        seviye_raw = (data.get("seviye") or data.get("level") or data.get("renk") or data.get("color") or "").lower()
-        tur = data.get("tur") or data.get("type") or data.get("hazard") or "Bilinmiyor"
-        if not il or seviye_raw not in SEVIYE_MAP:
-            continue
-        warnings.append({
-            "il": il,
-            "seviye": SEVIYE_MAP[seviye_raw],
-            "tur": tur,
-            "baslangic": data.get("baslangic") or data.get("start"),
-            "bitis": data.get("bitis") or data.get("end"),
-            "kaynak": "MGM",
-        })
-
-    if not found_any_item:
-        raise MgmParseError("Beklenen XML yapısı bulunamadı (şema değişmiş olabilir)")
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            tur = item.get("text") or item.get("weather") or item.get("type") or "Bilinmiyor"
+            begin = item.get("begin") or item.get("start")
+            end = item.get("end") or item.get("bitis")
+            towns = item.get("towns") or []
+            iller = set()
+            for tid in towns:
+                il = _il_from_town_id(tid)
+                if il:
+                    iller.add(il)
+            for il in sorted(iller):
+                warnings.append({
+                    "il": il,
+                    "seviye": seviye,
+                    "tur": tur,
+                    "baslangic": begin,
+                    "bitis": end,
+                    "kaynak": "MGM",
+                    "zaman": zaman,
+                })
     return warnings
 
 
@@ -132,12 +181,19 @@ def _derive_warnings_from_open_meteo() -> list:
 
 def get_weather_warnings() -> list:
     try:
-        raw = _fetch_mgm_raw()
-        return _parse_mgm_response(raw)
+        raw_today = _fetch_mgm_raw(MGM_TODAY_URL)
+        warnings = _parse_mgm_response(raw_today, zaman="bugün")
     except MgmParseError:
         return _derive_warnings_from_open_meteo()
     except Exception:
         return _derive_warnings_from_open_meteo()
+
+    try:
+        raw_tomorrow = _fetch_mgm_raw(MGM_TOMORROW_URL)
+        warnings = warnings + _parse_mgm_response(raw_tomorrow, zaman="yarın")
+    except Exception:
+        pass
+    return warnings
 
 
 def _check_and_alert():
