@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 import time as time_module
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends, Request, Header
@@ -30,7 +31,8 @@ import httpx
 async def lifespan(app: FastAPI):
     # Arka plan işleri yalnızca sunucu gerçekten başlarken çalışır;
     # testlerde main'i import etmek thread başlatmaz.
-    pairing.start_mdns(port=8081)
+    # mDNS kaydı birkaç saniye sürebilir; açılışı bekletmesin
+    threading.Thread(target=pairing.start_mdns, kwargs={"port": 8081}, daemon=True).start()
     notifications.start_checker()
     yangin.start_fire_checker()
     sel.start_flood_checker()

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
 import Toggle from '../components/Toggle'
@@ -59,13 +60,11 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general')
   const [models, setModels] = useState([])
   const [emergency, setEmergency] = useState(false)
-  const [alerts, setAlerts] = useState([])
 
   useEffect(() => {
     api('/api/settings').then(setConfig).catch(() => {})
     api('/api/ollama/models').then(d => setModels(Array.isArray(d) ? d : [])).catch(() => {})
     api('/api/ollama/emergency').then(d => setEmergency(d.emergency)).catch(() => {})
-    api('/api/notifications/history').then(setAlerts).catch(() => {})
   }, [])
 
   const toggleEmergency = async () => {
@@ -143,11 +142,14 @@ export default function SettingsPage() {
       {/* Notifications */}
       {activeTab === 'notifications' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Section title={t('Uyarı Eşik Değerleri')} icon={Bell}>
+          <Section title={t('Sistem Alarmları')} icon={Bell}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+              {t('CPU, RAM, disk, sıcaklık, servis, süreç ve HTTP alarmları artık kural bazlı çalışıyor.')}{' '}
+              <Link to="/alerts" style={{ color: 'var(--accent)' }}>{t('Alarm kurallarını düzenle →')}</Link>
+            </p>
+          </Section>
+          <Section title={t('Afet Uyarı Eşikleri')} icon={Bell}>
             {[
-              { key: 'cpu_threshold', label: 'CPU Kullanım Uyarı (%)', min: 50, max: 100 },
-              { key: 'memory_threshold', label: 'RAM Kullanım Uyarı (%)', min: 50, max: 100 },
-              { key: 'disk_threshold', label: 'Disk Doluluk Uyarı (%)', min: 50, max: 100 },
               { key: 'earthquake_magnitude', label: 'Deprem Büyüklük Eşiği', min: 2, max: 8, step: 0.5 },
               { key: 'earthquake_distance', label: 'Deprem Mesafe Eşiği (km)', min: 10, max: 500, step: 10 },
               { key: 'fire_distance_km', label: 'Yangın Mesafe Eşiği (km)', min: 5, max: 200, step: 5 },
@@ -187,30 +189,6 @@ export default function SettingsPage() {
             </div>
           </Section>
 
-          {/* Alarm history */}
-          <Section title={t('Alarm Geçmişi')} icon={Bell}>
-            {alerts.length === 0 ? (
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('Henüz alarm yok.')}</p>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                  <button onClick={async () => { await api('/api/notifications/history', { method: 'DELETE' }); setAlerts([]) }} className="btn btn-danger" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>
-                    <Trash2 size={12} /> {t('Temizle')}
-                  </button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 280, overflowY: 'auto' }}>
-                  {alerts.slice(0, 50).map((a, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: '0.78rem' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: a.type === 'CPU' ? '#22d3ee' : a.type === 'RAM' ? '#a78bfa' : '#34d399', flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600, color: 'var(--text)', width: 40 }}>{a.type}</span>
-                      <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{a.value}</span>
-                      <span style={{ color: 'var(--text-muted)', fontFamily: "'JetBrains Mono',monospace", fontSize: '0.7rem' }}>{a.time?.slice(11, 19)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </Section>
         </div>
       )}
 
