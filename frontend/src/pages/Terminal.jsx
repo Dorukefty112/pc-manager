@@ -1,122 +1,135 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../context/I18nContext'
-import { wsUrl, getServerBase } from '../api'
-import { Terminal as TerminalIcon, Wifi, WifiOff, Maximize2 } from 'lucide-react'
+import { api, getServerBase } from '../api'
+import XtermSession from '../components/XtermSession'
+import { fmtDate, fmtBytes, EmptyState } from '../components/ui'
+import { Terminal as TerminalIcon, History, X, Trash2, Play, RefreshCw } from 'lucide-react'
+
+const QUICK_KEYS = [
+  ['Ctrl+C', '\x03'], ['Tab', '\t'], ['▲ Üst', '\x1b[A'], ['▼ Alt', '\x1b[B'],
+  ['ls -la', 'ls -la\r'], ['clear', 'clear\r'], ['htop', 'htop\r'],
+]
+
+function Recordings({ onClose }) {
+  const { t } = useI18n()
+  const [items, setItems] = useState(null)
+  const [playing, setPlaying] = useState(null)
+
+  const load = useCallback(() => { api('/api/terminal/recordings').then(setItems).catch(() => setItems([])) }, [])
+  useEffect(load, [load])
+
+  const play = async (rec) => {
+    try {
+      const res = await api(`/api/terminal/recordings/${rec.id}`, { raw: true, timeout: 30000 })
+      setPlaying({ rec, data: await res.text() })
+    } catch {}
+  }
+  const remove = async (rec) => {
+    if (!confirm(t('Kayıt silinsin mi?'))) return
+    await api(`/api/terminal/recordings/${rec.id}`, { method: 'DELETE' }).catch(() => {})
+    if (playing?.rec.id === rec.id) setPlaying(null)
+    load()
+  }
+
+  return (
+    <div className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <History size={15} color="var(--accent)" /> {t('Oturum kayıtları')}
+        </span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button className="btn btn-ghost btn-icon" onClick={load}><RefreshCw size={13} /></button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={14} /></button>
+        </div>
+      </div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+        {t('Terminal ve konteyner oturumlarının çıktısı kaydedilir (oturum başına 5 MB, son 50 oturum). Ayarlar > config.json içinde terminal.record=false ile kapatılabilir.')}
+      </div>
+      {items === null ? <div className="spinner" /> : !items.length ? <EmptyState>{t('Kayıt yok')}</EmptyState> : (
+        <div className="table-wrap" style={{ maxHeight: 220, overflow: 'auto' }}>
+          <table>
+            <thead><tr><th>{t('Başlangıç')}</th><th>{t('Kullanıcı')}</th><th>{t('Oturum')}</th><th>{t('Boyut')}</th><th /></tr></thead>
+            <tbody>{items.map(r => (
+              <tr key={r.id} style={playing?.rec.id === r.id ? { background: 'var(--bg-hover)' } : undefined}>
+                <td className="mono">{fmtDate(r.started)}</td>
+                <td>{r.username}</td>
+                <td className="mono">{r.label}{!r.ended && <span className="badge badge-green" style={{ marginLeft: 6 }}>{t('açık')}</span>}</td>
+                <td>{fmtBytes(r.size)}{r.truncated ? ' +' : ''}</td>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button className="btn btn-ghost btn-icon" title={t('Oynat')} onClick={() => play(r)}><Play size={13} /></button>
+                  <button className="btn btn-ghost btn-icon" title={t('Sil')} onClick={() => remove(r)}><Trash2 size={13} /></button>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+      {playing && (
+        <div style={{ height: 300, background: '#020812', borderRadius: 10, padding: 6, border: '1px solid var(--border)' }}>
+          <XtermSession key={playing.rec.id} initialData={playing.data} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Terminal() {
   const { t } = useI18n()
-  const termRef = useRef(null)
-  const wsRef = useRef(null)
-  const xtermRef = useRef(null)
-  const fitRef = useRef(null)
-  const mountedRef = useRef(true)
-  const retryRef = useRef(null)
+  const [params, setParams] = useSearchParams()
+  const [hosts, setHosts] = useState([])
   const [connected, setConnected] = useState(false)
-
-  const socketUrl = wsUrl('/api/terminal')
-  const hostLabel = getServerBase().replace(/^https?:\/\//, '') || location.host
-
-  const connect = useCallback(() => {
-    if (!mountedRef.current) return
-    if (wsRef.current) { try { wsRef.current.close() } catch {} }
-    const term = xtermRef.current
-    if (!term) return
-    const ws = new WebSocket(socketUrl)
-    wsRef.current = ws
-    ws.onopen = () => {
-      if (!mountedRef.current) return
-      setConnected(true)
-      const fit = fitRef.current
-      if (fit) { const dims = fit.proposeDimensions(); if (dims) ws.send(`__RESIZE__:${dims.rows}:${dims.cols}`) }
-    }
-    ws.onclose = () => {
-      wsRef.current = null
-      if (!mountedRef.current) return
-      setConnected(false)
-      if (term) term.writeln('\x1b[33m' + t('Bağlantı koptu, yeniden bağlanılıyor...') + '\x1b[0m')
-      retryRef.current = setTimeout(connect, 3000)
-    }
-    ws.onerror = () => { if (!mountedRef.current) return; setConnected(false) }
-    ws.onmessage = (e) => { if (term) term.write(e.data) }
-  }, [socketUrl])
+  const [showRec, setShowRec] = useState(false)
+  const sessionRef = useRef(null)
+  const host = params.get('host') || ''
 
   useEffect(() => {
-    mountedRef.current = true
-    let term, fit, resizeObserver
-    const init = async () => {
-      const { Terminal } = await import('@xterm/xterm')
-      const { FitAddon } = await import('@xterm/addon-fit')
-      const fontSize = window.innerWidth < 640 ? 12 : 14
-      term = new Terminal({
-        cursorBlink: true,
-        cursorStyle: 'block',
-        fontSize,
-        fontFamily: 'JetBrains Mono, Fira Code, Cascadia Code, monospace',
-        theme: {
-          background: '#020812',
-          foreground: '#c9d1d9',
-          cursor: '#06b6d4',
-          cursorAccent: '#020812',
-          selectionBackground: '#1a3a5c',
-          black: '#0d1117', red: '#ff7b72', green: '#3fb950',
-          yellow: '#d29922', blue: '#58a6ff', magenta: '#bc8cff',
-          cyan: '#39c5cf', white: '#b1bac4',
-          brightBlack: '#6e7681', brightRed: '#ffa198', brightGreen: '#56d364',
-          brightYellow: '#e3b341', brightBlue: '#79c0ff', brightMagenta: '#d2a8ff',
-          brightCyan: '#56d4dd', brightWhite: '#f0f6fc',
-        },
-      })
-      fit = new FitAddon()
-      term.loadAddon(fit)
-      xtermRef.current = term
-      fitRef.current = fit
-      term.open(termRef.current)
-      fit.fit()
-      connect()
-      term.onData(data => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send(data) })
-      term.onResize(({ cols, rows }) => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send(`__RESIZE__:${rows}:${cols}`) })
-      resizeObserver = new ResizeObserver(() => {
-        fit.fit()
-        const ws = wsRef.current
-        if (ws && ws.readyState === WebSocket.OPEN) { const dims = fit.proposeDimensions(); if (dims) ws.send(`__RESIZE__:${dims.rows}:${dims.cols}`) }
-      })
-      resizeObserver.observe(termRef.current)
-    }
-    init()
-    return () => {
-      mountedRef.current = false
-      if (retryRef.current) clearTimeout(retryRef.current)
-      if (wsRef.current) { try { wsRef.current.close() } catch {} }
-      if (term) term.dispose()
-      if (resizeObserver) resizeObserver.disconnect()
-    }
-  }, [connect])
+    api('/api/hosts').then(list => setHosts(list.filter(h => h.ssh))).catch(() => {})
+  }, [])
+
+  const target = hosts.find(h => h.id === host)
+  const hostLabel = target ? `ssh ${target.ssh}` : `bash — ${getServerBase().replace(/^https?:\/\//, '') || location.host}`
+  const path = host ? `/api/terminal?host=${encodeURIComponent(host)}` : '/api/terminal'
+  const send = data => sessionRef.current?.send(data)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 14 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 10, flexWrap: 'wrap' }}>
         <h2 className="page-title">
           <span className="page-title-icon" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
             <TerminalIcon size={18} color="#22c55e" />
           </span>
           {t('Terminal')}
         </h2>
-        <span style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 600,
-          background: connected ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-          color: connected ? '#22c55e' : '#ef4444',
-          border: `1px solid ${connected ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {hosts.length > 0 && (
+            <select value={host} onChange={e => setParams(e.target.value ? { host: e.target.value } : {})} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+              <option value="">{t('Bu sunucu')}</option>
+              {hosts.map(h => <option key={h.id} value={h.id}>SSH · {h.name}</option>)}
+            </select>
+          )}
+          <button className={`btn ${showRec ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setShowRec(v => !v)} style={{ padding: '5px 12px' }}>
+            <History size={13} /> {t('Kayıtlar')}
+          </button>
           <span style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: connected ? '#22c55e' : '#ef4444',
-            boxShadow: connected ? '0 0 6px #22c55e' : 'none',
-          }} />
-          {connected ? t('Bağlı') : t('Bağlantı Kesik')}
-        </span>
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 600,
+            background: connected ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+            color: connected ? '#22c55e' : '#ef4444',
+            border: `1px solid ${connected ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: connected ? '#22c55e' : '#ef4444',
+              boxShadow: connected ? '0 0 6px #22c55e' : 'none',
+            }} />
+            {connected ? t('Bağlı') : t('Bağlantı Kesik')}
+          </span>
+        </div>
       </div>
+
+      {showRec && <Recordings onClose={() => setShowRec(false)} />}
 
       {/* Terminal wrapper */}
       <div style={{
@@ -137,10 +150,20 @@ export default function Terminal() {
           <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#f59e0b', opacity: 0.7 }} />
           <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#22c55e', opacity: 0.7 }} />
           <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>
-            bash — {hostLabel}
+            {hostLabel}
           </span>
         </div>
-        <div ref={termRef} style={{ flex: 1, height: 'calc(100% - 37px)' }} />
+        <div style={{ height: 'calc(100% - 37px)' }}>
+          <XtermSession
+            key={path}
+            ref={sessionRef}
+            path={path}
+            reconnect={!host}
+            onStatus={setConnected}
+            reconnectingText={t('Bağlantı koptu, yeniden bağlanılıyor...')}
+            closedText={t('Oturum kapandı.')}
+          />
+        </div>
       </div>
 
       {/* Mobile Quick Keys Toolbar */}
@@ -159,49 +182,9 @@ export default function Terminal() {
           }
           .mobile-quick-btn:active { background: var(--accent-glow); color: var(--accent); }
         `}</style>
-        
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\x03') }}
-        >
-          Ctrl+C
-        </button>
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\t') }}
-        >
-          Tab
-        </button>
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\x1b[A') }}
-        >
-          ▲ Üst
-        </button>
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('\x1b[B') }}
-        >
-          ▼ Alt
-        </button>
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('ls -la\r') }}
-        >
-          ls -la
-        </button>
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('clear\r') }}
-        >
-          clear
-        </button>
-        <button
-          className="mobile-quick-btn touch-active"
-          onClick={() => { const ws = wsRef.current; if (ws && ws.readyState === WebSocket.OPEN) ws.send('htop\r') }}
-        >
-          htop
-        </button>
+        {QUICK_KEYS.map(([label, data]) => (
+          <button key={label} className="mobile-quick-btn touch-active" onClick={() => send(data)}>{label}</button>
+        ))}
       </div>
     </div>
   )
