@@ -32,7 +32,8 @@ async def lifespan(app: FastAPI):
     # Arka plan işleri yalnızca sunucu gerçekten başlarken çalışır;
     # testlerde main'i import etmek thread başlatmaz.
     # mDNS kaydı birkaç saniye sürebilir; açılışı bekletmesin
-    threading.Thread(target=pairing.start_mdns, kwargs={"port": 8081}, daemon=True).start()
+    _port = int(os.environ.get("PCMANAGER_PORT", "8081"))
+    threading.Thread(target=pairing.start_mdns, kwargs={"port": _port}, daemon=True).start()
     notifications.start_checker()
     yangin.start_fire_checker()
     sel.start_flood_checker()
@@ -196,9 +197,10 @@ def serve_frontend(full_path: str):
 if __name__ == "__main__":
     import uvicorn
     tailscale_ip = os.environ.get("TAILSCALE_IP", "")
-    host = "0.0.0.0"
-    urls = [f"http://localhost:8081"]
+    host = os.environ.get("PCMANAGER_HOST", "0.0.0.0")
+    port = int(os.environ.get("PCMANAGER_PORT", "8081"))
+    urls = [f"http://localhost:{port}"]
     if tailscale_ip:
-        urls.append(f"http://{tailscale_ip}:8081")
+        urls.append(f"http://{tailscale_ip}:{port}")
     print(f"PC Manager baslatiliyor: {' - '.join(urls)}")
-    uvicorn.run(app, host=host, port=8081, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="info")

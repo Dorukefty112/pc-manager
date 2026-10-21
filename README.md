@@ -122,6 +122,21 @@ KRITIK ve YUKSEK seviye depremlerde telefonunuza aninda bildirim almak icin:
 5. PC Manager'da **Ayarlar → Telegram** sekmesine token ve chat ID'yi girip kaydedin
 6. "Test Mesaji Gonder" butonuyla dogrulayin
 
+## Termux (Android) — Telefonda Çalıştırma
+
+PC Manager'ı doğrudan Android telefonda [Termux](https://termux.dev) ile çalıştırabilirsiniz. **Root gerekmez**; root varsa güç yönetimi (kapat/yeniden başlat) gibi ek özellikler de etkinleşir.
+
+```bash
+pkg install -y curl
+bash <(curl -s https://raw.githubusercontent.com/Dorukefty112/pc-manager/claude/proje-gelistirme-arastirma-wef68g/install-termux.sh)
+```
+
+Kurulum bitince `~/pc-manager/start.sh` ile başlatın ve telefonda `http://localhost:8081`, aynı Wi-Fi'daki başka cihazdan `http://<telefon-ip>:8081` adresine gidin. Portu değiştirmek için `PCMANAGER_PORT=9000 ./start.sh`.
+
+- **Root'suz cihaz:** sistem izleme, dosyalar, terminal, metrikler, alarmlar vb. çalışır; kapatma/yeniden başlatma, systemd servisleri ve paket güncellemeleri kullanılamaz.
+- **Root'lu cihaz:** güç komutları `su` ile çalıştırılır.
+- Termux'u arka planda canlı tutmak için `termux-wake-lock` çalıştırın. [Termux:Boot](https://wiki.termux.com/wiki/Termux:Boot) uygulamasını kurarsanız telefon açılışında kendiliğinden başlar (kurucu betik gerekli dosyayı oluşturur).
+
 ## Mobil Uygulama (Android)
 
 PC Manager'ın Android uygulaması, `frontend/` içindeki React arayüzünü [Capacitor](https://capacitorjs.com) ile native bir kabuğa sararak aynı kod tabanından üretilir. Uygulama, telefonun Tailscale üzerinden eve bağlanmasını kullanarak uzaktan çalışır.

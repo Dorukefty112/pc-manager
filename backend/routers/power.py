@@ -1,29 +1,68 @@
 import os
+import shutil
 import subprocess
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter(tags=["power"])
 
-def run_cmd(cmd):
+# Termux/Android ortamında root varsa güç komutları `su -c` ile çalıştırılır.
+# Root yoksa bu işlemler kullanılamaz; kullanıcıya anlaşılır bir hata döner.
+IS_TERMUX = "com.termux" in os.environ.get("PREFIX", "")
+
+
+def _su_available() -> bool:
+    return shutil.which("su") is not None
+
+
+def run_cmd(cmd, needs_root=True):
+    """Komutu doğrudan çalıştırır; izin reddedilirse ve root varsa `su -c` ile yeniden dener."""
+    def _run(final):
+        subprocess.run(final, check=True, timeout=10)
+
     try:
-        subprocess.run(cmd, check=True, timeout=5)
+        _run(cmd)
         return {"success": True}
+    except FileNotFoundError:
+        # Komut yok (ör. Termux'ta systemctl). Root ile kabuktan denemeye değer.
+        pass
     except subprocess.TimeoutExpired:
-        raise HTTPException(500, "command timed out")
-    except subprocess.CalledProcessError as e:
-        raise HTTPException(500, f"command failed: {e}")
+        raise HTTPException(500, "Komut zaman aşımına uğradı")
+    except subprocess.CalledProcessError:
+        # Büyük olasılıkla yetki hatası; aşağıda root ile denenir.
+        pass
+
+    if needs_root and _su_available():
+        try:
+            subprocess.run(["su", "-c", " ".join(cmd)], check=True, timeout=10)
+            return {"success": True}
+        except subprocess.TimeoutExpired:
+            raise HTTPException(500, "Komut zaman aşımına uğradı")
+        except subprocess.CalledProcessError as e:
+            raise HTTPException(500, f"Root ile çalıştırılamadı: {e}")
+        except FileNotFoundError:
+            pass
+
+    hint = " (bu cihazda root yok)" if IS_TERMUX and not _su_available() else ""
+    raise HTTPException(501, f"Bu işlem bu sistemde kullanılamıyor{hint}")
+
 
 @router.post("/power/shutdown")
 def shutdown():
     return run_cmd(["poweroff"])
 
+
 @router.post("/power/reboot")
 def reboot():
     return run_cmd(["reboot"])
 
+
 @router.post("/power/suspend")
 def suspend():
+    # Android'de ekranı kapatmak uykuya en yakın eşdeğerdir
+    if IS_TERMUX:
+        return run_cmd(["input", "keyevent", "26"])
     return run_cmd(["systemctl", "suspend"])
+
 
 @router.post("/power/logout")
 def logout():
