@@ -36,11 +36,15 @@ fi
 info "Termux paketleri güncelleniyor..."
 pkg update -y >/dev/null 2>&1 || warn "pkg update atlandı"
 
-info "Bağımlılıklar kuruluyor (python, nodejs, git, rust...)"
-# rust + binutils: bcrypt/cryptography tekerleklerinin derlenmesi için gerekebilir
-pkg install -y python nodejs-lts git rust binutils libjpeg-turbo >/dev/null 2>&1 \
-  || pkg install -y python nodejs git rust binutils \
-  || err "Paketler kurulamadı. 'pkg install python nodejs git rust' komutunu elle deneyin."
+info "Bağımlılıklar kuruluyor (python, nodejs, git, rust, psutil...)"
+# rust + binutils: bcrypt/cryptography tekerleklerinin derlenmesi için gerekebilir.
+# python-psutil: psutil'in PyPI kaynak paketi Android'i BİLEREK desteklemiyor
+# ("platform android is not supported" hatasıyla derlemeyi reddediyor — bu rust
+# veya başka bir derleyici ile çözülmez). Bunun yerine Termux'un kendi önceden
+# derlediği paket kullanılıyor; birazdan venv bunu --system-site-packages ile görecek.
+pkg install -y python nodejs-lts git rust binutils libjpeg-turbo python-psutil >/dev/null 2>&1 \
+  || pkg install -y python nodejs git rust binutils python-psutil \
+  || err "Paketler kurulamadı. 'pkg install python nodejs git rust python-psutil' komutunu elle deneyin."
 ok "Sistem paketleri hazır."
 
 # ─── Depo ────────────────────────────────────────────────────────────────────
@@ -59,12 +63,17 @@ ok "Kaynak kodu: $INSTALL_DIR"
 # ─── Python ortamı ───────────────────────────────────────────────────────────
 info "Python sanal ortamı ve bağımlılıklar kuruluyor (birkaç dakika sürebilir)..."
 cd "$INSTALL_DIR"
-python -m venv venv
-# Termux'ta bazı tekerlekler derlenirken bu bayraklar gerekir
+# --system-site-packages: yukarıda pkg ile kurulan python-psutil'i (ve ileride
+# Termux paketi olarak eklenebilecek başka native modülleri) venv içinden
+# görünür kılar. psutil, requirements-termux.txt'den bilerek çıkarıldı.
+python -m venv --system-site-packages venv
+# Termux'ta bcrypt/cryptography'nin rust (pyo3) backend'i derlenirken bu bayraklar gerekir
 export CARGO_BUILD_TARGET="" CFLAGS="-Wno-error=incompatible-function-pointer-types"
 ./venv/bin/pip install --upgrade pip wheel >/dev/null 2>&1 || true
-./venv/bin/pip install -r backend/requirements.txt \
-  || err "pip bağımlılıkları kurulamadı. Yukarıdaki hata çıktısına bakın (çoğunlukla 'pkg install rust' çözer)."
+./venv/bin/pip install -r backend/requirements-termux.txt \
+  || err "pip bağımlılıkları kurulamadı. Yukarıdaki hata çıktısına bakın. 'rust' ve 'binutils' paketlerinin kurulu olduğundan emin olun: pkg install rust binutils"
+./venv/bin/python -c "import psutil" 2>/dev/null \
+  || err "psutil venv içinden görünmüyor. 'pkg install python-psutil' çalıştığını doğrulayıp '$INSTALL_DIR/venv' klasörünü silerek betiği tekrar çalıştırın."
 ok "Python bağımlılıkları kuruldu."
 
 # ─── Frontend ────────────────────────────────────────────────────────────────

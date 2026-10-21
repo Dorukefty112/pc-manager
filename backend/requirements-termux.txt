@@ -1,0 +1,28 @@
+# Termux (Android) için requirements.txt türevi.
+#
+# psutil buraya DAHİL EDİLMEDİ: PyPI'deki kaynak paketi Android'i bilerek
+# desteklemiyor — setup.py "platform android is not supported" hatasıyla
+# derlemeyi reddediyor (rust/derleyici kurmak bunu çözmez). Bunun yerine
+# install-termux.sh, Termux'un kendi önceden derlediği `python-psutil`
+# paketini `pkg install` ile kurar ve venv'i --system-site-packages ile
+# oluşturarak onu görünür kılar.
+#
+# uvicorn[standard] yerine sade uvicorn kullanılıyor: [standard] ekstraları
+# (uvloop, httptools, watchfiles) native derleme gerektirir ve Termux'ta
+# güvenilir şekilde kurulamaz. WebSocket desteği aşağıdaki ayrı `websockets`
+# paketinden geliyor; uvicorn bunu otomatik algılar. Performans farkı bu
+# kullanım için ihmal edilebilir.
+fastapi
+uvicorn
+aiofiles
+websockets
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+python-multipart
+pytest
+httpx
+ddgs
+zeroconf
+beautifulsoup4
+pyotp
