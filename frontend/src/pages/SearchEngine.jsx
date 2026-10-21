@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api } from '../api'
+import { api, API, getToken } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Search, Globe, FolderOpen, Server, ExternalLink, ChevronLeft, ChevronRight, Loader2, Sparkles, ArrowLeft, BookOpenText, Globe as GlobeIcon, X, RefreshCw, House } from 'lucide-react'
 
@@ -128,7 +128,7 @@ export default function SearchEngine() {
         <div className="flex-1 min-h-0">
           <iframe
             ref={iframeRef}
-            src={`/api/proxy/page?url=${encodeURIComponent(browserUrl)}`}
+            src={`${API}/api/proxy/page?url=${encodeURIComponent(browserUrl)}&token=${encodeURIComponent(getToken() || '')}`}
             className="w-full h-full border-0"
             title={t('Tarayıcı')}
             style={{background: '#fff'}}

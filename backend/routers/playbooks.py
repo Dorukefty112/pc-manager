@@ -8,7 +8,9 @@ import threading
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, Query
+from dependencies import require_auth
+from auth import verify_token
 
 from .updates import _detect_pm
 
@@ -45,7 +47,7 @@ def _save_runs(runs):
 
 
 @router.get("/playbooks")
-def list_playbooks(search: str = ""):
+def list_playbooks(search: str = "", _: dict = Depends(require_auth)):
     pbs = _get_playbooks()
     if search:
         s = search.lower()
@@ -54,7 +56,7 @@ def list_playbooks(search: str = ""):
 
 
 @router.post("/playbooks")
-def create_playbook(pb: dict):
+def create_playbook(pb: dict, _: dict = Depends(require_auth)):
     if not pb.get("name"):
         raise HTTPException(400, "name is required")
     pbs = _get_playbooks()
@@ -70,13 +72,13 @@ def create_playbook(pb: dict):
 
 
 @router.get("/playbooks/runs")
-def list_runs():
+def list_runs(_: dict = Depends(require_auth)):
     runs = _get_runs()
     return list(reversed(runs))
 
 
 @router.get("/playbooks/runs/{execution_id}")
-def get_run(execution_id: str):
+def get_run(execution_id: str, _: dict = Depends(require_auth)):
     if execution_id in active_runs:
         return active_runs[execution_id]
     runs = _get_runs()
@@ -87,7 +89,7 @@ def get_run(execution_id: str):
 
 
 @router.get("/playbooks/{playbook_id}")
-def get_playbook(playbook_id: str):
+def get_playbook(playbook_id: str, _: dict = Depends(require_auth)):
     pbs = _get_playbooks()
     for pb in pbs:
         if pb["id"] == playbook_id:
@@ -96,7 +98,7 @@ def get_playbook(playbook_id: str):
 
 
 @router.put("/playbooks/{playbook_id}")
-def update_playbook(playbook_id: str, data: dict):
+def update_playbook(playbook_id: str, data: dict, _: dict = Depends(require_auth)):
     pbs = _get_playbooks()
     for i, pb in enumerate(pbs):
         if pb["id"] == playbook_id:
@@ -111,7 +113,7 @@ def update_playbook(playbook_id: str, data: dict):
 
 
 @router.delete("/playbooks/{playbook_id}")
-def delete_playbook(playbook_id: str):
+def delete_playbook(playbook_id: str, _: dict = Depends(require_auth)):
     pbs = _get_playbooks()
     for i, pb in enumerate(pbs):
         if pb["id"] == playbook_id:
@@ -265,7 +267,7 @@ def _execute_playbook(execution_id: str, playbook: dict):
 
 
 @router.post("/playbooks/{playbook_id}/run")
-def run_playbook(playbook_id: str):
+def run_playbook(playbook_id: str, _: dict = Depends(require_auth)):
     pbs = _get_playbooks()
     playbook = None
     for pb in pbs:
@@ -314,7 +316,15 @@ def run_playbook(playbook_id: str):
 
 
 @router.websocket("/playbooks/runs/{execution_id}/ws")
-async def run_websocket(websocket: WebSocket, execution_id: str):
+async def run_websocket(websocket: WebSocket, execution_id: str, token: str = Query("")):
+    if not token:
+        await websocket.close(code=4001, reason="Token gerekli")
+        return
+    try:
+        verify_token(token)
+    except Exception:
+        await websocket.close(code=4001, reason="Geçersiz token")
+        return
     await websocket.accept()
     try:
         while True:

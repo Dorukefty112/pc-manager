@@ -2,7 +2,7 @@ import os
 import json
 import time as time_module
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -17,6 +17,7 @@ from routers import (
     playbooks, pairing, yangin, sel, hava_uyari,
 )
 from dependencies import require_auth
+from auth import verify_token
 from routers.search_engine import _rewrite_html, _fetch_page
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi import Query
@@ -116,7 +117,15 @@ app.include_router(search_engine.router, prefix="/api", dependencies=[Depends(re
 
 
 @app.get("/api/proxy/page")
-def proxy_page(url: str = Query("", description="Açılacak URL")):
+def proxy_page(
+    url: str = Query("", description="Açılacak URL"),
+    token: str = Query("", description="iframe Authorization başlığı gönderemediği için JWT"),
+    authorization: str = Header(None),
+):
+    if token:
+        verify_token(token)
+    else:
+        require_auth(authorization)
     if not url.strip():
         raise HTTPException(400, "URL gerekli")
     try:

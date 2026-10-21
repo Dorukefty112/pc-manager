@@ -13,7 +13,7 @@ export function setServerBase(url) {
 
 export let API = getServerBase()
 
-function getToken() {
+export function getToken() {
   return localStorage.getItem('pcmanager_token')
 }
 
