@@ -2,7 +2,23 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { api, wsUrl } from '../api'
 import { useWebSocket } from '../useWebSocket'
 import { useI18n } from '../context/I18nContext'
-import { Thermometer, Cpu, Monitor, Activity, Gauge, Timer, HardDrive, MemoryStick, RefreshCw, Zap } from 'lucide-react'
+import { Thermometer, Cpu, Monitor, Activity, Gauge, Timer, HardDrive, MemoryStick, RefreshCw, Zap, LayoutGrid, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react'
+
+const LAYOUT_KEY = 'pcmanager_overview_layout'
+const DEFAULT_LAYOUT = { order: ['hardware', 'charts', 'stats', 'footer'], hidden: [] }
+const SECTION_LABELS = { hardware: 'GPU ve CPU', charts: 'Geçmiş ve canlı kullanım', stats: 'Özet kartları', footer: 'Alt bilgi' }
+
+function loadLayout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY))
+    if (saved && Array.isArray(saved.order)) {
+      // Yeni eklenen bölümler kayıtlı düzende yoksa sona eklenir
+      const order = [...saved.order.filter(id => DEFAULT_LAYOUT.order.includes(id)), ...DEFAULT_LAYOUT.order.filter(id => !saved.order.includes(id))]
+      return { order, hidden: Array.isArray(saved.hidden) ? saved.hidden : [] }
+    }
+  } catch {}
+  return DEFAULT_LAYOUT
+}
 
 function fmtUptime(s) {
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60)
@@ -73,6 +89,25 @@ export default function Temperature() {
   const [history, setHistory] = useState({ cpu: [], memory: [] })
   const [wsData, setWsData] = useState(null)
   const canvasRef = useRef(null)
+  const [customizing, setCustomizing] = useState(false)
+  const [layout, setLayout] = useState(loadLayout)
+
+  const saveLayout = (next) => {
+    setLayout(next)
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(next)) } catch {}
+  }
+  const moveSection = (id, dir) => {
+    const order = [...layout.order]
+    const i = order.indexOf(id)
+    const j = i + dir
+    if (j < 0 || j >= order.length) return
+    ;[order[i], order[j]] = [order[j], order[i]]
+    saveLayout({ ...layout, order })
+  }
+  const toggleSection = (id) => saveLayout({
+    ...layout,
+    hidden: layout.hidden.includes(id) ? layout.hidden.filter(h => h !== id) : [...layout.hidden, id],
+  })
 
   const socketUrl = wsUrl('/api/system/ws')
   useWebSocket(socketUrl, { onMessage: (e) => { try { setWsData(JSON.parse(e.data)) } catch {} } })
@@ -141,10 +176,32 @@ export default function Temperature() {
           <span className="page-title-icon"><Activity size={18} color="var(--accent)" /></span>
           {t('Sistem Durumu')}
         </h2>
-        <button onClick={fetchAll} className="btn btn-secondary" style={{ gap: 6 }}>
-          <RefreshCw size={14} /> {t('Yenile')}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setCustomizing(v => !v)} className={`btn ${customizing ? 'btn-primary' : 'btn-secondary'}`} style={{ gap: 6 }}>
+            <LayoutGrid size={14} /> {t('Özelleştir')}
+          </button>
+          <button onClick={fetchAll} className="btn btn-secondary" style={{ gap: 6 }}>
+            <RefreshCw size={14} /> {t('Yenile')}
+          </button>
+        </div>
       </div>
+
+      {customizing && (
+        <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('Bölümleri sıralayın veya gizleyin. Tercih bu tarayıcıda saklanır.')}</div>
+          {layout.order.map((id, i) => (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elevated)', opacity: layout.hidden.includes(id) ? 0.5 : 1 }}>
+              <span style={{ flex: 1, fontSize: '0.82rem', color: 'var(--text)' }}>{t(SECTION_LABELS[id])}</span>
+              <button className="btn-icon" disabled={i === 0} onClick={() => moveSection(id, -1)} title={t('Yukarı')}><ChevronUp size={14} /></button>
+              <button className="btn-icon" disabled={i === layout.order.length - 1} onClick={() => moveSection(id, 1)} title={t('Aşağı')}><ChevronDown size={14} /></button>
+              <button className="btn-icon" onClick={() => toggleSection(id)} title={layout.hidden.includes(id) ? t('Göster') : t('Gizle')}>
+                {layout.hidden.includes(id) ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          ))}
+          <button className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => saveLayout(DEFAULT_LAYOUT)}>{t('Varsayılana dön')}</button>
+        </div>
+      )}
 
       {!stats ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, flexDirection: 'column', gap: 12 }}>
@@ -153,7 +210,9 @@ export default function Temperature() {
         </div>
       ) : (
         <>
-          {/* GPU + CPU detail */}
+          {(() => {
+            const sections = {
+              hardware: (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             {/* GPU */}
             <div className="card card-glow" style={{ padding: 22 }}>
@@ -226,8 +285,8 @@ export default function Temperature() {
               )}
             </div>
           </div>
-
-          {/* Charts + live */}
+              ),
+              charts: (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             <div className="card card-glow" style={{ padding: 22 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -262,8 +321,8 @@ export default function Temperature() {
               </div>
             </div>
           </div>
-
-          {/* Quick stat cards */}
+              ),
+              stats: (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
             <StatCard icon={Timer} label={t('Açılma Süresi')} color="#fb923c"
               value={stats?.uptime ? fmtUptime(Date.now() / 1000 - stats.uptime) : '-'}
@@ -280,12 +339,16 @@ export default function Temperature() {
               value={sys ? `${sys.load[0]}` : '-'}
               sub={sys ? `${sys.load[1]} / ${sys.load[2]}` : '1m / 5m / 15m'} />
           </div>
-
-          {/* Footer */}
+              ),
+              footer: (
           <div className="card" style={{ padding: '10px 18px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{stats?.os} · {stats?.hostname}</span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('Son:')} {new Date().toLocaleTimeString('tr-TR')}</span>
           </div>
+              ),
+            }
+            return layout.order.filter(id => !layout.hidden.includes(id) && sections[id]).map(id => <div key={id}>{sections[id]}</div>)
+          })()}
         </>
       )}
     </div>
