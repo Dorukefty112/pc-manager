@@ -23,7 +23,11 @@
 - **Dosyalar**: CodeMirror tabanlı kod editörü (Ctrl+S, çakışma koruması), çoklu seçim ile kopyala/taşı/arşivle/sil, arşivleri yerinde açma.
 - **Wake-on-LAN** ve **systemd zamanlayıcıları**.
 - **Genel Bakış özelleştirme**: Bölümleri sıralama ve gizleme.
+- **Termux (Android) kurulumu**: `install-termux.sh` ile telefonda, root gerektirmeden çalıştırma. Root varsa güç yönetimi (kapat/yeniden başlat) de etkinleşir; `su` ile otomatik denenir, yoksa anlaşılır bir "kullanılamıyor" hatası döner. Port `PCMANAGER_HOST`/`PCMANAGER_PORT` ile ayarlanabilir. Termux:Boot ile telefon açılışında otomatik başlatma.
 - Yeni metinlerin İngilizce çevirileri.
+
+### Düzeltmeler
+- **Termux kurulumu `psutil` adımında başarısız oluyordu**: psutil'in PyPI kaynak paketi Android'i bilerek desteklemiyor (`setup.py` "platform android is not supported" hatasıyla derlemeyi reddediyor; bu rust/derleyici kurmakla çözülmüyordu — gerçek cihazda test sırasında bulundu). Artık `install-termux.sh`, Termux'un kendi derlediği `python-psutil` paketini kurup venv'i `--system-site-packages` ile oluşturarak kullanıyor; ayrıca `uvicorn[standard]` yerine sade `uvicorn` (native derleme gerektiren uvloop/httptools'suz) kullanılarak kurulumun native bağımlılık yüzeyi küçültüldü.
 
 ### İyileştirmeler
 - Sayfalar lazy-load ediliyor; ana JS bundle 785 kB'tan 326 kB'a indi (gzip: 216 kB → 99 kB).
