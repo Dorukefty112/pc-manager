@@ -108,6 +108,7 @@ app.include_router(services.router, prefix="/api", dependencies=[Depends(require
 app.include_router(chat.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(pentest.router, prefix="/api")
 app.include_router(docker.router, prefix="/api", dependencies=[Depends(require_auth)])
+app.include_router(docker.ws_router, prefix="/api")
 app.include_router(cron.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(deprem.router, prefix="/api")
 app.include_router(yangin.router, prefix="/api")

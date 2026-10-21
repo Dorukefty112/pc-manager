@@ -1,6 +1,8 @@
 import os
 import re
 import pty
+import shutil
+import subprocess
 import json
 import time
 import fcntl
@@ -103,22 +105,22 @@ class Recorder:
 async def run_pty(websocket: WebSocket, argv: list[str], recorder: Recorder | None = None, env: dict | None = None):
     """argv'yi bir PTY içinde çalıştırıp websocket ile iki yönlü bağlar."""
     master_fd, slave_fd = pty.openpty()
-
-    pid = os.fork()
-    if pid == 0:
+    child_env = {**os.environ, "TERM": "xterm-256color", **(env or {})}
+    # Çok thread'li bir süreçte os.fork() güvenli değildir; Popen (fork+exec C
+    # tarafında yapılır) ve PTY'yi kontrol terminali yapan `setsid -c` kullanılır.
+    setsid = shutil.which("setsid")
+    try:
+        proc = subprocess.Popen(
+            [setsid, "-c", *argv] if setsid else argv,
+            stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
+            env=child_env, close_fds=True, start_new_session=not setsid,
+        )
+    except OSError as e:
         os.close(master_fd)
-        os.setsid()
-        os.dup2(slave_fd, 0)
-        os.dup2(slave_fd, 1)
-        os.dup2(slave_fd, 2)
-        if slave_fd > 2:
-            os.close(slave_fd)
-        child_env = {**os.environ, "TERM": "xterm-256color", **(env or {})}
-        try:
-            os.execvpe(argv[0], argv, child_env)
-        finally:
-            os._exit(127)
-
+        os.close(slave_fd)
+        await websocket.send_text(f"\r\nBaşlatılamadı: {e}\r\n")
+        await websocket.close()
+        return
     os.close(slave_fd)
 
     fl = fcntl.fcntl(master_fd, fcntl.F_GETFL)
@@ -145,7 +147,7 @@ async def run_pty(websocket: WebSocket, argv: list[str], recorder: Recorder | No
                 continue
             except (OSError, ValueError):
                 # Çocuk süreç çıktığında master_fd EIO verir
-                if _child_exited(pid):
+                if proc.poll() is not None:
                     break
                 await asyncio.sleep(0.01)
                 continue
@@ -178,11 +180,12 @@ async def run_pty(websocket: WebSocket, argv: list[str], recorder: Recorder | No
             os.close(master_fd)
         except OSError:
             pass
-        try:
-            os.kill(pid, signal.SIGHUP)
-        except OSError:
-            pass
-        threading.Thread(target=_reap, args=(pid,), daemon=True).start()
+        if proc.poll() is None:
+            try:
+                os.killpg(proc.pid, signal.SIGHUP)
+            except OSError:
+                proc.send_signal(signal.SIGHUP)
+        threading.Thread(target=_reap, args=(proc,), daemon=True).start()
         if recorder:
             recorder.close()
         try:
@@ -191,19 +194,12 @@ async def run_pty(websocket: WebSocket, argv: list[str], recorder: Recorder | No
             pass
 
 
-def _child_exited(pid: int) -> bool:
+def _reap(proc: subprocess.Popen):
     try:
-        done, _ = os.waitpid(pid, os.WNOHANG)
-        return done != 0
-    except ChildProcessError:
-        return True
-
-
-def _reap(pid: int):
-    try:
-        os.waitpid(pid, 0)
-    except ChildProcessError:
-        pass
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
 
 
 def _ssh_argv(host_id: str) -> tuple[list[str], str] | None:

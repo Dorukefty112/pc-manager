@@ -1,10 +1,29 @@
+import re
 import json
 import os
+import asyncio
 import subprocess
 import shutil
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
+from .terminal import run_pty, authorize_ws, Recorder, _recording_enabled
 
 router = APIRouter(tags=["docker"])
+# WebSocket uç noktaları kendi token doğrulamasını yapar; header tabanlı
+# require_auth bağımlılığı olan ana router'a eklenemez.
+ws_router = APIRouter(tags=["docker"])
+
+# Container/image referansları argv'ye gider; '-' ile başlayan bir değer
+# bayrak olarak yorumlanmasın diye sıkı biçimde doğrulanır.
+_REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/@-]{0,254}$")
+PRUNE_TARGETS = {"containers": ["container", "prune"], "images": ["image", "prune", "-a"],
+                 "volumes": ["volume", "prune"], "networks": ["network", "prune"],
+                 "system": ["system", "prune"]}
+
+
+def _ref(value: str) -> str:
+    if not value or not _REF_RE.match(value):
+        raise HTTPException(400, "Geçersiz container/image referansı")
+    return value
 
 _RUNTIME = None
 _COMPOSE_CMD = None
@@ -162,21 +181,21 @@ def list_images():
 
 @router.post("/docker/container/start")
 def start_container(container_id: str):
-    out = _run(_runtime_cmd("start", container_id))
+    out = _run(_runtime_cmd("start", _ref(container_id)))
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     return {"success": True, "message": f"{container_id} started"}
 
 @router.post("/docker/container/stop")
 def stop_container(container_id: str):
-    out = _run(_runtime_cmd("stop", container_id))
+    out = _run(_runtime_cmd("stop", _ref(container_id)))
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     return {"success": True, "message": f"{container_id} stopped"}
 
 @router.post("/docker/container/restart")
 def restart_container(container_id: str):
-    out = _run(_runtime_cmd("restart", container_id))
+    out = _run(_runtime_cmd("restart", _ref(container_id)))
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     return {"success": True, "message": f"{container_id} restarted"}
@@ -184,21 +203,21 @@ def restart_container(container_id: str):
 @router.delete("/docker/container")
 def remove_container(container_id: str, force: bool = False):
     flag = "-f" if force else ""
-    out = _run(_runtime_cmd("rm", flag, container_id))
+    out = _run(_runtime_cmd("rm", flag, _ref(container_id)))
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     return {"success": True, "message": f"{container_id} removed"}
 
 @router.get("/docker/logs/{container_id}")
 def container_logs(container_id: str, tail: int = 100):
-    out = _run(_runtime_cmd("logs", "--tail", str(tail), container_id))
+    out = _run(_runtime_cmd("logs", "--tail", str(int(tail)), _ref(container_id)))
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     return {"lines": out.strip().split("\n") if out else []}
 
 @router.get("/docker/container/{container_id}/stats")
 def container_stats(container_id: str):
-    out = _run(_runtime_cmd("stats", "--no-stream", "--format", "{{json .}}", container_id))
+    out = _run(_runtime_cmd("stats", "--no-stream", "--format", "{{json .}}", _ref(container_id)))
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     if not out:
@@ -329,3 +348,124 @@ def compose_logs(project_path: str, lines: int = 50):
     if isinstance(out, dict) and "error" in out:
         raise HTTPException(400, out["error"])
     return {"lines": out.strip().split("\n") if out else []}
+
+
+def _compose_file_or_400(project_path: str) -> tuple[list[str], str]:
+    compose_cmd = _get_compose_cmd()
+    if not compose_cmd:
+        raise HTTPException(400, "Compose command not available")
+    compose_file = _find_compose_file(project_path)
+    if not compose_file:
+        raise HTTPException(400, "No compose file found in project path")
+    return compose_cmd, compose_file
+
+
+@router.post("/docker/compose/restart")
+def compose_restart(project_path: str):
+    compose_cmd, compose_file = _compose_file_or_400(project_path)
+    out = _run([*compose_cmd, "-f", compose_file, "restart"], timeout=120)
+    if isinstance(out, dict) and "error" in out:
+        raise HTTPException(400, out["error"])
+    return {"success": True, "output": str(out)}
+
+
+@router.post("/docker/compose/pull")
+def compose_pull(project_path: str):
+    """İmajları güncelle ve servisleri yeniden oluştur."""
+    compose_cmd, compose_file = _compose_file_or_400(project_path)
+    pulled = _run([*compose_cmd, "-f", compose_file, "pull"], timeout=900)
+    if isinstance(pulled, dict) and "error" in pulled:
+        raise HTTPException(400, pulled["error"])
+    out = _run([*compose_cmd, "-f", compose_file, "up", "-d"], timeout=300)
+    if isinstance(out, dict) and "error" in out:
+        raise HTTPException(400, out["error"])
+    return {"success": True, "output": f"{pulled}\n{out}".strip()}
+
+
+@router.post("/docker/images/pull")
+def pull_image(body: dict):
+    image = _ref((body.get("image") or "").strip())
+    out = _run(_runtime_cmd("pull", image), timeout=900)
+    if isinstance(out, dict) and "error" in out:
+        raise HTTPException(400, out["error"])
+    return {"success": True, "output": out.splitlines()[-5:] if out else []}
+
+
+@router.delete("/docker/images")
+def remove_image(image_id: str, force: bool = False):
+    out = _run(_runtime_cmd("rmi", "-f" if force else "", _ref(image_id)))
+    if isinstance(out, dict) and "error" in out:
+        raise HTTPException(400, out["error"])
+    return {"success": True}
+
+
+@router.post("/docker/prune")
+def prune(target: str):
+    if target not in PRUNE_TARGETS:
+        raise HTTPException(400, f"Geçersiz hedef. Seçenekler: {', '.join(PRUNE_TARGETS)}")
+    out = _run(_runtime_cmd(*PRUNE_TARGETS[target], "-f"), timeout=300)
+    if isinstance(out, dict) and "error" in out:
+        raise HTTPException(400, out["error"])
+    reclaimed = next((l for l in str(out).splitlines() if "reclaimed" in l.lower()), "")
+    return {"success": True, "reclaimed": reclaimed.strip(), "output": str(out)[-2000:]}
+
+
+@ws_router.websocket("/docker/logs/{container_id}/ws")
+async def stream_logs(websocket: WebSocket, container_id: str, token: str = Query(""), tail: int = 200):
+    """docker logs -f çıktısını satır satır yayınlar."""
+    if not await authorize_ws(websocket, token, admin=False):
+        return
+    if not _REF_RE.match(container_id):
+        await websocket.close(code=4400, reason="Geçersiz container")
+        return
+    await websocket.accept()
+    proc = await asyncio.create_subprocess_exec(
+        *_runtime_cmd("logs", "-f", "--timestamps", "--tail", str(max(0, min(tail, 5000))), container_id),
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+    )
+
+    async def pump():
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            await websocket.send_text(line.decode("utf-8", errors="replace").rstrip("\n"))
+
+    async def watch_client():
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            pass
+
+    tasks = [asyncio.ensure_future(pump()), asyncio.ensure_future(watch_client())]
+    try:
+        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    except Exception:
+        pass
+    finally:
+        for t in tasks:
+            t.cancel()
+        if proc.returncode is None:
+            proc.kill()
+            await proc.wait()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
+@ws_router.websocket("/docker/exec/{container_id}")
+async def exec_shell(websocket: WebSocket, container_id: str, token: str = Query("")):
+    """Container içinde etkileşimli kabuk (bash varsa bash, yoksa sh)."""
+    payload = await authorize_ws(websocket, token, admin=True)
+    if not payload:
+        return
+    if not _REF_RE.match(container_id):
+        await websocket.close(code=4400, reason="Geçersiz container")
+        return
+    await websocket.accept()
+    argv = _runtime_cmd("exec", "-it", container_id, "sh", "-c",
+                        "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi")
+    recorder = Recorder(payload.get("username", "?"), f"docker exec {container_id}") if _recording_enabled() else None
+    await run_pty(websocket, argv, recorder)

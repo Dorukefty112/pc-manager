@@ -1,7 +1,65 @@
-import { useState, useEffect } from 'react'
-import { api } from '../api'
-import { Container, Play, Square, RotateCw, Trash2, Image, Terminal, RefreshCw, Layers, Activity, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { api, wsUrl, isAdmin } from '../api'
+import { Container, Play, Square, RotateCw, Trash2, Image, Terminal, RefreshCw, Layers, Activity, X, ScrollText, Download, Eraser, Pause } from 'lucide-react'
 import { useI18n } from '../context/I18nContext'
+import { Notice, jsonOpts } from '../components/ui'
+import XtermSession from '../components/XtermSession'
+
+const MAX_LOG_LINES = 2000
+
+// docker logs -f çıktısını websocket üzerinden canlı izler
+function LiveLogs({ id, onClose }) {
+  const { t } = useI18n()
+  const [lines, setLines] = useState([])
+  const [paused, setPaused] = useState(false)
+  const [filter, setFilter] = useState('')
+  const [live, setLive] = useState(false)
+  const boxRef = useRef(null)
+  const pausedRef = useRef(false)
+  pausedRef.current = paused
+
+  useEffect(() => {
+    setLines([])
+    const ws = new WebSocket(wsUrl(`/api/docker/logs/${encodeURIComponent(id)}/ws`) + '&tail=300')
+    ws.onopen = () => setLive(true)
+    ws.onclose = () => setLive(false)
+    ws.onmessage = e => setLines(prev => {
+      const next = prev.length >= MAX_LOG_LINES ? prev.slice(-MAX_LOG_LINES + 1) : prev.slice()
+      next.push(e.data)
+      return next
+    })
+    return () => ws.close()
+  }, [id])
+
+  useEffect(() => {
+    const box = boxRef.current
+    if (box && !pausedRef.current) box.scrollTop = box.scrollHeight
+  }, [lines])
+
+  const shown = filter ? lines.filter(l => l.toLowerCase().includes(filter.toLowerCase())) : lines
+
+  return (
+    <div style={{ background: '#020812', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)', flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className={`dot ${live ? 'dot-green' : 'dot-gray'}`} />
+          {t('Canlı log')} — {id.slice(0, 12)} · {lines.length} {t('satır')}
+        </span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input value={filter} onChange={e => setFilter(e.target.value)} placeholder={t('Filtrele...')} style={{ padding: '3px 8px', fontSize: '0.72rem', width: 140 }} />
+          <button onClick={() => setPaused(p => !p)} className="btn-icon" title={paused ? t('Devam') : t('Kaydırmayı durdur')} style={{ width: 24, height: 24 }}>{paused ? <Play size={12} /> : <Pause size={12} />}</button>
+          <button onClick={() => setLines([])} className="btn-icon" title={t('Temizle')} style={{ width: 24, height: 24 }}><Eraser size={12} /></button>
+          <button onClick={onClose} className="btn-icon" style={{ width: 24, height: 24 }}><X size={12} /></button>
+        </div>
+      </div>
+      <div ref={boxRef} style={{ maxHeight: 360, overflowY: 'auto', padding: '8px 4px' }}>
+        {shown.length === 0 ? <div className="empty-state" style={{ padding: 20 }}>{t('Log yok')}</div> : shown.map((line, i) => (
+          <div key={i} style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.72rem', color: '#7a90b0', padding: '1px 12px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{line}</div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Docker() {
   const { t } = useI18n()
@@ -18,6 +76,24 @@ export default function Docker() {
   const [projects, setProjects] = useState([])
   const [projectLogs, setProjectLogs] = useState(null)
   const [composeLoading, setComposeLoading] = useState(false)
+  const [execContainer, setExecContainer] = useState(null)
+  const [pullImage, setPullImage] = useState('')
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState({})
+  const admin = isAdmin()
+
+  const run = async (label, fn, okText) => {
+    setBusy(label)
+    try {
+      const r = await fn()
+      if (okText) setMsg({ kind: 'success', text: typeof okText === 'function' ? okText(r) : okText })
+      return r
+    } catch (e) {
+      setMsg({ kind: 'error', text: e.message })
+    } finally {
+      setBusy('')
+    }
+  }
 
   const fetchAll = async () => {
     setLoading(true)
@@ -34,10 +110,8 @@ export default function Docker() {
 
   useEffect(() => { fetchAll() }, [showAll])
 
-  const action = async (actionFn, id) => { await actionFn(id); fetchAll() }
-  const viewLogs = async (id) => {
-    try { const res = await api(`/api/docker/logs/${id}`); setLogContainer(id); setLogs(res.lines || []) } catch {}
-  }
+  const action = async (actionFn, id) => { await run(id, () => actionFn(id)); fetchAll() }
+  const viewLogs = (id) => { setLogContainer(id); setLogs([]) }
   const viewStats = async (id) => {
     try { const res = await api(`/api/docker/container/${id}/stats`); setStatsContainer(id); setStats(res) } catch {}
   }
@@ -47,7 +121,25 @@ export default function Docker() {
     setComposeLoading(false)
   }
   useEffect(() => { if (tab === 'compose') fetchProjects() }, [tab])
-  const composeAction = async (path, actionFn) => { try { await actionFn(path); fetchProjects() } catch {} }
+  const composeAction = async (path, actionFn) => { await run(path, () => actionFn(path)); fetchProjects() }
+
+  const doPull = async () => {
+    const image = pullImage.trim()
+    if (!image) return
+    const r = await run('pull', () => api('/api/docker/images/pull', { ...jsonOpts('POST', { image }), timeout: 900000 }), `${image} ${t('indirildi')}`)
+    if (r) { setPullImage(''); fetchAll() }
+  }
+  const removeImage = async (img) => {
+    if (!confirm(`${img.repository}:${img.tag} ${t('silinsin mi?')}`)) return
+    await run(img.id, () => api(`/api/docker/images?image_id=${encodeURIComponent(img.id)}`, { method: 'DELETE' }), t('İmaj silindi'))
+    fetchAll()
+  }
+  const prune = async (target, label) => {
+    if (!confirm(`${label}: ${t('kullanılmayan tüm öğeler silinecek. Emin misin?')}`)) return
+    await run('prune-' + target, () => api(`/api/docker/prune?target=${target}`, { method: 'POST', timeout: 300000 }),
+      r => `${label} ${t('temizlendi')}${r.reclaimed ? ' — ' + r.reclaimed : ''}`)
+    fetchAll()
+  }
   const viewProjectLogs = async (path) => {
     try { const res = await api(`/api/docker/compose/logs?project_path=${encodeURIComponent(path)}&lines=50`); setProjectLogs({ path, lines: res.lines || [] }) } catch {}
   }
@@ -92,6 +184,8 @@ export default function Docker() {
           <RefreshCw size={14} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} /> {t('Yenile')}
         </button>
       </div>
+
+      <Notice kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Notice>
 
       {/* Stats */}
       {info && (
@@ -170,7 +264,10 @@ export default function Docker() {
                         <button onClick={() => action(id => api(`/api/docker/container/start?container_id=${id}`, { method: 'POST' }), c.id)} className="btn-icon success" title={t('Başlat')}><Play size={13} /></button>
                       )}
                       <button onClick={() => viewStats(c.id)} className="btn-icon" title={t('İstatistik')} style={{ color: '#a78bfa' }}><Activity size={13} /></button>
-                      <button onClick={() => viewLogs(c.id)} className="btn-icon" title={t('Log')} style={{ color: '#60a5fa' }}><Terminal size={13} /></button>
+                      <button onClick={() => viewLogs(c.id)} className="btn-icon" title={t('Canlı log')} style={{ color: '#60a5fa' }}><ScrollText size={13} /></button>
+                      {admin && c.state === 'running' && (
+                        <button onClick={() => setExecContainer(c)} className="btn-icon" title={t('Konteyner terminali')} style={{ color: '#22c55e' }}><Terminal size={13} /></button>
+                      )}
                       <button onClick={() => { if (confirm(t('Silmek istediğine emin misin?'))) action(id => api(`/api/docker/container?container_id=${id}&force=true`, { method: 'DELETE' }), c.id) }} className="btn-icon danger" title={t('Sil')}><Trash2 size={13} /></button>
                     </div>
                   </div>
@@ -205,16 +302,17 @@ export default function Docker() {
           )}
 
           {/* Logs panel */}
-          {logContainer && logs && (
+          {logContainer && logs && <LiveLogs id={logContainer} onClose={() => { setLogs(null); setLogContainer(null) }} />}
+
+          {/* Exec terminal */}
+          {execContainer && (
             <div style={{ background: '#020812', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
-                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{t('Loglar')} — {logContainer.slice(0, 12)}</span>
-                <button onClick={() => { setLogs(null); setLogContainer(null) }} className="btn-icon" style={{ width: 24, height: 24 }}><X size={12} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>exec — {execContainer.name}</span>
+                <button onClick={() => setExecContainer(null)} className="btn-icon" style={{ width: 24, height: 24 }}><X size={12} /></button>
               </div>
-              <div style={{ maxHeight: 240, overflowY: 'auto', padding: '8px 4px' }}>
-                {logs.length === 0 ? <div className="empty-state" style={{ padding: 20 }}>{t('Log yok')}</div> : logs.map((line, i) => (
-                  <div key={i} style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.72rem', color: '#7a90b0', padding: '1px 12px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{line}</div>
-                ))}
+              <div style={{ height: 380, padding: 6 }}>
+                <XtermSession key={execContainer.id} path={`/api/docker/exec/${encodeURIComponent(execContainer.id)}`} />
               </div>
             </div>
           )}
@@ -222,6 +320,25 @@ export default function Docker() {
       )}
 
       {/* Images tab */}
+      {tab === 'images' && admin && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input value={pullImage} onChange={e => setPullImage(e.target.value)} onKeyDown={e => e.key === 'Enter' && doPull()}
+            placeholder="nginx:latest" style={{ flex: '1 1 220px', maxWidth: 360, fontFamily: "'JetBrains Mono',monospace", fontSize: '0.82rem' }} />
+          <button className="btn btn-primary" disabled={!pullImage.trim() || busy === 'pull'} onClick={doPull}>
+            {busy === 'pull' ? <div className="spinner" style={{ width: 13, height: 13 }} /> : <Download size={14} />} {t('İmaj indir')}
+          </button>
+          <div style={{ flex: 1 }} />
+          {[
+            { target: 'images', label: t('Kullanılmayan imajlar') },
+            { target: 'containers', label: t('Durmuş konteynerlar') },
+            { target: 'volumes', label: t('Sahipsiz volume\'lar') },
+          ].map(p => (
+            <button key={p.target} className="btn btn-secondary" disabled={!!busy} onClick={() => prune(p.target, p.label)}>
+              {busy === 'prune-' + p.target ? <div className="spinner" style={{ width: 13, height: 13 }} /> : <Eraser size={13} />} {p.label}
+            </button>
+          ))}
+        </div>
+      )}
       {tab === 'images' && (
         <div className="table-wrap" style={{ overflow: 'hidden' }}>
           {images.length === 0 ? (
@@ -241,6 +358,7 @@ export default function Docker() {
                     </div>
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', flexShrink: 0 }}>{img.size}</span>
+                  {admin && <button onClick={() => removeImage(img)} disabled={busy === img.id} className="btn-icon danger" title={t('Sil')} style={{ marginLeft: 10 }}><Trash2 size={13} /></button>}
                 </div>
               ))}
             </div>
@@ -278,11 +396,16 @@ export default function Docker() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.services} {t('servis')} ({p.running_services} {t('aktif')})</span>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {busy === p.path && <div className="spinner" style={{ width: 14, height: 14, alignSelf: 'center' }} />}
                       {p.status !== 'running' ? (
                         <button onClick={() => composeAction(p.path, path => api(`/api/docker/compose/up?project_path=${encodeURIComponent(path)}`, { method: 'POST' }))} className="btn btn-success">{t('Başlat')}</button>
                       ) : (
-                        <button onClick={() => composeAction(p.path, path => api(`/api/docker/compose/down?project_path=${encodeURIComponent(path)}`, { method: 'POST' }))} className="btn btn-danger">{t('Durdur')}</button>
+                        <>
+                          <button onClick={() => composeAction(p.path, path => api(`/api/docker/compose/restart?project_path=${encodeURIComponent(path)}`, { method: 'POST', timeout: 120000 }))} className="btn btn-secondary" title={t('Yeniden Başlat')}><RotateCw size={13} /></button>
+                          <button onClick={() => composeAction(p.path, path => api(`/api/docker/compose/pull?project_path=${encodeURIComponent(path)}`, { method: 'POST', timeout: 900000 }))} className="btn btn-secondary" title={t('İmajları güncelle ve yeniden oluştur')}><Download size={13} /> {t('Güncelle')}</button>
+                          <button onClick={() => composeAction(p.path, path => api(`/api/docker/compose/down?project_path=${encodeURIComponent(path)}`, { method: 'POST' }))} className="btn btn-danger">{t('Durdur')}</button>
+                        </>
                       )}
                       <button onClick={() => viewProjectLogs(p.path)} className="btn btn-secondary">{t('Loglar')}</button>
                     </div>
