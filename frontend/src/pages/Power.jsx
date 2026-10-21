@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Power as PowerIcon, RotateCw, Moon, LogOut, AlertTriangle, Zap } from 'lucide-react'
+import WolPanel from '../components/WolPanel'
 
 export default function Power() {
   const { t } = useI18n()
@@ -106,6 +107,8 @@ export default function Power() {
           {t('Kapatma ve yeniden başlatma işlemleri sunucuyu kapatacağı için web arayüzü de kapanacaktır. Erişmek için bilgisayarın tekrar açılması gerekecektir.')}
         </div>
       </div>
+
+      <WolPanel />
     </div>
   )
 }

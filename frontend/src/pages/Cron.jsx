@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Clock, Plus, Trash2, RefreshCw, AlertCircle } from 'lucide-react'
+import SystemdTimers from '../components/SystemdTimers'
 
 export default function Cron() {
   const { t } = useI18n()
@@ -160,6 +161,8 @@ export default function Cron() {
           </div>
         )}
       </div>
+
+      <SystemdTimers />
     </div>
   )
 }
