@@ -146,7 +146,7 @@ def fetch_kandilli():
 
 def fetch_afad(dakika=120):
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         start = now - timedelta(minutes=dakika)
         resp = httpx.get(AFAD_URL, params={
             "start": start.strftime("%Y-%m-%d %H:%M:%S"),

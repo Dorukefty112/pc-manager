@@ -134,3 +134,22 @@ def test_restore_rejects_path_traversal(env, tmp_path):
         with pytest.raises((tarfile.TarError, ValueError)):
             backups.safe_extract(tar, tar.getmembers(), str(tmp_path / "hedef"))
     assert not (tmp_path.parent / "kacis.txt").exists()
+
+
+def test_safe_extract_fallback_without_data_filter(env, tmp_path, monkeypatch):
+    """Python 3.11.4 öncesinde tarfile.data_filter yok; elle doğrulama devreye girer."""
+    monkeypatch.delattr(tarfile, "data_filter", raising=False)
+    evil = tmp_path / "evil2.tar.gz"
+    with tarfile.open(evil, "w:gz") as tar:
+        link = tarfile.TarInfo("kotu-baglanti")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "/etc/passwd"
+        tar.addfile(link)
+    with tarfile.open(evil) as tar:
+        with pytest.raises(ValueError):
+            backups.safe_extract(tar, tar.getmembers(), str(tmp_path / "h1"))
+    tmp, src = env
+    good = backups.run_job(_job(tmp, src))
+    with tarfile.open(tmp / "out" / good["file"]) as tar:
+        backups.safe_extract(tar, tar.getmembers(), str(tmp_path / "h2"))
+    assert (tmp_path / "h2" / str(src).lstrip("/") / "a.txt").read_text() == "merhaba"

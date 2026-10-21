@@ -68,6 +68,9 @@ DEFAULT_CONFIG = {
         "enabled": False,
         "log_api_calls": True,
     },
+    "terminal": {
+        "record": True,
+    },
     "windows": {
         "enabled": False,
         "services": True,

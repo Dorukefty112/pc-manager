@@ -3,7 +3,7 @@
 **Sistem yönetimi platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için genel kullanıma açılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode un servis ettiği big pickle,google gemini antigravity deki çeşitli modeller ve claude sonnet 5 ve opus 5) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 
@@ -24,22 +24,28 @@
 | Modül | Açıklama |
 |-------|----------|
 | 🖥️ **Sistem** | CPU, RAM, disk, uptime, sistem bilgisi |
-| 📁 **Dosya Yönetimi** | Gezinti, yükleme, indirme, düzenleme |
+| 📁 **Dosya Yönetimi** | Gezinti, yükleme, indirme, kod editörü, toplu işlemler, arşivleme/açma |
 | ⚡ **Güç Yönetimi** | Shutdown, reboot, sleep |
-| 🧪 **Terminal** | Web tabanlı tam terminal emülatörü (xterm.js) |
+| 🧪 **Terminal** | Web tabanlı tam terminal emülatörü (xterm.js), SSH, oturum kayıtları |
 | ⚙️ **Süreçler** | Süreç listeleme, sonlandırma (SIGTERM/SIGKILL) |
 | 🌐 **Ağ** | Bağlantılar, port kullanımı, bant genişliği |
 | 💾 **Disk** | Partition kullanımı, mount noktaları, disk sağlığı |
 | 📦 **Güncellemeler** | pacman güncelleme yönetimi |
 | 📋 **Loglar** | journalctl log görüntüleme ve filtreleme |
 | 🔧 **Servisler** | systemd servis yönetimi (start/stop/restart/enable/disable) |
-| 🐳 **Docker** | Container ve image yönetimi |
-| ⏰ **Cron** | Cron job görüntüleme ve düzenleme |
+| 🐳 **Docker** | Container/image yönetimi, canlı log, konteyner terminali, compose, temizlik |
+| ⏰ **Cron** | Cron job görüntüleme ve düzenleme, systemd zamanlayıcıları |
 | 💬 **Sohbet** | Ollama ile yerel AI sohbet asistanı |
 | 🛡️ **Pentest** | Nmap, SQLMap, Hydra, John, Gobuster ve 12+ diğer güvenlik aracı |
 | 🌍 **Deprem İzleme** | Sismik Harita (Kandilli, AFAD, USGS, EMSC, GFZ, NOA, IRIS) API entegrasyonlu gelişmiş canlı deprem takibi, istatistikler, filtreler ve sesli uyarı |
 | 🔎 **Pc_Search_Engine** | Web (DuckDuckGo), yerel dosya ve sistem arama motoru |
 | ⚙️ **Kurulum Sihirbazı** | İlk açılışta site adı, yönetici adı ve şifre belirleme |
+| 📈 **Metrik Geçmişi** | 7 günlük CPU/RAM/disk/ağ/G-Ç/sıcaklık geçmişi, senkron grafikler, Prometheus çıktısı |
+| 🔔 **Alarm Kuralları** | Süre, tekrar ve "düzeldi" bildirimli kurallar: CPU, RAM, disk, sıcaklık, servis, süreç, HTTP |
+| 👥 **Kullanıcılar & Güvenlik** | Çoklu kullanıcı, yönetici/izleyici rolleri, oturum yönetimi, 2FA (TOTP), API token'ları |
+| 🗄️ **Yedekler** | Zamanlanmış `.tar.gz` yedekleri, saklama sayısı, hariç tutma, indirme ve geri yükleme |
+| 🖧 **Sunucular** | Diğer PC Manager kurulumlarını tek panelden izleme, kayıtlı hedeflere SSH |
+| 📡 **Wake-on-LAN** | Yerel ağdaki bilgisayarları uzaktan açma |
 
 ## Hızlı Başlangıç
 
@@ -132,12 +138,51 @@ npx cap open android
 ```
 Android Studio açıldığında normal şekilde Run/Build APK yapabilirsiniz. Bu adım Android SDK gerektirir.
 
+## Kullanıcılar, Roller ve 2FA
+
+**Kullanıcılar → Kullanıcılar** sekmesinden yeni hesap ekleyebilirsiniz:
+
+- **Yönetici**: her şeye tam erişim.
+- **İzleyici**: salt-okunur. Durum ve metrikleri görebilir; dosyalar, ayarlar, terminal, pentest, yedekler gibi hassas alanlara erişemez ve hiçbir değişiklik yapamaz.
+
+Mevcut tek şifreli kurulumlar `admin` kullanıcısı olarak çalışmaya devam eder; giriş ekranında kullanıcı adı boş bırakılabilir.
+**Hesabım** sekmesinden şifre değiştirebilir ve Google Authenticator/Aegis gibi bir uygulamayla iki adımlı doğrulamayı açabilirsiniz.
+**Oturumlar & Token** sekmesinde açık oturumlarınızı görüp kapatabilirsiniz.
+
+## Metrikler ve Prometheus
+
+Arka planda her 10 saniyede bir ölçüm alınır ve `backend/metrics.db` içinde 7 gün saklanır (**Metrik Geçmişi** sayfası).
+Prometheus ile izlemek için **Kullanıcılar → Oturumlar & Token**'dan *İzleyici* rollü bir API token'ı oluşturun:
+
+```yaml
+scrape_configs:
+  - job_name: pc-manager
+    metrics_path: /api/metrics/prometheus
+    authorization:
+      credentials: <API_TOKEN>
+    static_configs:
+      - targets: ["100.64.0.2:8081"]
+```
+
+Aynı token, **Sunucular** sayfasında başka bir PC Manager kurulumunu izlemek için de kullanılır.
+
+## Yedekleme
+
+**Yedekler** sayfasında görev oluşturun: kaynak dizinler, hedef dizin, zamanlama (manuel/saatlik/günlük/haftalık), saklanacak arşiv sayısı ve hariç tutma desenleri (`*.log`, `node_modules`...).
+Arşivler tam yollarıyla saklanır; geri yükleme seçtiğiniz dizinin altına aynı ağacı kurar (`/` seçilirse yerine yazar).
+"PC Manager ayarlarını yedekle" düğmesi uygulamanın kendi ayar dosyaları için hazır bir görev oluşturur.
+
 ## Güvenlik
 
-- JWT tabanlı kimlik doğrulama
-- Tüm hassas işlemler auth gerektirir
-- Şifre hash ile saklanır (bcrypt)
+- JWT tabanlı kimlik doğrulama; her giriş sunucu tarafında bir oturum kaydı açar, çıkış ve oturum kapatma anında etkilidir
+- Tüm hassas işlemler auth gerektirir (CI'da tüm uç noktaları tarayan bir test bunu doğrular)
+- Şifre hash ile saklanır (bcrypt), isteğe bağlı TOTP 2FA
+- Girişte kaba kuvvet koruması (5 dakikada 10 hatalı deneme → geçici kilit)
 - Şifre ortam değişkeni ile özelleştirilebilir (`PCMANAGER_PASSWORD`)
+
+> **v2.2.0'a yükseltenler için:** Önceki sürümlerde kimlik doğrulamasız erişilebilen bir dosya okuma açığı ve korumasız playbook uç noktaları kapatıldı.
+> Sunucunuz ağa açıksa `backend/.jwt_secret` dosyasını silip servisi yeniden başlatmanız (yeni imza anahtarı üretilir) ve yönetici şifrenizi değiştirmeniz önerilir.
+> Yükseltmeden sonra tüm kullanıcıların bir kez yeniden giriş yapması gerekir.
 
 ## Lisans
 

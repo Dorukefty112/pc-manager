@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.2.0] — 2026-10-21
+
+### Güvenlik
+- **Kimlik doğrulamasız dosya okuma açığı kapatıldı**: SPA fallback route'u `%2F` ile kodlanmış `..` parçalarını süzmüyordu; `GET /..%2F..%2Fbackend%2F.jwt_secret` gibi bir istek oturumsuz olarak `config.json`, JWT imza anahtarı ve sunucu root çalışıyorsa sistemdeki herhangi bir dosyayı döndürüyordu. Ağa açık kurulumların `.jwt_secret` dosyasını yenilemesi önerilir.
+- **Playbook uç noktaları korumasızdı**: Oturumsuz biri playbook oluşturup sunucuda komut çalıştırabiliyordu; artık tüm playbook HTTP uç noktaları ve websocket'i kimlik doğrulaması istiyor.
+- `/api/proxy/page` artık oturum gerektiriyor (açık proxy / SSRF).
+- `GET /api/settings` şifre hash'ini döndürmüyor; `PUT /api/settings` ile kullanıcı listesi ezilemiyor.
+- Dosya yöneticisinde `rename` ve `upload` ile başka dizine yazma (`../`) engellendi.
+- Docker ve systemd'ye giden container/image/birim adları doğrulanıyor; `-` ile başlayan değerler bayrak olarak geçemiyor.
+- Girişte IP başına kaba kuvvet koruması.
+- Tüm OpenAPI yollarını kimlik doğrulamasız çağırıp korumasız uç nokta arayan kapsama testi eklendi.
+
+### Yeni
+- **Kullanıcılar & Güvenlik**: Çoklu kullanıcı, yönetici/izleyici (salt-okunur) rolleri, sunucu tarafı oturumlar (çıkış, diğer oturumları kapatma, rol değişikliğinin anında uygulanması), TOTP ile iki adımlı doğrulama, uzun ömürlü API token'ları.
+- **Metrik Geçmişi**: 10 saniyede bir örneklenen, 7 gün saklanan CPU/RAM/swap/disk/yük/ağ/disk G-Ç/sıcaklık geçmişi; senkron crosshair'li grafikler ve tablo görünümü; Prometheus çıktısı (`/api/metrics/prometheus`).
+- **Alarm Kuralları**: Süre ("X sn boyunca"), tekrar aralığı ve "Düzeldi" bildirimiyle çalışan kural motoru; servis, süreç ve HTTP erişilebilirlik kuralları. Eski kontrolcü eşik aşıldıkça her 30 sn'de bildirim gönderiyordu.
+- **Yedekler**: Zamanlanmış `.tar.gz` görevleri, saklama sayısı, hariç tutma, arşiv içeriği, indirme ve güvenli geri yükleme.
+- **Docker**: Canlı log akışı, konteyner içi terminal (exec), imaj indirme/silme, prune, compose yeniden başlatma ve güncelleme.
+- **Sunucular**: Diğer PC Manager kurulumlarını tek panelden izleme; kayıtlı hedeflere terminalden SSH.
+- **Terminal oturum kayıtları**: Terminal ve konteyner oturumlarının çıktısı kaydedilir ve oynatılabilir.
+- **Dosyalar**: CodeMirror tabanlı kod editörü (Ctrl+S, çakışma koruması), çoklu seçim ile kopyala/taşı/arşivle/sil, arşivleri yerinde açma.
+- **Wake-on-LAN** ve **systemd zamanlayıcıları**.
+- **Genel Bakış özelleştirme**: Bölümleri sıralama ve gizleme.
+- Yeni metinlerin İngilizce çevirileri.
+
+### İyileştirmeler
+- Sayfalar lazy-load ediliyor; ana JS bundle 785 kB'tan 326 kB'a indi (gzip: 216 kB → 99 kB).
+- FastAPI `on_event` yerine `lifespan`; arka plan işleri artık yalnızca sunucu başlarken çalışıyor, mDNS kaydı açılışı bloke etmiyor.
+- PTY süreçleri `os.fork` yerine `Popen` + `setsid -c` ile başlatılıyor (çok thread'li süreçte fork güvenli değil).
+- `xterm.css` hiç yüklenmiyordu; eklendi.
+- Bilinmeyen `/api/*` yolları HTML yerine JSON 404 döndürüyor.
+- GitHub Actions CI: Python 3.11/3.12/3.13 backend testleri ve frontend build.
+- Backend test sayısı 48'den 150'ye çıktı.
+
 ## [2.1.0] — 2026-08-28
 
 - **Yeni Afet İzleme Türleri**: Deprem İzleme'nin yanına aynı derinlikte üç yeni sayfa eklendi — **Orman Yangını** (NASA FIRMS uydu verisi), **Sel/Taşkın** (Open-Meteo Flood API, nehir debisi tabanlı deneysel risk hesaplaması) ve **Aşırı Hava** (MGM meteoroloji uyarıları). Her biri kendi harita + istatistik + liste görünümüne, masaüstü/mobil ayrı düzenine ve arka planda periyodik kontrol edip Telegram'a uyarı gönderen izleyicisine sahip.
