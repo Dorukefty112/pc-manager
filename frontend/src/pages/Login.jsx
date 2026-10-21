@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, setToken } from '../api'
+import { api, setSession } from '../api'
 import { useI18n } from '../context/I18nContext'
-import { Eye, EyeOff, Lock, Monitor, ArrowRight, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Lock, Monitor, ArrowRight, AlertCircle, User, KeyRound } from 'lucide-react'
 
 export default function Login() {
   const { t } = useI18n()
+  const [username, setUsername] = useState(() => localStorage.getItem('pcmanager_last_user') || '')
   const [password, setPassword] = useState('')
+  const [totp, setTotp] = useState('')
+  const [needTotp, setNeedTotp] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [show, setShow] = useState(false)
@@ -27,12 +30,23 @@ export default function Login() {
       const res = await api('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username: username.trim() || undefined, password, totp: needTotp ? totp : undefined }),
       })
-      setToken(res.token)
+      setSession(res)
+      try { localStorage.setItem('pcmanager_last_user', username.trim()) } catch {}
       navigate('/')
-    } catch {
-      setError(t('Hatalı şifre. Lütfen tekrar deneyin.'))
+    } catch (err) {
+      const msg = err.message || ''
+      if (msg.includes('totp_required')) {
+        setNeedTotp(true)
+      } else if (msg.includes('totp_invalid')) {
+        setError(t('Doğrulama kodu hatalı.'))
+        setTotp('')
+      } else if (err.status === 429) {
+        setError(msg)
+      } else {
+        setError(t('Hatalı kullanıcı adı veya şifre.'))
+      }
     }
     setLoading(false)
   }
@@ -154,6 +168,25 @@ export default function Login() {
                 fontSize: '0.78rem', fontWeight: 600,
                 color: 'var(--text-secondary)', letterSpacing: '0.03em',
               }}>
+                <User size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+                {t('Kullanıcı adı')}
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="admin"
+                autoComplete="username"
+                autoCapitalize="none"
+                style={{ borderRadius: 12, padding: '11px 14px', width: '100%' }}
+              />
+            </div>
+            <div>
+              <label style={{
+                display: 'block', marginBottom: 7,
+                fontSize: '0.78rem', fontWeight: 600,
+                color: 'var(--text-secondary)', letterSpacing: '0.03em',
+              }}>
                 <Lock size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />
                 {t('Şifre')}
               </label>
@@ -162,7 +195,8 @@ export default function Login() {
                   type={show ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder={t('Yönetici şifresi')}
+                  placeholder={t('Şifre')}
+                  autoComplete="current-password"
                   autoFocus
                   style={{ borderRadius: 12, padding: '11px 14px' }}
                 />
@@ -171,6 +205,30 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {needTotp && (
+              <div>
+              <label style={{
+                display: 'block', marginBottom: 7,
+                fontSize: '0.78rem', fontWeight: 600,
+                color: 'var(--text-secondary)', letterSpacing: '0.03em',
+              }}>
+                  <KeyRound size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+                  {t('Doğrulama kodu (2FA)')}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={8}
+                  value={totp}
+                  onChange={e => setTotp(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="123456"
+                  autoFocus
+                  style={{ borderRadius: 12, padding: '11px 14px', width: '100%', letterSpacing: '0.3em', fontFamily: "'JetBrains Mono', monospace" }}
+                />
+              </div>
+            )}
 
             {error && (
               <div style={{
@@ -188,7 +246,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !password}
+              disabled={loading || !password || (needTotp && totp.length < 6)}
               className="login-btn"
               style={{ marginTop: 4 }}
             >

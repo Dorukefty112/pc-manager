@@ -12,3 +12,4 @@ httpx
 ddgs
 zeroconf
 beautifulsoup4
+pyotp

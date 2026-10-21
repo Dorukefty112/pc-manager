@@ -1,43 +1,57 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import DebugOverlay from './components/DebugOverlay'
-import Dashboard from './pages/Dashboard'
-import Terminal from './pages/Terminal'
-import Files from './pages/Files'
-import Power from './pages/Power'
-import Chat from './pages/Chat'
-import Processes from './pages/Processes'
-import Network from './pages/Network'
-import SystemInfo from './pages/SystemInfo'
-import DiskUsage from './pages/DiskUsage'
-import Updates from './pages/Updates'
-import Logs from './pages/Logs'
-import Services from './pages/Services'
-import PenTest from './pages/PenTest'
-import Docker from './pages/Docker'
-import Cron from './pages/Cron'
-import Windows from './pages/Windows'
-import Settings from './pages/Settings'
-import Debug from './pages/Debug'
-import DepremUyari from './pages/DepremUyari'
-import OrmanYanginIzleme from './pages/OrmanYanginIzleme'
-import SelIzleme from './pages/SelIzleme'
-import HavaUyari from './pages/HavaUyari'
 import DepremAlert from './components/DepremAlert'
-import OllamaChat from './pages/OllamaChat'
-import SearchEngine from './pages/SearchEngine'
-import Speedtest from './pages/Speedtest'
-import Firewall from './pages/Firewall'
-import Temperature from './pages/Temperature'
-import Playbooks from './pages/Playbooks'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import MobilePairing from './pages/MobilePairing'
 import { useI18n } from './context/I18nContext'
 import { isAuthenticated, getServerBase, setServerBase, setToken } from './api'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { api } from './api'
 import { Capacitor } from '@capacitor/core'
+
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Terminal = lazy(() => import('./pages/Terminal'))
+const Files = lazy(() => import('./pages/Files'))
+const Power = lazy(() => import('./pages/Power'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Processes = lazy(() => import('./pages/Processes'))
+const Network = lazy(() => import('./pages/Network'))
+const SystemInfo = lazy(() => import('./pages/SystemInfo'))
+const DiskUsage = lazy(() => import('./pages/DiskUsage'))
+const Updates = lazy(() => import('./pages/Updates'))
+const Logs = lazy(() => import('./pages/Logs'))
+const Services = lazy(() => import('./pages/Services'))
+const PenTest = lazy(() => import('./pages/PenTest'))
+const Docker = lazy(() => import('./pages/Docker'))
+const Cron = lazy(() => import('./pages/Cron'))
+const Windows = lazy(() => import('./pages/Windows'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Debug = lazy(() => import('./pages/Debug'))
+const DepremUyari = lazy(() => import('./pages/DepremUyari'))
+const OrmanYanginIzleme = lazy(() => import('./pages/OrmanYanginIzleme'))
+const SelIzleme = lazy(() => import('./pages/SelIzleme'))
+const HavaUyari = lazy(() => import('./pages/HavaUyari'))
+const OllamaChat = lazy(() => import('./pages/OllamaChat'))
+const SearchEngine = lazy(() => import('./pages/SearchEngine'))
+const Speedtest = lazy(() => import('./pages/Speedtest'))
+const Firewall = lazy(() => import('./pages/Firewall'))
+const Temperature = lazy(() => import('./pages/Temperature'))
+const Playbooks = lazy(() => import('./pages/Playbooks'))
+const Security = lazy(() => import('./pages/Security'))
+const Metrics = lazy(() => import('./pages/Metrics'))
+const Alerts = lazy(() => import('./pages/Alerts'))
+const Backups = lazy(() => import('./pages/Backups'))
+const Hosts = lazy(() => import('./pages/Hosts'))
+
+function PageFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+      <div className="spinner" style={{ width: 26, height: 26, borderWidth: 3 }} />
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />
@@ -129,6 +143,7 @@ export default function App() {
           <SetupGuard>
             <ProtectedRoute>
               <Layout>
+              <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/" element={<Temperature />} />
                 <Route path="/terminal" element={<Terminal />} />
@@ -158,8 +173,14 @@ export default function App() {
                 <Route path="/temperature" element={<Temperature />} />
                 <Route path="/playbooks" element={<Playbooks />} />
                 <Route path="/ai" element={<OllamaChat />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/metrics" element={<Metrics />} />
+                <Route path="/alerts" element={<Alerts />} />
+                <Route path="/backups" element={<Backups />} />
+                <Route path="/hosts" element={<Hosts />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
+              </Suspense>
               <DebugOverlay />
             </Layout>
           </ProtectedRoute>

@@ -14,9 +14,10 @@ from routers import (
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
     notifications, windows, speedtest, firewall, firewall_native, temperature,
-    playbooks, pairing, yangin, sel, hava_uyari,
+    playbooks, pairing, yangin, sel, hava_uyari, users,
 )
-from dependencies import require_auth
+from contextlib import asynccontextmanager
+from dependencies import require_auth, authenticate_header, check_role
 from auth import verify_token
 from routers.search_engine import _rewrite_html, _fetch_page
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
@@ -24,22 +25,22 @@ from fastapi import Query
 from urllib.parse import urlparse
 import httpx
 
-app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi platformu")
 
-@app.on_event("startup")
-def startup_event():
-    # Start mDNS announcer on port 8081
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Arka plan işleri yalnızca sunucu gerçekten başlarken çalışır;
+    # testlerde main'i import etmek thread başlatmaz.
     pairing.start_mdns(port=8081)
-
-@app.on_event("shutdown")
-def shutdown_event():
-    # Stop mDNS announcer
+    notifications.start_checker()
+    yangin.start_fire_checker()
+    sel.start_flood_checker()
+    hava_uyari.start_weather_checker()
+    yield
+    notifications.stop_checker()
     pairing.stop_mdns()
 
-notifications.start_checker()
-yangin.start_fire_checker()
-sel.start_flood_checker()
-hava_uyari.start_weather_checker()
+
+app = FastAPI(title="PC Manager", version=VERSION, description="Sistem yönetimi platformu", lifespan=lifespan)
 
 static_dir = Path(__file__).parent.parent / "frontend" / "dist"
 if not static_dir.exists():
@@ -122,10 +123,8 @@ def proxy_page(
     token: str = Query("", description="iframe Authorization başlığı gönderemediği için JWT"),
     authorization: str = Header(None),
 ):
-    if token:
-        verify_token(token)
-    else:
-        require_auth(authorization)
+    payload = verify_token(token) if token else authenticate_header(authorization)
+    check_role(payload, "GET", "/api/proxy/page")
     if not url.strip():
         raise HTTPException(400, "URL gerekli")
     try:
@@ -160,6 +159,7 @@ app.include_router(firewall.router, prefix="/api", dependencies=[Depends(require
 app.include_router(firewall_native.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(temperature.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(playbooks.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 @app.get("/")
 def serve_index():

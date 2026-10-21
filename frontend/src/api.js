@@ -25,6 +25,35 @@ export function setToken(token) {
   }
 }
 
+export function setSession({ token, username, role } = {}) {
+  setToken(token || null)
+  try {
+    if (token) {
+      localStorage.setItem('pcmanager_user', JSON.stringify({ username, role }))
+    } else {
+      localStorage.removeItem('pcmanager_user')
+    }
+  } catch {}
+}
+
+export function getUser() {
+  try {
+    return JSON.parse(localStorage.getItem('pcmanager_user')) || { username: 'admin', role: 'admin' }
+  } catch {
+    return { username: 'admin', role: 'admin' }
+  }
+}
+
+export function isAdmin() {
+  return getUser().role === 'admin'
+}
+
+export async function logout() {
+  try { await api('/api/auth/logout', { method: 'POST' }) } catch {}
+  setSession(null)
+  window.location.href = '/login'
+}
+
 export function isAuthenticated() {
   return !!getToken()
 }
@@ -32,7 +61,7 @@ export function isAuthenticated() {
 export async function api(path, opts = {}) {
   const token = getToken()
   const headers = { ...(opts.headers || {}) }
-  if (token && !path.startsWith('/api/auth/')) {
+  if (token && path !== '/api/auth/login') {
     headers['Authorization'] = `Bearer ${token}`
   }
 
@@ -48,12 +77,19 @@ export async function api(path, opts = {}) {
     clearTimeout(timeoutId)
     if (res.status === 401) {
       if (window.location.pathname !== '/login') {
-        setToken(null)
+        setSession(null)
         window.location.href = '/login'
       }
       throw new Error('Oturum süresi doldu')
     }
-    if (!res.ok) throw new Error(await res.text())
+    if (!res.ok) {
+      const text = await res.text()
+      let detail = text
+      try { detail = JSON.parse(text).detail ?? text } catch {}
+      const err = new Error(typeof detail === 'string' ? detail : text)
+      err.status = res.status
+      throw err
+    }
     if (opts.raw) return res
     return res.json()
   } catch (err) {

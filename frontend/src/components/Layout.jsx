@@ -6,8 +6,9 @@ import {
   Menu, X, Container, Clock, LogOut, Activity, Brain, Search,
   AlertTriangle, ShieldOff, Sun, Moon, Settings, Bug, Gauge,
   ChevronRight, MoreHorizontal, Flame, Waves, CloudLightning,
+  LineChart, Bell, Archive, ShieldCheck, Network,
 } from 'lucide-react'
-import { setToken, api } from '../api'
+import { api, isAdmin, logout } from '../api'
 import { useTheme } from '../context/ThemeContext'
 import { useI18n } from '../context/I18nContext'
 
@@ -17,6 +18,8 @@ const navGroups = [
     label: 'Sistem',
     links: [
       { to: '/',            label: 'Genel Bakış',    icon: Monitor },
+      { to: '/metrics',     label: 'Metrik Geçmişi', icon: LineChart },
+      { to: '/hosts',       label: 'Sunucular',      icon: Network, admin: true },
       { to: '/system-info', label: 'Sistem Bilgisi', icon: Info },
       { to: '/processes',   label: 'Processler',     icon: Cpu },
       { to: '/services',    label: 'Servisler',      icon: Server },
@@ -27,10 +30,12 @@ const navGroups = [
   {
     label: 'Araçlar',
     links: [
-      { to: '/terminal',  label: 'Terminal',        icon: Terminal },
-      { to: '/files',     label: 'Dosyalar',        icon: Folder },
+      { to: '/terminal',  label: 'Terminal',        icon: Terminal, admin: true },
+      { to: '/files',     label: 'Dosyalar',        icon: Folder, admin: true },
       { to: '/docker',    label: 'Docker',          icon: Container },
       { to: '/cron',      label: 'Zamanlayıcı',     icon: Clock },
+      { to: '/backups',   label: 'Yedekler',        icon: Archive, admin: true },
+      { to: '/alerts',    label: 'Alarmlar',        icon: Bell },
       { to: '/updates',   label: 'Güncellemeler',   icon: Package },
       { to: '/logs',      label: 'Günlükler',       icon: ScrollText },
       { to: '/speedtest', label: 'Hız Testi',       icon: Gauge },
@@ -39,7 +44,8 @@ const navGroups = [
   {
     label: 'Güvenlik',
     links: [
-      { to: '/pentest',   label: 'Pen-Test',        icon: Shield,    accent: 'red' },
+      { to: '/security',  label: 'Kullanıcılar',    icon: ShieldCheck },
+      { to: '/pentest',   label: 'Pen-Test',        icon: Shield,    accent: 'red', admin: true },
       { to: '/firewall',  label: 'Güvenlik Duvarı', icon: ShieldOff, accent: 'red' },
       { to: '/playbooks', label: 'Playbook',        icon: Server },
     ],
@@ -47,7 +53,7 @@ const navGroups = [
   {
     label: 'İstihbarat',
     links: [
-      { to: '/search',      label: 'Arama',          icon: Search,         accent: 'purple' },
+      { to: '/search',      label: 'Arama',          icon: Search,         accent: 'purple', admin: true },
       { to: '/deprem',      label: 'Deprem İzleme',  icon: Activity,       accent: 'orange' },
       { to: '/yangin',      label: 'Orman Yangını',  icon: Flame,          accent: 'red' },
       { to: '/sel',         label: 'Sel/Taşkın',     icon: Waves,          accent: 'blue' },
@@ -57,8 +63,8 @@ const navGroups = [
   {
     label: 'AI & Sohbet',
     links: [
-      { to: '/ai',   label: 'AI Asistan', icon: Brain,          accent: 'purple' },
-      { to: '/chat', label: 'Asistan',    icon: MessageSquare },
+      { to: '/ai',   label: 'AI Asistan', icon: Brain,          accent: 'purple', admin: true },
+      { to: '/chat', label: 'Asistan',    icon: MessageSquare, admin: true },
     ],
   },
   {
@@ -72,9 +78,9 @@ const navGroups = [
 
 const bottomTabs = [
   { to: '/',         label: 'Ana Sayfa', icon: Monitor },
-  { to: '/terminal', label: 'Terminal',  icon: Terminal },
-  { to: '/files',    label: 'Dosyalar',  icon: Folder },
-  { to: '/settings', label: 'Ayarlar',   icon: Settings },
+  { to: '/terminal', label: 'Terminal',  icon: Terminal, admin: true },
+  { to: '/files',    label: 'Dosyalar',  icon: Folder, admin: true },
+  { to: '/settings', label: 'Ayarlar',   icon: Settings, admin: true },
 ]
 
 const accentColors = {
@@ -95,11 +101,18 @@ export default function Layout({ children }) {
 
   useEffect(() => { setOpen(false) }, [location.pathname])
 
+  const admin = isAdmin()
+  const visibleGroups = navGroups
+    .map(g => ({ ...g, links: g.links.filter(l => admin || !l.admin) }))
+    .filter(g => g.links.length)
+  const visibleTabs = bottomTabs.filter(l => admin || !l.admin)
+
   useEffect(() => {
     api('/api/version').then(d => setVersion(d.version)).catch(() => {})
   }, [])
 
   useEffect(() => {
+    if (!admin) return
     const check = async () => {
       try { const d = await api('/api/ollama/emergency'); setEmergency(d.emergency) } catch {}
     }
@@ -108,10 +121,7 @@ export default function Layout({ children }) {
     return () => clearInterval(id)
   }, [])
 
-  const handleLogout = () => {
-    setToken(null)
-    window.location.href = '/login'
-  }
+  const handleLogout = () => { logout() }
 
   const toggleEmergency = async () => {
     try {
@@ -296,7 +306,7 @@ export default function Layout({ children }) {
 
           {/* Nav groups */}
           <div style={{ flex: 1, padding: '10px 10px', overflowY: 'auto' }}>
-            {navGroups.map((group) => (
+            {visibleGroups.map((group) => (
               <div key={group.label} style={{ marginBottom: 6 }}>
                 <div className="section-label" style={{ marginBottom: 4, marginTop: 8, paddingLeft: 10 }}>
                   {t(group.label)}
@@ -450,7 +460,7 @@ export default function Layout({ children }) {
 
               {/* Grouped navigation cards */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {navGroups.map(group => (
+                {visibleGroups.map(group => (
                   <div key={group.label}>
                     <div className="section-label" style={{ marginBottom: 8, fontSize: '0.65rem' }}>{group.label}</div>
                     <div style={{
@@ -515,7 +525,7 @@ export default function Layout({ children }) {
           height: 'calc(60px + var(--safe-bottom))', padding: '4px 10px 0',
         }}>
           <style>{`@media (min-width: 768px) { .mobile-glass-nav { display: none !important; } }`}</style>
-          {bottomTabs.map(tab => {
+          {visibleTabs.map(tab => {
             const isActive = location.pathname === tab.to || (tab.to !== '/' && location.pathname.startsWith(tab.to))
             const Icon = tab.icon
             return (

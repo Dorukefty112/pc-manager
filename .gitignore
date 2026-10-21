@@ -14,3 +14,9 @@ dist/
 .jwt_secret
 .DS_Store
 Thumbs.db
+sessions.json
+sessions.tmp
+terminal_logs/
+metrics.db
+metrics.db-*
+backup_runs.json

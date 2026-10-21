@@ -6,8 +6,12 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Header
 from auth import _hash_bcrypt, verify_token
 from dependencies import require_auth
+from users import sync_setup_password
 
 router = APIRouter(tags=["settings"])
+
+# Ayarlar API'si üzerinden okunamayan/yazılamayan, kendi uç noktaları olan alanlar
+PROTECTED_KEYS = {"_password_hash", "users", "paired_devices"}
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 
 DEFAULT_CONFIG = {
@@ -102,13 +106,15 @@ def get_settings(_auth: dict = Depends(require_auth)):
             for sub_key, sub_val in default_val.items():
                 if sub_key not in cfg[key]:
                     cfg[key][sub_key] = sub_val
-    return cfg
+    return {k: v for k, v in cfg.items() if k not in PROTECTED_KEYS}
 
 
 @router.put("/settings")
 def update_settings(body: dict, _auth: dict = Depends(require_auth)):
     current = _load_config()
     for key, value in body.items():
+        if key in PROTECTED_KEYS:
+            continue
         if isinstance(value, dict):
             if key not in current:
                 current[key] = {}
@@ -119,7 +125,7 @@ def update_settings(body: dict, _auth: dict = Depends(require_auth)):
         else:
             current[key] = value
     _save_config(current)
-    return {"success": True, "settings": current}
+    return {"success": True, "settings": {k: v for k, v in current.items() if k not in PROTECTED_KEYS}}
 
 
 @router.get("/setup")
@@ -142,7 +148,8 @@ def complete_setup(body: dict, authorization: str = Header(None)):
         scheme, _, token = authorization.partition(" ")
         if scheme.lower() != "bearer" or not token:
             raise HTTPException(status_code=401, detail="Geçersiz yetkilendirme formatı")
-        verify_token(token)
+        if verify_token(token).get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Bu işlem için yönetici yetkisi gerekli")
     site_name = (body.get("site_name") or "PC Manager").strip()
     admin_name = (body.get("admin_name") or "").strip()
     password = body.get("password", "")
@@ -158,6 +165,7 @@ def complete_setup(body: dict, authorization: str = Header(None)):
     }
     cfg["_password_hash"] = _hash_bcrypt(password)
     _save_config(cfg)
+    sync_setup_password(cfg["_password_hash"])
 
     os.environ["PCMANAGER_PASSWORD_HASH"] = cfg["_password_hash"]
 
