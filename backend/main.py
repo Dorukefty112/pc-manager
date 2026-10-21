@@ -182,6 +182,8 @@ def serve_index():
 def serve_frontend(full_path: str):
     # %2F ile kodlanmış '..' parçaları route'a çözülmüş olarak gelir; çözümlenen
     # yol static_dir dışına çıkıyorsa dosya olarak sunma (config.json, .jwt_secret...)
+    if full_path == "api" or full_path.startswith("api/"):
+        raise HTTPException(404, "API uç noktası bulunamadı")
     root = static_dir.resolve()
     file_path = (root / full_path).resolve()
     if file_path.is_relative_to(root) and file_path.is_file():

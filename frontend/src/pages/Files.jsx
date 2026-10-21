@@ -1,8 +1,64 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { api, API } from '../api'
 import { useI18n } from '../context/I18nContext'
-import { Folder, FileText, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X, HardDrive } from 'lucide-react'
+import { Notice, jsonOpts } from '../components/ui'
+import { Folder, FileText, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X, HardDrive, FilePen, Archive, PackageOpen, Copy, MoveRight, Save, CheckSquare } from 'lucide-react'
+
+const CodeEditor = lazy(() => import('../components/CodeEditor'))
+const ARCHIVE_RE = /\.(tar\.gz|tgz|tar|tar\.bz2|tar\.xz|zip)$/i
+
+function EditorModal({ file, onClose, onSaved }) {
+  const { t } = useI18n()
+  const [content, setContent] = useState(file.content)
+  const [mtime, setMtime] = useState(file.mtime)
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState({})
+  const contentRef = useRef(content)
+  contentRef.current = content
+
+  const save = useCallback(async () => {
+    setSaving(true)
+    try {
+      const r = await api('/api/files/write', jsonOpts('PUT', { path: file.path, content: contentRef.current, expected_mtime: mtime }))
+      setMtime(r.mtime); setDirty(false)
+      setMsg({ kind: 'success', text: t('Kaydedildi') })
+      onSaved?.()
+    } catch (e) { setMsg({ kind: 'error', text: e.message }) }
+    setSaving(false)
+  }, [file.path, mtime, onSaved, t])
+
+  const close = () => {
+    if (dirty && !confirm(t('Kaydedilmemiş değişiklikler var. Kapatılsın mı?'))) return
+    onClose()
+  }
+
+  // Sayfa kökündeki animasyon transform'u fixed konumlandırmayı bozduğu için body'ye taşınır
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', padding: 'max(12px, env(safe-area-inset-top)) 12px 12px' }}>
+      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 12, gap: 10, maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <FilePen size={16} color="var(--accent)" />
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '0.8rem', color: 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {file.path}{dirty && <span style={{ color: 'var(--yellow)' }}> ●</span>}
+          </span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ctrl+S</span>
+          <button className="btn btn-primary" disabled={!dirty || saving} onClick={save}><Save size={14} /> {t('Kaydet')}</button>
+          <button className="btn btn-secondary btn-icon" onClick={close}><X size={14} /></button>
+        </div>
+        <Notice kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Notice>
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Suspense fallback={<div className="spinner" />}>
+            <CodeEditor value={file.content} filename={file.name} onChange={v => { setContent(v); setDirty(true) }} onSave={save} />
+          </Suspense>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
 
 export default function Files() {
   const { t } = useI18n()
@@ -15,6 +71,53 @@ export default function Files() {
   const [renaming, setRenaming] = useState(null)
   const [renameVal, setRenameVal] = useState('')
   const uploadRef = useRef(null)
+  const [selected, setSelected] = useState(new Set())
+  const [editing, setEditing] = useState(null)
+  const [msg, setMsg] = useState({})
+
+  const toggleSelect = (p) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(p) ? next.delete(p) : next.add(p)
+    return next
+  })
+  useEffect(() => { setSelected(new Set()) }, [path])
+
+  const run = async (fn, okText) => {
+    try { const r = await fn(); if (okText) setMsg({ kind: 'success', text: typeof okText === 'function' ? okText(r) : okText }); return r }
+    catch (e) { setMsg({ kind: 'error', text: e.message }) }
+  }
+  const openEditor = async (item) => {
+    const r = await run(() => api(`/api/files/read?path=${encodeURIComponent(item.path)}`, { timeout: 20000 }))
+    if (!r) return
+    if (r.binary) return setMsg({ kind: 'error', text: t('İkili (binary) dosya düzenlenemez') })
+    setEditing({ ...r, name: item.name })
+  }
+  const extract = async (item) => {
+    const dest = prompt(t('Nereye açılsın?'), item.path.replace(ARCHIVE_RE, ''))
+    if (!dest) return
+    await run(() => api('/api/files/extract', { ...jsonOpts('POST', { path: item.path, dest }), timeout: 600000 }), r => `${r.files} ${t('dosya açıldı')} → ${r.dest}`)
+    load()
+  }
+  const paths = [...selected]
+  const bulkDelete = async () => {
+    if (!confirm(`${paths.length} ${t('öğe silinsin mi?')}`)) return
+    await run(() => api('/api/files/bulk-delete', jsonOpts('POST', { paths })), r => `${r.deleted} ${t('öğe silindi')}`)
+    setSelected(new Set()); load()
+  }
+  const bulkArchive = async () => {
+    const base = paths.length === 1 ? paths[0].split('/').pop() : 'arsiv'
+    const dest = prompt(t('Arşiv yolu (.tar.gz veya .zip):'), `${path.replace(/\/$/, '')}/${base}.tar.gz`)
+    if (!dest) return
+    await run(() => api('/api/files/archive', { ...jsonOpts('POST', { paths, dest }), timeout: 600000 }), r => `${t('Arşiv oluşturuldu')}: ${r.path}`)
+    setSelected(new Set()); load()
+  }
+  const bulkTransfer = async (move) => {
+    const dest = prompt(move ? t('Taşınacak dizin:') : t('Kopyalanacak dizin:'), path)
+    if (!dest) return
+    await run(() => api(`/api/files/${move ? 'move' : 'copy'}`, { ...jsonOpts('POST', { paths, dest }), timeout: 600000 }),
+      r => `${r.paths.length} ${move ? t('öğe taşındı') : t('öğe kopyalandı')}`)
+    setSelected(new Set()); load()
+  }
 
   const load = useCallback(async () => {
     try {
@@ -121,6 +224,20 @@ export default function Files() {
           {error}
         </div>
       )}
+      <Notice kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Notice>
+
+      {selected.size > 0 && (
+        <div className="card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', borderColor: 'rgba(6,182,212,0.3)' }}>
+          <CheckSquare size={15} color="var(--accent)" />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text)', fontWeight: 600 }}>{selected.size} {t('seçili')}</span>
+          <div style={{ flex: 1 }} />
+          <button className="btn btn-secondary" onClick={() => bulkTransfer(false)}><Copy size={13} /> {t('Kopyala')}</button>
+          <button className="btn btn-secondary" onClick={() => bulkTransfer(true)}><MoveRight size={13} /> {t('Taşı')}</button>
+          <button className="btn btn-secondary" onClick={bulkArchive}><Archive size={13} /> {t('Arşivle')}</button>
+          <button className="btn btn-danger" onClick={bulkDelete}><Trash2 size={13} /> {t('Sil')}</button>
+          <button className="btn btn-ghost btn-icon" onClick={() => setSelected(new Set())}><X size={14} /></button>
+        </div>
+      )}
 
       {/* File browser */}
       <div className="card" style={{ overflow: 'hidden' }}>
@@ -152,9 +269,10 @@ export default function Files() {
               padding: '10px 16px', borderBottom: '1px solid var(--border)',
               transition: 'background 0.12s',
             }}
-              className="touch-active"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                <input type="checkbox" checked={selected.has(item.path)} onChange={() => toggleSelect(item.path)}
+                  style={{ accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} aria-label={item.name} />
                 {item.is_dir
                   ? <Folder size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
                   : <FileText size={18} color="#60a5fa" style={{ flexShrink: 0 }} />
@@ -168,6 +286,7 @@ export default function Files() {
                   />
                 ) : (
                   <button
+                    className="touch-active"
                     onClick={() => {
                       if (item.is_dir && !searchResults) { navigate(item.path) }
                       else if (!item.is_dir) { setSelectedItem(item) }
@@ -186,6 +305,12 @@ export default function Files() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 12 }}>
                 {!item.is_dir && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono',monospace" }}>{fmt(item.size)}</span>}
+                {!item.is_dir && ARCHIVE_RE.test(item.name) && (
+                  <button onClick={() => extract(item)} className="btn-icon touch-active" title={t('Arşivi aç')}><PackageOpen size={14} /></button>
+                )}
+                {!item.is_dir && !ARCHIVE_RE.test(item.name) && item.size <= 2 * 1024 * 1024 && (
+                  <button onClick={() => openEditor(item)} className="btn-icon touch-active" title={t('Düzenle')}><FilePen size={14} /></button>
+                )}
                 <button onClick={() => startRename(item)} className="btn-icon touch-active">
                   <Edit3 size={14} />
                 </button>
@@ -221,6 +346,17 @@ export default function Files() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ARCHIVE_RE.test(selectedItem.name) ? (
+                <button onClick={() => { extract(selectedItem); setSelectedItem(null) }} className="btn btn-secondary touch-active"
+                  style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}>
+                  <PackageOpen size={16} /> {t('Arşivi aç')}
+                </button>
+              ) : selectedItem.size <= 2 * 1024 * 1024 && (
+                <button onClick={() => { openEditor(selectedItem); setSelectedItem(null) }} className="btn btn-secondary touch-active"
+                  style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}>
+                  <FilePen size={16} /> {t('Düzenle')}
+                </button>
+              )}
               <button
                 onClick={() => { downloadFile(selectedItem); setSelectedItem(null) }}
                 className="btn btn-primary touch-active"
@@ -246,6 +382,8 @@ export default function Files() {
           </div>
         </div>
       )}
+
+      {editing && <EditorModal file={editing} onClose={() => setEditing(null)} onSaved={load} />}
     </div>
   )
 }
