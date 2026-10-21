@@ -68,3 +68,14 @@ def test_proxy_requires_auth():
     assert res.status_code == 401
     res = client.get("/api/proxy/page?url=http://127.0.0.1:1&token=bogus")
     assert res.status_code == 401
+
+
+def test_spa_fallback_blocks_path_traversal():
+    secret = Path(__file__).parent.parent / ".jwt_secret"
+    assert secret.exists()
+    for raw in ("/..%2F..%2Fbackend%2F.jwt_secret", "/..%2f..%2fbackend%2fconfig.json",
+                "/%2e%2e/%2e%2e/backend/.jwt_secret", "/..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd"):
+        res = client.get(raw)
+        assert secret.read_text().strip() not in res.text, raw
+        assert "root:" not in res.text, raw
+        assert '"_password_hash"' not in res.text, raw

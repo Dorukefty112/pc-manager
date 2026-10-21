@@ -15,7 +15,7 @@ from routers import (
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
     notifications, windows, speedtest, firewall, firewall_native, temperature,
-    playbooks, pairing, yangin, sel, hava_uyari, users, metrics,
+    playbooks, pairing, yangin, sel, hava_uyari, users, metrics, backups,
 )
 from contextlib import asynccontextmanager
 from dependencies import require_auth, authenticate_header, check_role
@@ -38,7 +38,9 @@ async def lifespan(app: FastAPI):
     sel.start_flood_checker()
     hava_uyari.start_weather_checker()
     metrics.start_sampler()
+    backups.start_scheduler()
     yield
+    backups.stop_scheduler()
     metrics.stop_sampler()
     notifications.stop_checker()
     pairing.stop_mdns()
@@ -166,6 +168,7 @@ app.include_router(temperature.router, prefix="/api", dependencies=[Depends(requ
 app.include_router(playbooks.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(metrics.router, prefix="/api")
+app.include_router(backups.router, prefix="/api", dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def serve_index():
@@ -176,8 +179,11 @@ def serve_index():
 
 @app.get("/{full_path:path}")
 def serve_frontend(full_path: str):
-    file_path = static_dir / full_path
-    if file_path.exists() and file_path.is_file():
+    # %2F ile kodlanmış '..' parçaları route'a çözülmüş olarak gelir; çözümlenen
+    # yol static_dir dışına çıkıyorsa dosya olarak sunma (config.json, .jwt_secret...)
+    root = static_dir.resolve()
+    file_path = (root / full_path).resolve()
+    if file_path.is_relative_to(root) and file_path.is_file():
         return FileResponse(str(file_path))
     index = static_dir / "index.html"
     if index.exists():
