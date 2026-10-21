@@ -43,7 +43,8 @@ class ChatSession:
                 os.close(self.slave_fd)
             os.environ["TERM"] = "xterm-256color"
             os.environ["PS1"] = ""
-            shell = os.environ.get("SHELL", "/bin/bash")
+            from routers.terminal import default_shell
+            shell = default_shell()
             os.execve(shell, [shell], os.environ)
         os.close(self.slave_fd)
         fl = fcntl.fcntl(self.master_fd, fcntl.F_GETFL)

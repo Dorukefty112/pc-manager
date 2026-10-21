@@ -8,6 +8,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
 VERSION = (Path(__file__).parent.parent / "VERSION").read_text().strip()
+
+# Android'de (Termux) /proc kısıtlamalarına karşı psutil'i router'lar yüklenmeden sarmala
+import android_compat
+android_compat.install()
+
 from routers import (
     system, files, power, terminal, processes,
     network, system_info, disks, updates, logs,

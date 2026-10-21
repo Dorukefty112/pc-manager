@@ -1,4 +1,5 @@
 import os
+import tempfile
 import re
 import json
 import time
@@ -14,7 +15,7 @@ router = APIRouter(tags=["debug_agent"])
 
 BASE_DIR = Path(__file__).parent.parent.parent
 GIT_DIR = BASE_DIR / ".git"
-CHECKPOINT_DIR = Path("/tmp/pcmanager_debug_checkpoints")
+CHECKPOINT_DIR = Path(tempfile.gettempdir()) / "pcmanager_debug_checkpoints"
 OLLAMA_URL = "http://localhost:11434/api/chat"
 DEFAULT_MODEL = "ssfdre38/gemma4-turbo:e4b"
 

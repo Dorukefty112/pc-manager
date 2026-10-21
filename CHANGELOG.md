@@ -26,8 +26,16 @@
 - **Termux (Android) kurulumu**: `install-termux.sh` ile telefonda, root gerektirmeden çalıştırma. Root varsa güç yönetimi (kapat/yeniden başlat) de etkinleşir; `su` ile otomatik denenir, yoksa anlaşılır bir "kullanılamıyor" hatası döner. Port `PCMANAGER_HOST`/`PCMANAGER_PORT` ile ayarlanabilir. Termux:Boot ile telefon açılışında otomatik başlatma.
 - Yeni metinlerin İngilizce çevirileri.
 
-### Düzeltmeler
-- **Termux kurulumu `psutil` adımında başarısız oluyordu**: psutil'in PyPI kaynak paketi Android'i bilerek desteklemiyor (`setup.py` "platform android is not supported" hatasıyla derlemeyi reddediyor; bu rust/derleyici kurmakla çözülmüyordu — gerçek cihazda test sırasında bulundu). Artık `install-termux.sh`, Termux'un kendi derlediği `python-psutil` paketini kurup venv'i `--system-site-packages` ile oluşturarak kullanıyor; ayrıca `uvicorn[standard]` yerine sade `uvicorn` (native derleme gerektiren uvloop/httptools'suz) kullanılarak kurulumun native bağımlılık yüzeyi küçültüldü.
+### Düzeltmeler (Termux / Android — gerçek cihaz testlerinde bulundu)
+- **Kurulum `psutil` adımında çöküyordu**: psutil'in PyPI kaynak paketi Android'i bilerek reddediyor ("platform android is not supported"). Artık Termux'un hazır `python-psutil` paketi kullanılıyor.
+- **Kurulum `cryptography` adımında çöküyordu**: PyPI'de bu projenin hiçbir native bağımlılığı için Android tekerleği yok; pip `cryptography` için Rust (maturin + ~300 crate) indirip derlemeye çalışıyor ve bağlantı koptuğunda yarıda kalıyordu. Aynı sorun `pydantic-core` (FastAPI) ve `primp` (web araması) için de çıkacaktı. Çözüm:
+  - cryptography, bcrypt, lxml de Termux'un hazır paketlerinden geliyor; pip yalnızca saf Python tekerlekleri kuruyor (`--only-binary=:all:`), telefonda hiçbir şey derlenmiyor.
+  - Termux'ta Pydantic v1 (saf Python) + FastAPI 0.125.0 kullanılıyor; kod iki Pydantic sürümüyle de test ediliyor.
+  - Web araması (`ddgs`) ve mDNS (`zeroconf`) Termux kurulumundan çıkarıldı; uygulama bunlar olmadan sorunsuz açılıyor.
+- **Root'suz Android'de ana sayfa, ağ, sistem bilgisi, diskler ve Prometheus 500 veriyordu; metrik örnekleyici hiç veri toplamıyordu**: Android 8+ `/proc/stat`'ı, Android 10+ `/proc/net/*`'ı uygulamalara kapatıyor. Yeni `android_compat` katmanı yalnızca Android'de devreye giriyor; önce gerçek psutil'i deniyor (root'lu cihazda gerçek veri gelir), izin hatasında CLOCK_BOOTTIME, `/sys/class/thermal`, `/sys/class/net`, cpufreq gibi okunabilir kaynaklara düşüyor.
+- **32-bit ARM telefonlarda arayüz derlenemezdi** (tailwind/lightningcss'in Android-armv7 sürümü yok): arayüz artık CI tarafından derlenip `frontend-dist` dalına yayınlanıyor, kurulum hazır hâlini indiriyor; 64-bit cihazlarda da kurulum dakikalarca kısalıyor.
+- Terminal ve AI asistanı `$SHELL` yoksa `/bin/bash`'e düşüyordu (Android'de yok); artık PATH'teki bash/sh bulunuyor. Debug kontrol noktaları `/tmp` yerine sistemin geçici dizinine yazılıyor. systemd olmayan sistemlerde zamanlayıcı listesi 500 yerine boş dönüyor.
+- Kurulum, kısmi güncellemenin yol açtığı kütüphane uyumsuzluklarını (ör. "CANNOT LINK EXECUTABLE curl") önlemek için önce `full-upgrade` yapıyor; önceki yarım kurulumları temizliyor; bitmeden önce uygulamanın gerçekten yüklenebildiğini doğruluyor.
 
 ### İyileştirmeler
 - Sayfalar lazy-load ediliyor; ana JS bundle 785 kB'tan 326 kB'a indi (gzip: 216 kB → 99 kB).
@@ -35,8 +43,8 @@
 - PTY süreçleri `os.fork` yerine `Popen` + `setsid -c` ile başlatılıyor (çok thread'li süreçte fork güvenli değil).
 - `xterm.css` hiç yüklenmiyordu; eklendi.
 - Bilinmeyen `/api/*` yolları HTML yerine JSON 404 döndürüyor.
-- GitHub Actions CI: Python 3.11/3.12/3.13 backend testleri ve frontend build.
-- Backend test sayısı 48'den 150'ye çıktı.
+- GitHub Actions CI: Python 3.11/3.12/3.13 backend testleri, frontend build, Termux uyumluluğu (Termux paket setiyle testler + her pip paketinin Android arm64/armv7'ye derlemesiz kurulabildiğinin kontrolü + Android kısıtlama simülasyonu) ve hazır arayüzün yayınlanması.
+- Backend test sayısı 48'den 155'e çıktı.
 
 ## [2.1.0] — 2026-08-28
 

@@ -124,17 +124,21 @@ KRITIK ve YUKSEK seviye depremlerde telefonunuza aninda bildirim almak icin:
 
 ## Termux (Android) — Telefonda Çalıştırma
 
-PC Manager'ı doğrudan Android telefonda [Termux](https://termux.dev) ile çalıştırabilirsiniz. **Root gerekmez**; root varsa güç yönetimi (kapat/yeniden başlat) gibi ek özellikler de etkinleşir.
+PC Manager'ı doğrudan Android telefonda [Termux](https://termux.dev) (F-Droid sürümü) ile çalıştırabilirsiniz. **Root gerekmez**; root varsa güç yönetimi (kapat/yeniden başlat) de etkinleşir. 64-bit (arm64) ve 32-bit (armv7) telefonlar desteklenir.
 
 ```bash
 pkg install -y curl
-bash <(curl -s https://raw.githubusercontent.com/Dorukefty112/pc-manager/claude/proje-gelistirme-arastirma-wef68g/install-termux.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dorukefty112/pc-manager/master/install-termux.sh)
 ```
 
-Kurulum bitince `~/pc-manager/start.sh` ile başlatın ve telefonda `http://localhost:8081`, aynı Wi-Fi'daki başka cihazdan `http://<telefon-ip>:8081` adresine gidin. Portu değiştirmek için `PCMANAGER_PORT=9000 ./start.sh`.
+Kurulum bitince `~/pc-manager/start.sh` ile başlatın ve telefonda `http://localhost:8081`, aynı Wi-Fi'daki başka cihazdan `http://<telefon-ip>:8081` adresine gidin. Portu değiştirmek için `PCMANAGER_PORT=9000 ./start.sh`. Güncellemek için aynı kurulum komutunu tekrar çalıştırmanız yeterli.
 
-- **Root'suz cihaz:** sistem izleme, dosyalar, terminal, metrikler, alarmlar vb. çalışır; kapatma/yeniden başlatma, systemd servisleri ve paket güncellemeleri kullanılamaz.
-- **Root'lu cihaz:** güç komutları `su` ile çalıştırılır.
+Kurulum telefonda hiçbir şeyi kaynaktan derlemez: native Python paketleri (psutil, cryptography, bcrypt, lxml) Termux'un hazır paketlerinden, arayüz ise CI'ın derleyip `frontend-dist` dalına koyduğu hazır hâliyle gelir.
+
+Android'in kısıtlamaları nedeniyle:
+- **Root'suz cihazda** sistem geneli CPU yüzdesi gösterilemez (Android 8+ `/proc/stat`'ı uygulamalara kapatıyor; 0 görünür), ağ sayaçları cihaza göre eksik olabilir; kapatma/yeniden başlatma, systemd servisleri ve paket güncellemeleri kullanılamaz. RAM, disk, sıcaklık (termal bölgeler), dosyalar, terminal, yedekler, alarmlar çalışır.
+- **Root'lu cihazda** güç komutları `su` ile çalıştırılır.
+- Web araması (`ddgs` Rust/BoringSSL gerektiriyor) ve mDNS otomatik keşfi devre dışıdır; mobil eşleştirme QR kodu/IP ile çalışır.
 - Termux'u arka planda canlı tutmak için `termux-wake-lock` çalıştırın. [Termux:Boot](https://wiki.termux.com/wiki/Termux:Boot) uygulamasını kurarsanız telefon açılışında kendiliğinden başlar (kurucu betik gerekli dosyayı oluşturur).
 
 ## Mobil Uygulama (Android)

@@ -194,6 +194,18 @@ async def run_pty(websocket: WebSocket, argv: list[str], recorder: Recorder | No
             pass
 
 
+def default_shell() -> str:
+    """$SHELL varsa onu, yoksa PATH'teki bash/sh'yi kullan (Android'de /bin/bash yok)."""
+    shell = os.environ.get("SHELL", "")
+    if shell and os.access(shell, os.X_OK):
+        return shell
+    for name in ("bash", "sh"):
+        found = shutil.which(name)
+        if found:
+            return found
+    return "/system/bin/sh" if os.path.exists("/system/bin/sh") else "/bin/sh"
+
+
 def _reap(proc: subprocess.Popen):
     try:
         proc.wait(timeout=5)
@@ -240,7 +252,7 @@ async def terminal(websocket: WebSocket, token: str = Query(""), host: str = Que
             return
         argv, label = resolved
     else:
-        shell = os.environ.get("SHELL", "/bin/bash")
+        shell = default_shell()
         argv, label = [shell], shell
 
     await websocket.accept()

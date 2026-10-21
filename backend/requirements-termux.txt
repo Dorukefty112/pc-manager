@@ -1,28 +1,38 @@
 # Termux (Android) için requirements.txt türevi.
 #
-# psutil buraya DAHİL EDİLMEDİ: PyPI'deki kaynak paketi Android'i bilerek
-# desteklemiyor — setup.py "platform android is not supported" hatasıyla
-# derlemeyi reddediyor (rust/derleyici kurmak bunu çözmez). Bunun yerine
-# install-termux.sh, Termux'un kendi önceden derlediği `python-psutil`
-# paketini `pkg install` ile kurar ve venv'i --system-site-packages ile
-# oluşturarak onu görünür kılar.
+# PyPI'de bu projenin hiçbir native bağımlılığı için Android tekerleği yok;
+# pip bunları kaynaktan derlemeye çalışırsa Rust araç zinciri (maturin,
+# yüzlerce crate) gerekiyor ve telefonda ya çok uzun sürüyor ya da yarıda
+# kalıyor. Bu yüzden bu dosyadaki her paketin saf Python (py3-none-any)
+# tekerleği olmalı; install-termux.sh pip'i --only-binary=:all: ile çalıştırır.
 #
-# uvicorn[standard] yerine sade uvicorn kullanılıyor: [standard] ekstraları
-# (uvloop, httptools, watchfiles) native derleme gerektirir ve Termux'ta
-# güvenilir şekilde kurulamaz. WebSocket desteği aşağıdaki ayrı `websockets`
-# paketinden geliyor; uvicorn bunu otomatik algılar. Performans farkı bu
-# kullanım için ihmal edilebilir.
-fastapi
+# Termux'un kendi derlediği paketlerden gelenler (pkg install, venv
+# --system-site-packages ile görür; burada YAZILMAZ):
+#   psutil        -> python-psutil      (PyPI kaynak paketi Android'i reddediyor)
+#   cryptography  -> python-cryptography (Rust)
+#   bcrypt        -> python-bcrypt       (Rust)
+#   lxml          -> python-lxml         (libxml2)
+#   cffi          -> python-cryptography paketinin kurulumu getirir
+#
+# Bilinçli olarak çıkarılanlar:
+#   pydantic v2 / pydantic-core (Rust) -> pydantic v1 (saf Python); FastAPI
+#       0.125.0, v1'i destekleyen son sürüm. Kodumuz yalnızca temel BaseModel
+#       kullanıyor, iki sürümde de çalışıyor (CI her ikisini de test eder).
+#   uvicorn[standard] -> sade uvicorn (uvloop/httptools native); WebSocket
+#       desteği ayrı 'websockets' paketinden gelir.
+#   ddgs (primp: Rust + BoringSSL) -> Termux'ta web araması devre dışı;
+#       arama sayfası "ddgs kütüphanesi eksik" mesajı gösterir.
+#   zeroconf -> Android'de mDNS yayını uygulama izni gerektirir; eşleştirme
+#       QR kodu/IP ile çalışmaya devam eder.
+#   pytest -> çalışma zamanında gerekmiyor.
+fastapi==0.125.0
+pydantic>=1.10.26,<2
 uvicorn
 aiofiles
 websockets
 python-jose[cryptography]
 passlib[bcrypt]
-bcrypt
 python-multipart
-pytest
 httpx
-ddgs
-zeroconf
 beautifulsoup4
 pyotp

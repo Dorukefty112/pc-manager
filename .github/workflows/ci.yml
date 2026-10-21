@@ -48,3 +48,70 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+
+  termux:
+    name: Termux (Android) uyumluluğu
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Termux paketlerinin yerine geçenleri kur (python-psutil, -cryptography, -bcrypt, -lxml)
+        run: |
+          pip install psutil cryptography bcrypt lxml cffi
+          pip freeze | sort > /tmp/system.txt
+      - name: requirements-termux.txt ile kur ve testleri çalıştır (Pydantic v1, FastAPI 0.125)
+        run: |
+          pip install -r requirements-termux.txt
+          pip freeze | sort > /tmp/all.txt
+          pip install pytest
+          python -m pytest -q
+      - name: pip'in telefonda kuracağı her paket derleme gerektirmeden Android'e iniyor mu?
+        run: |
+          comm -13 /tmp/system.txt /tmp/all.txt > /tmp/pipset.txt
+          cat /tmp/pipset.txt
+          for plat in android_24_arm64_v8a android_24_armeabi_v7a; do
+            pip download --no-deps --only-binary=:all: --platform "$plat" \
+              --python-version 3.13 --implementation cp --abi cp313 \
+              -d "/tmp/dl-$plat" -r /tmp/pipset.txt
+          done
+      - name: Kurulum betiği sözdizimi
+        run: bash -n ../install-termux.sh
+
+  publish-frontend:
+    # Telefonda (özellikle 32-bit ARM'de) frontend derlenemediği için hazır
+    # derlenmiş arayüz 'frontend-dist' dalına yayınlanır; install-termux.sh
+    # oradan indirir.
+    name: Hazır arayüzü yayınla
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [backend, frontend, termux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build
+        working-directory: frontend
+        run: npm ci && npm run build
+      - name: frontend-dist dalına gönder
+        working-directory: frontend/dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp ../../VERSION .
+          echo "$GITHUB_SHA" > COMMIT
+          git init -q -b frontend-dist
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Hazır arayüz: v$(cat VERSION) ($GITHUB_SHA)"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" frontend-dist

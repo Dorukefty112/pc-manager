@@ -123,6 +123,8 @@ def list_timers():
             ["systemctl", "show", "--no-pager", "-p", ",".join(TIMER_PROPS), "--", *names],
             capture_output=True, text=True, timeout=15,
         ).stdout
+    except FileNotFoundError:
+        return []  # systemd olmayan sistem (Android/Termux, container)
     except (OSError, subprocess.TimeoutExpired) as e:
         raise HTTPException(500, f"systemctl çalıştırılamadı: {e}")
     timers = []
