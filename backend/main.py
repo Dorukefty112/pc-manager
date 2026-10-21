@@ -14,7 +14,7 @@ from routers import (
     docker, cron, deprem, ollama, telegram,
     settings, debug, debug_agent, search_engine,
     notifications, windows, speedtest, firewall, firewall_native, temperature,
-    playbooks, pairing, yangin, sel, hava_uyari, users,
+    playbooks, pairing, yangin, sel, hava_uyari, users, metrics,
 )
 from contextlib import asynccontextmanager
 from dependencies import require_auth, authenticate_header, check_role
@@ -35,7 +35,9 @@ async def lifespan(app: FastAPI):
     yangin.start_fire_checker()
     sel.start_flood_checker()
     hava_uyari.start_weather_checker()
+    metrics.start_sampler()
     yield
+    metrics.stop_sampler()
     notifications.stop_checker()
     pairing.stop_mdns()
 
@@ -160,6 +162,7 @@ app.include_router(firewall_native.router, prefix="/api", dependencies=[Depends(
 app.include_router(temperature.router, prefix="/api", dependencies=[Depends(require_auth)])
 app.include_router(playbooks.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
+app.include_router(metrics.router, prefix="/api")
 
 @app.get("/")
 def serve_index():
