@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.2.1] — 2026-10-22
+
+Gerçek cihazda (Termux + Tailscale) bulunan oturum/yetkilendirme hataları ve bunların komşu sorunları.
+
+### Düzeltmeler
+- **Oturum süresi dolunca arayüz giriş ekranına dönmüyordu, "Çıkış" butonu da çalışmıyordu**: `setSession(null)` her çağrıda `TypeError` fırlatıyordu (parametre varsayılanı `= {}` yalnızca `undefined` içindir, `null` için destructuring çöker). Sonuç: süresi dolmuş/iptal edilmiş token tarayıcıda kalıyor, her istek 401, her WebSocket 403 alıyor ve sonsuza dek yeniden deniyordu. Artık oturum temizlenip giriş ekranına, "Oturum süresi doldu" uyarısıyla dönülüyor; eşzamanlı onlarca 401 tek yönlendirmeye indirgeniyor. Çıkış, sunucu cevap vermese bile yerel oturumu temizliyor.
+- **2FA'lı hesaplar arayüzden giriş yapamıyordu**: istemci her 401'i "oturum süresi doldu" sayıp `totp_required` / `totp_invalid` mesajlarını yutuyordu. Artık yalnızca oturum token'ı taşıyan isteklerdeki 401 oturum bitişi sayılıyor; giriş ve eşleştirme gibi oturumsuz uç noktalar kendi hata mesajını gösteriyor.
+- **Arayüzden SSH bağlantısı kuramıyordu**: `wsUrl` her yola `?token=` ekliyordu; `/api/terminal?host=x` yolu `...?host=x?token=...` oluyor ve hedef bulunamıyordu.
+- WebSocket reddedilince tarayıcı yalnızca "1006" görüp nedenini bilemiyordu. Sunucu artık bağlantıyı kabul edip **4401** (oturum geçersiz) veya **4403** (yetki yok) koduyla kapatıyor; istemci 4401'de giriş ekranına dönüyor, 4403'te yeniden denemeyi bırakıyor, eski sunuculardaki 1006 için oturumu bir kez sınıyor. Terminal, sistem, pentest, playbook ve Docker WebSocket'leri tek bir yetkilendirme yardımcısını kullanıyor.
+- Dosya yükleme ve AI sohbeti Authorization başlığını elle kuruyor ve 401'i işlemiyordu; yükleme hataları sessizce yutuluyordu. AI asistanı "modeli bellekten at" isteğini hiç yetkilendirmeden gönderiyordu (hep 401). Hepsi ortak `authFetch` üzerinden gidiyor.
+- Kurulum sihirbazı ve mobil eşleştirme sonrası eski kullanıcının rol kaydı kalabiliyordu.
+- Termux kurucu, CI arayüzü henüz yayınlamadan çalıştırılırsa **aynı sürüm numaralı eski (hatalı) arayüzü** sessizce kuruyordu. Artık arayüzün derlendiği commit'i karşılaştırıyor; eşleşmezse bekliyor, 64-bit cihazlarda yerelde derliyor, olmazsa net bir uyarı veriyor.
+- Service worker API isteklerine karışmıyor (401/403'ler olduğu gibi uygulamaya ulaşıyor); çevrimdışı yedek yanıtı boş dönmüyor.
+
+### Güvenlik
+- **Kurulum sihirbazı tamamlanmadan giriş kapalı**: önceden, yeni kurulmuş ve ağa açık bir cihazda herkesin bildiği varsayılan şifreyle (`pcmanager`) giriş yapılıp terminale erişilebiliyordu. Artık sihirbaz bitmeden `/api/auth/login` 403 (`setup_required`) dönüyor ve arayüz sihirbaza yönlendiriyor. Şifresini `PCMANAGER_PASSWORD`/`PCMANAGER_PASSWORD_HASH` ortam değişkeniyle veren kurulumlar etkilenmez.
+- **Token'lar sunucu loglarından maskeleniyor**: WebSocket ve iframe istekleri tarayıcı başlık gönderemediği için token'ı URL'de taşıyor; uvicorn bu URL'leri olduğu gibi loga yazıyordu (log/ekran görüntüsü paylaşılınca oturum sızıyordu). Tüm log kayıtlarında `?token=...` artık `?token=***`.
+- Giriş oran sınırı (IP, kullanıcı adı) çiftine göre ve ayrıca IP başına (kullanıcı adı püskürtmesine karşı) uygulanıyor; tek bir saldırgan başka bir kullanıcıyı kilitleyemiyor. Yerel bir ters vekilin (`tailscale serve` gibi) `X-Forwarded-For` başlığı yalnızca loopback'ten gelirse dikkate alınıyor. Eski kayıtlar bellekte birikmiyor.
+- `.jwt_secret` dosyası `0600` izniyle ve atomik oluşturuluyor (eski kurulumlarda izni sıkılaştırılıyor); yazılamazsa uyarı veriliyor.
+- Kullanıcı başına en fazla 20 web oturumu; fazlası en az kullanılandan başlayarak düşüyor.
+- İzleyici rolü yönetici sayfalarına adres çubuğundan girince boş sayfa yerine ana sayfaya dönüyor; açık oturumun rolü sayfa yüklenirken sunucudan senkronlanıyor.
+
+### Değişiklikler
+- **Oturumlar artık kayan süreli**: 24 saat boşta kalınca biter (kullandıkça uzar), açıldığı andan en fazla 30 gün sonra mutlaka biter. Eskiden sabit 8 saatti ve telefonda açık duran panelden atılıyordu. `PCMANAGER_SESSION_HOURS` ve `PCMANAGER_SESSION_MAX_DAYS` ile ayarlanır. API token'ları sabit süreli kalır.
+
+### Testler
+- İstemci auth çekirdeği için ilk testler (`npm test`, ek bağımlılık yok, 15 test); eski kodda bu hataların dördünü de yakaladıkları doğrulandı. Backend testleri 155'ten 172'ye çıktı. CI artık istemci testlerini de çalıştırıyor.
+
 ## [2.2.0] — 2026-10-21
 
 ### Güvenlik

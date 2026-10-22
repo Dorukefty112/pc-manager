@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from 'react'
-import { api, isAuthenticated } from '../api'
+import { api, isAuthenticated, isAdmin } from '../api'
 
 const I18nContext = createContext()
 
@@ -13,7 +13,7 @@ export function I18nProvider({ children }) {
       setTranslations(mod.default || {})
     }).catch(() => setTranslations({}))
 
-    if (isAuthenticated()) {
+    if (isAuthenticated() && isAdmin()) {  // /api/settings yalnızca yöneticiye açık
       api(`/api/settings`)
         .then(cfg => {
           if (cfg.general?.language && cfg.general.language !== lang) {
@@ -26,7 +26,7 @@ export function I18nProvider({ children }) {
 
   const setLang = (l) => {
     setLangState(l)
-    if (isAuthenticated()) {
+    if (isAuthenticated() && isAdmin()) {
       api('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

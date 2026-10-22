@@ -1,5 +1,5 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
-import { wsUrl } from '../api'
+import { wsUrl, handleWsClose, WS_FORBIDDEN } from '../api'
 import '@xterm/xterm/css/xterm.css'
 
 const THEME = {
@@ -52,15 +52,21 @@ const XtermSession = forwardRef(function XtermSession(
     const connect = () => {
       if (disposed || !path) return
       const ws = new WebSocket(wsUrl(path))
+      let opened = false
       wsRef.current = ws
-      ws.onopen = () => { statusRef.current?.(true); sendSize() }
+      ws.onopen = () => { opened = true; statusRef.current?.(true); sendSize() }
       ws.onmessage = e => term?.write(e.data)
       ws.onerror = () => statusRef.current?.(false)
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         wsRef.current = null
         if (disposed) return
         statusRef.current?.(false)
-        if (reconnect) {
+        const canRetry = handleWsClose(ev, { opened })
+        if (ev?.code === WS_FORBIDDEN) {
+          term?.writeln(`\r\n\x1b[31m${ev.reason || 'Yetki yok'}\x1b[0m`)
+          return
+        }
+        if (reconnect && canRetry) {
           term?.writeln(`\r\n\x1b[33m${reconnectingText}\x1b[0m`)
           retry = setTimeout(connect, 3000)
         } else {

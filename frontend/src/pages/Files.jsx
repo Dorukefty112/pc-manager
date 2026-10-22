@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { api, API } from '../api'
+import { api, authFetch } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Notice, jsonOpts } from '../components/ui'
 import { Folder, FileText, ArrowLeft, Upload, Trash2, Plus, Search, Edit3, X, HardDrive, FilePen, Archive, PackageOpen, Copy, MoveRight, Save, CheckSquare } from 'lucide-react'
@@ -140,9 +140,18 @@ export default function Files() {
     if (!files?.length) return
     for (const file of files) {
       const form = new FormData(); form.append('file', file)
-      const token = localStorage.getItem('pcmanager_token')
-      await fetch(`${API}/api/files/upload?dest=${encodeURIComponent(path)}`, { method: 'POST', body: form, headers: token ? { 'Authorization': `Bearer ${token}` } : {} })
+      try {
+        const res = await authFetch(`/api/files/upload?dest=${encodeURIComponent(path)}`, { method: 'POST', body: form })
+        if (!res.ok && res.status !== 401) {
+          let detail = ''
+          try { detail = (await res.json()).detail } catch {}
+          setMsg({ kind: 'error', text: `${file.name}: ${detail || res.status}` })
+        }
+      } catch (e) {
+        setMsg({ kind: 'error', text: `${file.name}: ${e.message}` })
+      }
     }
+    e.target.value = ''
     load()
   }
   const mkdir = async () => {

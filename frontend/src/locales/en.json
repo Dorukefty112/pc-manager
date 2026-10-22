@@ -820,5 +820,7 @@
   "Bağlama noktası (örn. /)": "Mount point (e.g. /)",
   "systemd birimi (örn. nginx)": "systemd unit (e.g. nginx)",
   "Süreç adı (örn. postgres)": "Process name (e.g. postgres)",
-  "URL (örn. http://localhost:3000)": "URL (e.g. http://localhost:3000)"
+  "URL (örn. http://localhost:3000)": "URL (e.g. http://localhost:3000)",
+  "Oturum süresi doldu veya sonlandırıldı. Lütfen tekrar giriş yapın.": "Your session has expired or was ended. Please sign in again.",
+  "Yetki yok": "Not authorized"
 }

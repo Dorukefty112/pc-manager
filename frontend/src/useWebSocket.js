@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { handleWsClose } from './api'
 
 export function useWebSocket(url, { onMessage, onOpen, onClose } = {}) {
   const wsRef = useRef(null)
@@ -9,6 +10,7 @@ export function useWebSocket(url, { onMessage, onOpen, onClose } = {}) {
   const onOpenRef = useRef(onOpen)
   const onCloseRef = useRef(onClose)
   const urlRef = useRef(url)
+  const openedRef = useRef(false)
   onMessageRef.current = onMessage
   onOpenRef.current = onOpen
   onCloseRef.current = onClose
@@ -24,10 +26,12 @@ export function useWebSocket(url, { onMessage, onOpen, onClose } = {}) {
         try { wsRef.current.close() } catch {}
       }
       attemptRef.current += 1
+      openedRef.current = false
       const ws = new WebSocket(urlRef.current)
       wsRef.current = ws
 
       ws.onopen = (e) => {
+        openedRef.current = true
         attemptRef.current = 0
         onOpenRef.current?.(e)
       }
@@ -41,10 +45,12 @@ export function useWebSocket(url, { onMessage, onOpen, onClose } = {}) {
         onCloseRef.current?.(new Event('error'))
       }
 
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         wsRef.current = null
         if (!mountedRef.current) return
-        onCloseRef.current?.(new Event('close'))
+        onCloseRef.current?.(ev)
+        // 4401: oturum geçersiz (giriş ekranına döner), 4403: yetki yok -> yeniden deneme
+        if (!handleWsClose(ev, { opened: openedRef.current })) return
         const delay = Math.min(1000 * Math.pow(2, attemptRef.current - 1), 15000)
         retryRef.current = setTimeout(connect, delay)
       }

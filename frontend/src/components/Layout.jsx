@@ -8,7 +8,7 @@ import {
   ChevronRight, MoreHorizontal, Flame, Waves, CloudLightning,
   LineChart, Bell, Archive, ShieldCheck, Network,
 } from 'lucide-react'
-import { api, isAdmin, logout } from '../api'
+import { api, isAdmin, logout, syncSession } from '../api'
 import { useTheme } from '../context/ThemeContext'
 import { useI18n } from '../context/I18nContext'
 
@@ -100,6 +100,13 @@ export default function Layout({ children }) {
   const { t } = useI18n()
 
   useEffect(() => { setOpen(false) }, [location.pathname])
+
+  // Sayfa açılır açılmaz oturumu doğrula: süresi dolmuşsa hemen giriş ekranına döner,
+  // rol sonradan değiştirilmişse menü doğru rolle yeniden çizilir.
+  const [, refreshRole] = useState(0)
+  useEffect(() => {
+    syncSession().then(() => refreshRole(n => n + 1)).catch(() => {})
+  }, [])
 
   const admin = isAdmin()
   const visibleGroups = navGroups

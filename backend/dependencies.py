@@ -1,4 +1,5 @@
-from fastapi import Header, HTTPException, Request, status
+from urllib.parse import parse_qs
+from fastapi import Header, HTTPException, Request, WebSocket, status
 from auth import verify_token
 
 READ_METHODS = {"GET", "HEAD", "OPTIONS"}
@@ -75,5 +76,37 @@ def verify_ws_token(token: str | None, admin: bool = False) -> dict | None:
     except HTTPException:
         return None
     if admin and payload.get("role") != "admin":
+        return None
+    return payload
+
+
+# WebSocket kapanış kodları (4000-4999 uygulamaya ayrılmıştır).
+# Bağlantı el sıkışmadan reddedilirse tarayıcı yalnızca "1006" görür ve nedenini
+# bilemez; bu yüzden önce kabul edip ardından bu kodlarla kapatıyoruz. İstemci
+# 4401'de oturumu temizleyip giriş ekranına döner, 4403'te yeniden denemeyi bırakır.
+WS_UNAUTHORIZED = 4401
+WS_FORBIDDEN = 4403
+
+
+async def _ws_reject(websocket: WebSocket, code: int, reason: str):
+    try:
+        await websocket.accept()
+        await websocket.close(code=code, reason=reason)
+    except Exception:
+        pass
+
+
+async def authorize_ws(websocket: WebSocket, token: str | None = None, admin: bool = False) -> dict | None:
+    """WebSocket yetkilendirmesi. Başarısızsa bağlantıyı 4401/4403 ile kapatıp None döner.
+
+    Başarıda bağlantı HENÜZ kabul edilmemiştir; çağıran kendi accept()'ini yapar.
+    """
+    token = token or parse_qs(websocket.url.query).get("token", [None])[0]
+    payload = verify_ws_token(token)
+    if payload is None:
+        await _ws_reject(websocket, WS_UNAUTHORIZED, "Oturum geçersiz veya süresi dolmuş")
+        return None
+    if admin and payload.get("role") != "admin":
+        await _ws_reject(websocket, WS_FORBIDDEN, "Bu işlem için yönetici yetkisi gerekli")
         return None
     return payload

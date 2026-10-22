@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { api, wsUrl, isAdmin } from '../api'
+import { api, wsUrl, isAdmin, handleWsClose } from '../api'
 import { Container, Play, Square, RotateCw, Trash2, Image, Terminal, RefreshCw, Layers, Activity, X, ScrollText, Download, Eraser, Pause } from 'lucide-react'
 import { useI18n } from '../context/I18nContext'
 import { Notice, jsonOpts } from '../components/ui'
@@ -20,9 +20,10 @@ function LiveLogs({ id, onClose }) {
 
   useEffect(() => {
     setLines([])
-    const ws = new WebSocket(wsUrl(`/api/docker/logs/${encodeURIComponent(id)}/ws`) + '&tail=300')
-    ws.onopen = () => setLive(true)
-    ws.onclose = () => setLive(false)
+    const ws = new WebSocket(wsUrl(`/api/docker/logs/${encodeURIComponent(id)}/ws?tail=300`))
+    let opened = false
+    ws.onopen = () => { opened = true; setLive(true) }
+    ws.onclose = (ev) => { setLive(false); handleWsClose(ev, { opened }) }
     ws.onmessage = e => setLines(prev => {
       const next = prev.length >= MAX_LOG_LINES ? prev.slice(-MAX_LOG_LINES + 1) : prev.slice()
       next.push(e.data)

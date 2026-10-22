@@ -9,8 +9,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, Query
-from dependencies import require_auth
-from auth import verify_token
+from dependencies import require_auth, authorize_ws
 
 from .updates import _detect_pm
 
@@ -317,13 +316,7 @@ def run_playbook(playbook_id: str, _: dict = Depends(require_auth)):
 
 @router.websocket("/playbooks/runs/{execution_id}/ws")
 async def run_websocket(websocket: WebSocket, execution_id: str, token: str = Query("")):
-    if not token:
-        await websocket.close(code=4001, reason="Token gerekli")
-        return
-    try:
-        verify_token(token)
-    except Exception:
-        await websocket.close(code=4001, reason="Geçersiz token")
+    if not await authorize_ws(websocket, token):
         return
     await websocket.accept()
     try:

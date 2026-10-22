@@ -5,7 +5,8 @@ import asyncio
 import subprocess
 import shutil
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
-from .terminal import run_pty, authorize_ws, Recorder, _recording_enabled
+from dependencies import authorize_ws
+from .terminal import run_pty, Recorder, _recording_enabled
 
 router = APIRouter(tags=["docker"])
 # WebSocket uç noktaları kendi token doğrulamasını yapar; header tabanlı

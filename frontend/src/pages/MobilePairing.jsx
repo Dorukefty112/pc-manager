@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, setToken, setServerBase } from '../api'
+import { api, setSession, setServerBase } from '../api'
 import { Monitor, QrCode, Wifi, ArrowRight, AlertCircle, Keyboard } from 'lucide-react'
 
 function getDeviceId() {
@@ -50,7 +50,7 @@ export default function MobilePairing() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, device_id, device_name }),
       })
-      setToken(res.token)
+      setSession({ token: res.token, username: 'mobile_client', role: 'admin' })
       window.location.href = '/'
     } catch (e) {
       setServerBase('')

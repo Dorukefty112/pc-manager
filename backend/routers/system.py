@@ -4,10 +4,8 @@ import psutil
 import shutil
 import time
 from collections import deque
-from urllib.parse import parse_qs
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
-from dependencies import require_auth
-from auth import verify_token
+from dependencies import require_auth, authorize_ws
 
 _cpu_history = deque(maxlen=60)
 _mem_history = deque(maxlen=60)
@@ -58,14 +56,7 @@ def get_stats_history(_: dict = Depends(require_auth)):
 
 @router.websocket("/system/ws")
 async def system_websocket(websocket: WebSocket, token: str = Query("")):
-    token = token or parse_qs(websocket.url.query).get("token", [None])[0]
-    if not token:
-        await websocket.close(code=4001, reason="Token gerekli")
-        return
-    try:
-        verify_token(token)
-    except Exception:
-        await websocket.close(code=4001, reason="Geçersiz token")
+    if not await authorize_ws(websocket, token):
         return
 
     await websocket.accept()

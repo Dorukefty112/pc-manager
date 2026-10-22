@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { api, API } from '../api'
+import { api, authFetch } from '../api'
 import { useI18n } from '../context/I18nContext'
 import {
   MessageSquare, Send, X, Cpu, Activity, HardDrive, Wifi,
@@ -124,9 +124,9 @@ export default function OllamaChat() {
       const controller = new AbortController()
       abortRef.current = controller
 
-      const res = await fetch(`${API}/api/ollama/chat/stream`, {
+      const res = await authFetch('/api/ollama/chat/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pcmanager_token')}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: selectedModel,
           messages: updatedMessages.map(m => ({
@@ -215,7 +215,7 @@ export default function OllamaChat() {
 
   useEffect(() => {
     return () => {
-      fetch(`${API}/api/ollama/unload`, {
+      authFetch('/api/ollama/unload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),

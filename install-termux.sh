@@ -21,7 +21,7 @@ REPO="https://github.com/$REPO_SLUG.git"
 BRANCH="${PCMANAGER_BRANCH:-master}"
 INSTALL_DIR="$HOME/pc-manager"
 PORT="${PCMANAGER_PORT:-8081}"
-DIST_URL="https://github.com/$REPO_SLUG/archive/refs/heads/frontend-dist.tar.gz"
+DIST_URL="${PCMANAGER_DIST_URL:-https://github.com/$REPO_SLUG/archive/refs/heads/frontend-dist.tar.gz}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
 info()  { echo -e "${CYAN}[BİLGİ]${NC} $1"; }
@@ -112,18 +112,36 @@ rm -f "$INSTALL_DIR/install-check.log"
 ok "Python bağımlılıkları kuruldu."
 
 # ─── Arayüz ──────────────────────────────────────────────────────────────────
+# CI her master push'unda arayüzü derleyip 'frontend-dist' dalına koyar ve içine
+# hangi commit'ten derlendiğini yazar (COMMIT). Yeni bir sürüm yayınlandıktan hemen
+# sonra kurulum yapılırsa bu dal henüz eski arayüzü içeriyor olabilir; eski arayüzü
+# yeni arka uçla sessizce kullanmamak için commit'leri karşılaştırırız.
 DIST="$INSTALL_DIR/frontend/dist"
+HEAD_COMMIT="$(git -C "$INSTALL_DIR" rev-parse HEAD 2>/dev/null || echo "")"
+PREBUILT_VERSION=""
+PREBUILT_COMMIT=""
+
 fetch_prebuilt() {
-  local tmp
+  local tmp src
   tmp="$(mktemp -d)"
   curl -fsSL --retry 5 --retry-delay 3 "$DIST_URL" -o "$tmp/dist.tar.gz" || { rm -rf "$tmp"; return 1; }
   tar -xzf "$tmp/dist.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
-  local src
   src="$(find "$tmp" -maxdepth 1 -type d -name '*frontend-dist*' | head -n1)"
   [ -n "$src" ] && [ -f "$src/index.html" ] || { rm -rf "$tmp"; return 1; }
   PREBUILT_VERSION="$(cat "$src/VERSION" 2>/dev/null || echo "?")"
+  PREBUILT_COMMIT="$(cat "$src/COMMIT" 2>/dev/null || echo "")"
   rm -rf "$DIST" && mkdir -p "$DIST" && cp -r "$src"/. "$DIST"/
   rm -rf "$tmp"
+}
+
+# Hazır arayüz bu kaynak koduyla eşleşiyor mu? (COMMIT bilinmiyorsa yalnızca sürüme bakılır)
+prebuilt_matches() {
+  [ "$PREBUILT_VERSION" = "$VERSION" ] || return 1
+  # Yalnızca master dalı için commit karşılaştır: CI sadece master'dan yayınlıyor
+  if [ "$BRANCH" = "master" ] && [ -n "$PREBUILT_COMMIT" ] && [ -n "$HEAD_COMMIT" ]; then
+    [ "$PREBUILT_COMMIT" = "$HEAD_COMMIT" ] || return 1
+  fi
+  return 0
 }
 
 build_locally() {
@@ -136,19 +154,26 @@ build_locally() {
 }
 
 info "Hazır derlenmiş arayüz indiriliyor..."
-PREBUILT_VERSION=""
-if fetch_prebuilt; then
-  if [ "$PREBUILT_VERSION" = "$VERSION" ]; then
-    ok "Arayüz hazır (v$PREBUILT_VERSION)."
-  else
-    warn "İndirilen arayüz v$PREBUILT_VERSION, uygulama v$VERSION — yerelde derlemeyi deniyorum..."
-    build_locally && ok "Arayüz yerelde derlendi." \
-      || warn "Yerelde derlenemedi; v$PREBUILT_VERSION arayüzü kullanılacak (çoğu özellik çalışır)."
-  fi
+if fetch_prebuilt && prebuilt_matches; then
+  ok "Arayüz hazır (v$PREBUILT_VERSION)."
 else
-  warn "Hazır arayüz indirilemedi, yerelde derleniyor (birkaç dakika sürebilir)..."
-  build_locally && ok "Arayüz yerelde derlendi." \
-    || err "Arayüz indirilemedi ve bu cihazda ($ARCH) derlenemiyor. İnternet bağlantısını kontrol edip tekrar deneyin."
+  if [ -n "$PREBUILT_VERSION" ]; then
+    warn "İndirilen arayüz bu sürümle eşleşmiyor (arayüz v$PREBUILT_VERSION ${PREBUILT_COMMIT:0:7}, uygulama v$VERSION ${HEAD_COMMIT:0:7}); CI henüz yayınlamamış olabilir."
+    for attempt in 1 2 3 4; do
+      info "Yeni arayüz bekleniyor... ($attempt/4)"
+      sleep 45
+      if fetch_prebuilt && prebuilt_matches; then break; fi
+    done
+  fi
+  if prebuilt_matches 2>/dev/null && [ -f "$DIST/index.html" ]; then
+    ok "Arayüz hazır (v$PREBUILT_VERSION)."
+  elif build_locally; then
+    ok "Arayüz yerelde derlendi."
+  elif [ -f "$DIST/index.html" ]; then
+    warn "Güncel arayüz alınamadı ve bu cihazda ($ARCH) derlenemiyor; eski arayüz kullanılacak. Birkaç dakika sonra bu betiği tekrar çalıştırın."
+  else
+    err "Arayüz indirilemedi ve bu cihazda ($ARCH) derlenemiyor. İnternet bağlantısını kontrol edip tekrar deneyin."
+  fi
 fi
 
 # ─── Başlatma betiği ─────────────────────────────────────────────────────────

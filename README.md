@@ -3,7 +3,7 @@
 **Sistem yönetimi platformu** — Modern web arayüzü ile sunucu yönetim işlemlerinizi yönetin.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.1-blue)
 
 > ⚠️ **Uyarı:** Bu proje kişisel kullanım için geliştirilmektedir. Bazı özellikler beklendiği gibi çalışmayabilir veya eksik olabilir.Bu proje hobi için yapılmıştır ve kullanıcıların yararlanması için genel kullanıma açılmıştır. **HİÇ BİR SORUMLULUK BANA AİT DEĞİLDİR!** Bu proje tamamen bir AI agent (opencode un servis ettiği big pickle,google gemini antigravity deki çeşitli modeller ve claude sonnet 5 ve opus 5) ile geliştirilmiştir, bu nedenle hatalar ve tutarsızlıklar içerebilir.
 
@@ -196,7 +196,10 @@ Arşivler tam yollarıyla saklanır; geri yükleme seçtiğiniz dizinin altına 
 - JWT tabanlı kimlik doğrulama; her giriş sunucu tarafında bir oturum kaydı açar, çıkış ve oturum kapatma anında etkilidir
 - Tüm hassas işlemler auth gerektirir (CI'da tüm uç noktaları tarayan bir test bunu doğrular)
 - Şifre hash ile saklanır (bcrypt), isteğe bağlı TOTP 2FA
-- Girişte kaba kuvvet koruması (5 dakikada 10 hatalı deneme → geçici kilit)
+- Girişte kaba kuvvet koruması: 5 dakikada aynı IP ve kullanıcı için 10, aynı IP için toplam 40 hatalı deneme → geçici kilit
+- Kurulum sihirbazı tamamlanmadan giriş kapalıdır (varsayılan şifreyle yeni kurulmuş cihaz ele geçirilemez)
+- Oturumlar kayan süreli: 24 saat boşta kalınca biter, en fazla 30 gün yaşar (`PCMANAGER_SESSION_HOURS`, `PCMANAGER_SESSION_MAX_DAYS`)
+- Sunucu loglarında `?token=` değerleri maskelenir
 - Şifre ortam değişkeni ile özelleştirilebilir (`PCMANAGER_PASSWORD`)
 
 > **v2.2.0'a yükseltenler için:** Önceki sürümlerde kimlik doğrulamasız erişilebilen bir dosya okuma açığı ve korumasız playbook uç noktaları kapatıldı.

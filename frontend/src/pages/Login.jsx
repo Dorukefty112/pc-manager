@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, setSession } from '../api'
+import { api, setSession, takeLoginNotice } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Eye, EyeOff, Lock, Monitor, ArrowRight, AlertCircle, User, KeyRound } from 'lucide-react'
 
@@ -11,6 +11,7 @@ export default function Login() {
   const [totp, setTotp] = useState('')
   const [needTotp, setNeedTotp] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState(() => (takeLoginNotice() ? 'Oturum süresi doldu veya sonlandırıldı. Lütfen tekrar giriş yapın.' : ''))
   const [loading, setLoading] = useState(false)
   const [show, setShow] = useState(false)
   const [siteName, setSiteName] = useState('PC Manager')
@@ -26,6 +27,7 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setNotice('')
     try {
       const res = await api('/api/auth/login', {
         method: 'POST',
@@ -37,7 +39,10 @@ export default function Login() {
       navigate('/')
     } catch (err) {
       const msg = err.message || ''
-      if (msg.includes('totp_required')) {
+      if (msg.includes('setup_required')) {
+        // Kurulum sihirbazı bitmeden giriş kapalı: sihirbaza yönlendir
+        navigate('/')
+      } else if (msg.includes('totp_required')) {
         setNeedTotp(true)
       } else if (msg.includes('totp_invalid')) {
         setError(t('Doğrulama kodu hatalı.'))
@@ -227,6 +232,20 @@ export default function Login() {
                   autoFocus
                   style={{ borderRadius: 12, padding: '11px 14px', width: '100%', letterSpacing: '0.3em', fontFamily: "'JetBrains Mono', monospace" }}
                 />
+              </div>
+            )}
+
+            {notice && !error && (
+              <div role="status" style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'var(--yellow-glow)',
+                border: '1px solid rgba(245,158,11,0.3)',
+                borderRadius: 10, padding: '10px 14px',
+                color: 'var(--yellow)', fontSize: '0.82rem',
+                animation: 'scale-in 0.2s ease-out',
+              }}>
+                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                {t(notice)}
               </div>
             )}
 

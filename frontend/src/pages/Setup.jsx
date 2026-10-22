@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, setToken } from '../api'
+import { api, setSession } from '../api'
 import { useI18n } from '../context/I18nContext'
 import { Eye, EyeOff, Check, ArrowRight, User, Globe, Lock, Server } from 'lucide-react'
 
@@ -34,7 +34,7 @@ export default function Setup() {
     try {
       await api('/api/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_name: form.admin_name.trim(), site_name: form.site_name.trim(), password: form.password }) })
       const loginRes = await api('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: form.password }) })
-      setToken(loginRes.token); setDone(true); navigate('/')
+      setSession(loginRes); setDone(true); navigate('/')
     } catch (e) { setError(e.message || t('Kurulum hatası')) }
     setSubmitting(false)
   }

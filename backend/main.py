@@ -9,6 +9,10 @@ from fastapi.responses import FileResponse, JSONResponse
 
 VERSION = (Path(__file__).parent.parent / "VERSION").read_text().strip()
 
+# Log kayıtlarındaki ?token=... değerlerini (JWT) maskele; uvicorn URL'leri olduğu gibi yazıyor
+import log_redact
+log_redact.install()
+
 # Android'de (Termux) /proc kısıtlamalarına karşı psutil'i router'lar yüklenmeden sarmala
 import android_compat
 android_compat.install()

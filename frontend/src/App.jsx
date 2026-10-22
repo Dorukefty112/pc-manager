@@ -6,7 +6,7 @@ import Login from './pages/Login'
 import Setup from './pages/Setup'
 import MobilePairing from './pages/MobilePairing'
 import { useI18n } from './context/I18nContext'
-import { isAuthenticated, getServerBase, setServerBase, setToken } from './api'
+import { isAuthenticated, isAdmin, getServerBase, setServerBase, setSession } from './api'
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { api } from './api'
 import { Capacitor } from '@capacitor/core'
@@ -56,6 +56,12 @@ function PageFallback() {
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />
   return children
+}
+
+// Salt-okunur (izleyici) kullanıcıların menüde görmediği sayfalara adres çubuğundan
+// girmesi sunucuda zaten 403 verir; burada boş/hatalı sayfa yerine ana sayfaya yönlendiriyoruz.
+function AdminRoute({ children }) {
+  return isAdmin() ? children : <Navigate to="/" replace />
 }
 
 function SetupGuard({ children }) {
@@ -110,7 +116,7 @@ function SetupGuard({ children }) {
             <button
               onClick={() => {
                 setServerBase(null)
-                setToken(null)
+                setSession(null)
                 window.location.reload()
               }}
               className="btn btn-secondary"
@@ -146,11 +152,11 @@ export default function App() {
               <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/" element={<Temperature />} />
-                <Route path="/terminal" element={<Terminal />} />
-                <Route path="/files/*" element={<Files />} />
+                <Route path="/terminal" element={<AdminRoute><Terminal /></AdminRoute>} />
+                <Route path="/files/*" element={<AdminRoute><Files /></AdminRoute>} />
                 <Route path="/power" element={<Power />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/pentest" element={<PenTest />} />
+                <Route path="/chat" element={<AdminRoute><Chat /></AdminRoute>} />
+                <Route path="/pentest" element={<AdminRoute><PenTest /></AdminRoute>} />
                 <Route path="/processes" element={<Processes />} />
                 <Route path="/network" element={<Network />} />
                 <Route path="/system-info" element={<SystemInfo />} />
@@ -160,24 +166,24 @@ export default function App() {
                 <Route path="/services" element={<Services />} />
                 <Route path="/docker" element={<Docker />} />
                 <Route path="/cron" element={<Cron />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/debug" element={<Debug />} />
+                <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+                <Route path="/debug" element={<AdminRoute><Debug /></AdminRoute>} />
                 <Route path="/deprem" element={<DepremUyari />} />
                 <Route path="/yangin" element={<OrmanYanginIzleme />} />
                 <Route path="/sel" element={<SelIzleme />} />
                 <Route path="/hava-uyari" element={<HavaUyari />} />
-                <Route path="/windows" element={<Windows />} />
-                <Route path="/search" element={<SearchEngine />} />
+                <Route path="/windows" element={<AdminRoute><Windows /></AdminRoute>} />
+                <Route path="/search" element={<AdminRoute><SearchEngine /></AdminRoute>} />
                 <Route path="/speedtest" element={<Speedtest />} />
                 <Route path="/firewall" element={<Firewall />} />
                 <Route path="/temperature" element={<Temperature />} />
                 <Route path="/playbooks" element={<Playbooks />} />
-                <Route path="/ai" element={<OllamaChat />} />
+                <Route path="/ai" element={<AdminRoute><OllamaChat /></AdminRoute>} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/metrics" element={<Metrics />} />
                 <Route path="/alerts" element={<Alerts />} />
-                <Route path="/backups" element={<Backups />} />
-                <Route path="/hosts" element={<Hosts />} />
+                <Route path="/backups" element={<AdminRoute><Backups /></AdminRoute>} />
+                <Route path="/hosts" element={<AdminRoute><Hosts /></AdminRoute>} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
               </Suspense>

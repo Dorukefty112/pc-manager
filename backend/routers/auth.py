@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES, API_TOKEN_MAX_DAYS, create_session,
-    list_sessions, get_session, revoke_session, revoke_sessions,
+    list_sessions, get_session, revoke_session, revoke_sessions, is_configured,
 )
 from dependencies import require_auth
 import users as user_store
@@ -13,35 +13,70 @@ import users as user_store
 router = APIRouter(tags=["auth"])
 
 # ─── Kaba kuvvet koruması ─────────────────────────────────────────────────────
+# İki kova: (IP, kullanıcı adı) başına MAX_FAILURES ve yalnızca IP başına
+# MAX_FAILURES_PER_IP. Tek bir IP'nin başka bir kullanıcıyı kilitlemesi ve kullanıcı
+# adı denemeleriyle limiti aşması böylece engellenir.
 MAX_FAILURES = 10
+MAX_FAILURES_PER_IP = 40
 FAILURE_WINDOW = 300
 _failures: dict[str, deque] = defaultdict(deque)
 _failures_lock = threading.Lock()
+LOOPBACK = ("127.0.0.1", "::1")
 
 
 def _client_ip(request: Request) -> str:
-    return request.client.host if request.client else "?"
+    peer = request.client.host if request.client else "?"
+    # Yalnızca yerel bir ters vekilden (ör. `tailscale serve`) gelen X-Forwarded-For'a
+    # güvenilir; vekil kendi eklediği (en sağdaki) adresi gerçek istemci sayarız.
+    if peer in LOOPBACK:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            last = forwarded.split(",")[-1].strip()
+            if last:
+                return last
+    return peer
 
 
-def _check_rate_limit(ip: str):
+def _keys(ip: str, username: str) -> tuple[str, str]:
+    return f"ip:{ip}", f"user:{ip}|{username.lower()}"
+
+
+def _purge(q: deque, now: float):
+    while q and now - q[0] > FAILURE_WINDOW:
+        q.popleft()
+
+
+def _check_rate_limit(ip: str, username: str = ""):
+    now = time.time()
+    ip_key, user_key = _keys(ip, username)
+    with _failures_lock:
+        for key, limit in ((ip_key, MAX_FAILURES_PER_IP), (user_key, MAX_FAILURES)):
+            q = _failures.get(key)
+            if q is None:
+                continue
+            _purge(q, now)
+            if not q:
+                del _failures[key]
+            elif len(q) >= limit:
+                retry = int(FAILURE_WINDOW - (now - q[0])) + 1
+                raise HTTPException(429, f"Çok fazla başarısız deneme. {retry} sn sonra tekrar deneyin.")
+
+
+def _record_failure(ip: str, username: str = ""):
     now = time.time()
     with _failures_lock:
-        q = _failures[ip]
-        while q and now - q[0] > FAILURE_WINDOW:
-            q.popleft()
-        if len(q) >= MAX_FAILURES:
-            retry = int(FAILURE_WINDOW - (now - q[0])) + 1
-            raise HTTPException(429, f"Çok fazla başarısız deneme. {retry} sn sonra tekrar deneyin.")
+        for key in _keys(ip, username):
+            _failures[key].append(now)
+        if len(_failures) > 2000:  # bellek sızıntısına karşı: süresi dolan kovaları at
+            for key in list(_failures):
+                _purge(_failures[key], now)
+                if not _failures[key]:
+                    del _failures[key]
 
 
-def _record_failure(ip: str):
+def _clear_failures(ip: str, username: str = ""):
     with _failures_lock:
-        _failures[ip].append(time.time())
-
-
-def _clear_failures(ip: str):
-    with _failures_lock:
-        _failures.pop(ip, None)
+        _failures.pop(_keys(ip, username)[1], None)  # IP kovası geçmişi korunur
 
 
 class LoginRequest(BaseModel):
@@ -60,19 +95,22 @@ class LoginResponse(BaseModel):
 @router.post("/auth/login", response_model=LoginResponse)
 def login(body: LoginRequest, request: Request):
     ip = _client_ip(request)
-    _check_rate_limit(ip)
     username = (body.username or "").strip() or user_store.default_login_username()
+    _check_rate_limit(ip, username)
+    if not is_configured():
+        # 403 + sabit kod: arayüz bunu görünce kurulum sihirbazına yönlendirir
+        raise HTTPException(403, "setup_required")
     user = user_store.authenticate(username, body.password)
     if not user:
-        _record_failure(ip)
+        _record_failure(ip, username)
         raise HTTPException(401, "Geçersiz kullanıcı adı veya şifre")
     if user.get("totp_enabled"):
         if not body.totp:
             raise HTTPException(401, "totp_required")
         if not user_store.verify_totp(user, body.totp):
-            _record_failure(ip)
+            _record_failure(ip, username)
             raise HTTPException(401, "totp_invalid")
-    _clear_failures(ip)
+    _clear_failures(ip, username)
     role = user.get("role", "viewer")
     token, _ = create_session(
         user["username"], role, kind="web",

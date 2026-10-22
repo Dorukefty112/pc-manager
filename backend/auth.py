@@ -11,8 +11,23 @@ from fastapi import HTTPException, status
 import bcrypt
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480
 API_TOKEN_MAX_DAYS = 3650
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+# Web oturumları KAYAN süreli: her kullanımda "boşta kalma" süresi uzar, ama
+# oturum açıldığı andan itibaren SESSION_MAX_DAYS gün sonra mutlaka biter.
+# (Eskiden sabit 8 saatti; sürekli açık duran bir telefon panelinden atılıyordu.)
+SESSION_IDLE_MINUTES = max(5, int(_env_float("PCMANAGER_SESSION_HOURS", 24) * 60))
+SESSION_MAX_DAYS = max(1, int(_env_float("PCMANAGER_SESSION_MAX_DAYS", 30)))
+ACCESS_TOKEN_EXPIRE_MINUTES = SESSION_IDLE_MINUTES  # istemciye bildirilen süre
+MAX_WEB_SESSIONS_PER_USER = 20
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
 JWT_SECRET_PATH = Path(__file__).parent / ".jwt_secret"
@@ -21,17 +36,43 @@ SESSIONS_PATH = Path(__file__).parent / "sessions.json"
 ROLES = ("admin", "viewer")
 
 
+def _read_secret() -> str:
+    try:
+        value = JWT_SECRET_PATH.read_text().strip()
+    except OSError:
+        return ""
+    if value:
+        try:
+            os.chmod(JWT_SECRET_PATH, 0o600)  # eski kurulumlarda herkese açık olabilir
+        except OSError:
+            pass
+    return value
+
+
 def _get_secret_key() -> str:
     env_key = os.environ.get("PCMANAGER_SECRET")
     if env_key:
         return env_key
-    if JWT_SECRET_PATH.exists():
-        return JWT_SECRET_PATH.read_text().strip()
+    existing = _read_secret()
+    if existing:
+        return existing
     key = secrets.token_hex(32)
     try:
-        JWT_SECRET_PATH.write_text(key)
-    except Exception:
-        pass
+        # O_EXCL: iki süreç aynı anda ilk kez başlarsa yalnızca biri yazar, diğeri onunkini okur
+        fd = os.open(JWT_SECRET_PATH, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(key)
+    except FileExistsError:
+        existing = _read_secret()
+        if existing:
+            return existing
+        try:  # boş/bozuk dosya
+            JWT_SECRET_PATH.write_text(key)
+            os.chmod(JWT_SECRET_PATH, 0o600)
+        except OSError as e:
+            print(f"[auth] UYARI: {JWT_SECRET_PATH} yazılamadı ({e}); oturumlar yeniden başlatınca geçersiz olacak")
+    except OSError as e:
+        print(f"[auth] UYARI: {JWT_SECRET_PATH} yazılamadı ({e}); oturumlar yeniden başlatınca geçersiz olacak")
     return key
 
 
@@ -95,7 +136,27 @@ def upgrade_hash(password: str) -> str | None:
     return new_hash
 
 
-def create_access_token(data: dict, expire_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
+def is_configured() -> bool:
+    """Kurulum sihirbazı tamamlandı mı (ya da şifre ortam değişkeniyle verildi mi)?
+
+    Tamamlanmadan önce herkesin bildiği varsayılan şifreyle giriş YAPILAMAZ;
+    aksi halde yeni kurulmuş ve ağa açık bir cihaz, sihirbaz bitmeden tam
+    yetkiyle (terminal dahil) ele geçirilebilirdi.
+    PCMANAGER_ALLOW_DEFAULT_PASSWORD=1 yalnızca testler/geliştirme içindir.
+    """
+    if os.environ.get("PCMANAGER_ALLOW_DEFAULT_PASSWORD") == "1":
+        return True
+    if os.environ.get("PCMANAGER_PASSWORD") or os.environ.get("PCMANAGER_PASSWORD_HASH"):
+        return True
+    try:
+        cfg = json.loads(CONFIG_PATH.read_text())
+    except (OSError, ValueError):
+        return False
+    setup = cfg.get("setup")
+    return bool((isinstance(setup, dict) and setup.get("completed")) or cfg.get("_password_hash") or cfg.get("users"))
+
+
+def create_access_token(data: dict, expire_minutes: int = SESSION_IDLE_MINUTES) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=expire_minutes)
     to_encode.update({"exp": expire})
@@ -139,12 +200,29 @@ def _save_sessions(data: dict):
 
 
 def create_session(username: str, role: str, kind: str = "web", name: str = "",
-                   expire_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+                   expire_minutes: int | None = None,
                    ip: str = "", user_agent: str = "") -> tuple[str, str]:
-    jti = secrets.token_hex(16)
     now = time.time()
+    if kind == "web":
+        idle = (expire_minutes or SESSION_IDLE_MINUTES) * 60
+        absolute = now + SESSION_MAX_DAYS * 86400
+        expires = min(now + idle, absolute)
+        jwt_minutes = SESSION_MAX_DAYS * 24 * 60
+    else:  # api: sabit süreli, kayan değil
+        minutes = expire_minutes or SESSION_IDLE_MINUTES
+        idle, expires, absolute = 0, now + minutes * 60, now + minutes * 60
+        jwt_minutes = minutes
+    jti = secrets.token_hex(16)
     with _sessions_lock:
         sessions = {k: v for k, v in _load_sessions().items() if v.get("expires", 0) > now}
+        if kind == "web":
+            # Kullanıcı başına web oturumu sayısını sınırla: en az kullanılanlar düşer
+            mine = sorted(
+                ((k, v) for k, v in sessions.items() if v.get("username") == username and v.get("kind", "web") == "web"),
+                key=lambda kv: kv[1].get("last_seen", 0),
+            )
+            for k, _ in mine[: max(0, len(mine) - (MAX_WEB_SESSIONS_PER_USER - 1))]:
+                sessions.pop(k)
         sessions[jti] = {
             "username": username,
             "role": role,
@@ -152,12 +230,14 @@ def create_session(username: str, role: str, kind: str = "web", name: str = "",
             "name": name,
             "created": int(now),
             "last_seen": int(now),
-            "expires": int(now + expire_minutes * 60),
+            "expires": int(expires),
+            "absolute": int(absolute),
+            "idle": int(idle),
             "ip": ip,
             "user_agent": user_agent[:200],
         }
         _save_sessions(sessions)
-    token = create_access_token({"sub": username, "jti": jti}, expire_minutes=expire_minutes)
+    token = create_access_token({"sub": username, "jti": jti}, expire_minutes=jwt_minutes)
     return token, jti
 
 
@@ -218,17 +298,24 @@ def update_session_role(username: str, role: str):
 
 
 def _touch_session(jti: str, session: dict):
+    """Son görülmeyi günceller ve web oturumunun boşta kalma süresini uzatır."""
     now = int(time.time())
     if now - session.get("last_seen", 0) < _LAST_SEEN_INTERVAL:
         return
     with _sessions_lock:
         sessions = dict(_load_sessions())
-        if jti in sessions:
-            sessions[jti] = {**sessions[jti], "last_seen": now}
-            try:
-                _save_sessions(sessions)
-            except OSError:
-                pass
+        current = sessions.get(jti)
+        if not current:
+            return
+        updated = {**current, "last_seen": now}
+        idle = current.get("idle", 0)
+        if current.get("kind", "web") == "web" and idle:
+            updated["expires"] = int(min(now + idle, current.get("absolute", now + idle)))
+        sessions[jti] = updated
+        try:
+            _save_sessions(sessions)
+        except OSError:
+            pass
 
 
 def _unauthorized(detail: str = "Geçersiz veya süresi dolmuş token"):

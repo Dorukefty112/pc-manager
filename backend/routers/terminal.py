@@ -13,10 +13,9 @@ import asyncio
 import signal
 import threading
 from pathlib import Path
-from urllib.parse import parse_qs
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
-from dependencies import require_auth, verify_ws_token
+from dependencies import require_auth, authorize_ws
 
 router = APIRouter(tags=["terminal"])
 
@@ -227,21 +226,9 @@ def _ssh_argv(host_id: str) -> tuple[list[str], str] | None:
     return None
 
 
-async def authorize_ws(websocket: WebSocket, token: str, admin: bool = True) -> dict | None:
-    token = token or parse_qs(websocket.url.query).get("token", [None])[0]
-    if not token:
-        await websocket.close(code=4001, reason="Token gerekli")
-        return None
-    payload = verify_ws_token(token, admin=admin)
-    if not payload:
-        await websocket.close(code=4001, reason="Geçersiz token veya yetki yok")
-        return None
-    return payload
-
-
 @router.websocket("/terminal")
 async def terminal(websocket: WebSocket, token: str = Query(""), host: str = Query("")):
-    payload = await authorize_ws(websocket, token)
+    payload = await authorize_ws(websocket, token, admin=True)
     if not payload:
         return
 
